@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>MCD — Commande & Livraison</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --grid:#141d33;
+    --panel:#101a2e;
+    --line:#3a4a6b;
+    --line-soft:#26324d;
+    --text:#e8ecf5;
+    --sub:#93a2c2;
+    --pk:#ffcf6b;
+    --assoc:#f4b942;
+    --assoc-bg:#2a2210;
+    --zone-user:#4f8cff;
+    --zone-catalog:#37c979;
+    --zone-order:#f4b942;
+    --zone-pay:#ff6b6b;
+    --zone-deliv:#c084fc;
+    --zone-engage:#38d9d9;
+    --mono: "JetBrains Mono","Fira Code",Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--mono);}
+  #topbar{
+    position:fixed;top:0;left:0;right:0;height:64px;z-index:50;
+    background:rgba(11,18,32,0.92);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line-soft);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;
+  }
+  #topbar h1{font-size:15px;font-weight:600;letter-spacing:.04em;margin:0;color:var(--text);}
+  #topbar h1 span{color:var(--assoc);}
+  #topbar .sub{font-size:11px;color:var(--sub);margin-top:2px;}
+  #controls{display:flex;gap:8px;align-items:center;}
+  #controls button{
+    background:var(--grid);color:var(--text);border:1px solid var(--line-soft);
+    border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;
+  }
+  #controls button:hover{border-color:var(--assoc);color:var(--assoc);}
+  #zoomLabel{font-size:11px;color:var(--sub);width:44px;text-align:center;}
+
+  #scrollwrap{
+    position:absolute;top:64px;left:0;right:0;bottom:0;overflow:auto;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:40px 40px;
+  }
+  #canvas{
+    position:relative;
+    width:3100px;height:3300px;
+    transform-origin: 0 0;
+  }
+  svg#links{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;}
+
+  .zoneLabel{
+    position:absolute;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--sub);border-left:2px solid var(--zc);padding-left:8px;
+  }
+
+  .entity{
+    position:absolute;width:210px;background:var(--panel);
+    border:1px solid var(--line-soft);border-radius:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    overflow:hidden;z-index:3;
+  }
+  .entity .head{
+    padding:8px 10px;font-size:12.5px;font-weight:700;letter-spacing:.03em;
+    color:#0b1220;background:var(--zc);
+  }
+  .entity ul{list-style:none;margin:0;padding:6px 0;}
+  .entity li{
+    font-size:10.8px;padding:3px 10px;color:var(--sub);
+    display:flex;justify-content:space-between;gap:8px;white-space:nowrap;
+  }
+  .entity li.pk{color:var(--pk);font-weight:700;border-bottom:1px dashed var(--line-soft);}
+  .entity li .type{color:#5b6a8c;font-style:italic;}
+
+  .assoc{
+    position:absolute;min-width:150px;max-width:190px;
+    background:var(--assoc-bg);border:1.5px solid var(--assoc);
+    border-radius:999px;padding:7px 14px;text-align:center;z-index:4;
+  }
+  .assoc .verb{font-size:11.5px;font-weight:700;color:var(--assoc);letter-spacing:.03em;}
+  .assoc .attrs{margin-top:3px;font-size:9.3px;color:#d8c48a;line-height:1.5;}
+  .assoc .attrs i{color:#93844f;}
+  .assoc.xor{border-style:dashed;}
+
+  .card{
+    position:absolute;font-size:10px;font-weight:700;color:#0b1220;
+    background:var(--assoc);padding:1px 5px;border-radius:4px;z-index:6;
+  }
+
+  #legend{
+    position:absolute;left:3150px;top:0;width:340px;
+  }
+  #legend .box{
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;
+    padding:16px 18px;margin-bottom:16px;font-size:11.5px;color:var(--sub);line-height:1.7;
+  }
+  #legend h3{color:var(--text);font-size:12.5px;margin:0 0 8px;letter-spacing:.05em;text-transform:uppercase;}
+  #legend .swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;}
+  #legend code{color:var(--assoc);}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div>
+    <h1>MCD — Module <span>Commande &amp; Livraison</span></h1>
+    <div class="sub">33 entités · 51 associations · notation Merise (min,max) — glisser une entité pour la déplacer, zoomer avec les boutons</div>
+  </div>
+  <div id="controls">
+    <button id="zoomOut">−</button>
+    <span id="zoomLabel">100%</span>
+    <button id="zoomIn">+</button>
+    <button id="zoomReset" style="width:auto;padding:0 10px;">reset</button>
+  </div>
+</div>
+
+<div id="scrollwrap">
+  <div id="canvas">
+    <svg id="links" width="3100" height="3300"></svg>
+    <!-- entities & associations injected by JS -->
+    <div id="legend"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   DONNÉES DU MCD — Commande & Livraison (fusion e-commerce
+   + restauration + logistique de livraison)
+   ========================================================= */
+
+const ZONES = {
+  user:   {label:"Utilisateurs & identité",   color:"var(--zone-user)"},
+  catalog:{label:"Catalogue & stock",          color:"var(--zone-catalog)"},
+  order:  {label:"Panier & commande",          color:"var(--zone-order)"},
+  pay:    {label:"Paiement & facturation",     color:"var(--zone-pay)"},
+  deliv:  {label:"Livraison & logistique",     color:"var(--zone-deliv)"},
+  engage: {label:"Engagement & communication", color:"var(--zone-engage)"},
+};
+
+const ENTITIES = [
+  /* ---------- Utilisateurs & identité ---------- */
+  {id:"UTILISATEUR", zone:"user", x:560, y:40, attrs:[
+    ["id_utilisateur","INT",true],["email","VARCHAR unique"],["mot_de_passe_hash","VARCHAR"],
+    ["nom","VARCHAR"],["prenom","VARCHAR"],["telephone","VARCHAR"],
+    ["role","ENUM(CLIENT/VENDEUR/GEST/LIVREUR/ADMIN)"],
+    ["statut_compte","ENUM(ACTIF/ATTENTE/SUSPENDU)"],
+    ["date_inscription","DATETIME"],["derniere_connexion","DATETIME"]
+  ]},
+  {id:"CLIENT", zone:"user", x:60, y:380, attrs:[
+    ["id_client","INT",true],["date_naissance","DATE"],["consentement_marketing","BOOL"]
+  ]},
+  {id:"VENDEUR", zone:"user", x:380, y:380, attrs:[
+    ["id_vendeur","INT",true],["nom_boutique","VARCHAR"],
+    ["type_activite","ENUM(EXPRESS/STANDARD)"],
+    ["rayon_livraison_km","DECIMAL"],["siret","VARCHAR"],
+    ["description","TEXT"],["logo_url","VARCHAR"],["note_moyenne","DECIMAL"],
+    ["statut_validation","ENUM(ATTENTE/VALIDE/SUSPENDU)"],
+    ["compte_stripe_id","VARCHAR"],["taux_commission","DECIMAL"]
+  ]},
+  {id:"GESTIONNAIRE", zone:"user", x:700, y:380, attrs:[
+    ["id_gestionnaire","INT",true],
+    ["type_gestionnaire","ENUM(STAFF_VENDEUR/STAFF_ENTREPOT)"],
+    ["date_embauche","DATE"]
+  ]},
+  {id:"LIVREUR", zone:"user", x:1020, y:380, attrs:[
+    ["id_livreur","INT",true],["vehicule","ENUM"],
+    ["mode_livraison","ENUM(EXPRESS/STANDARD)"],
+    ["statut_validation","ENUM"],["statut_disponibilite","ENUM"],
+    ["position_lat","DECIMAL"],["position_lon","DECIMAL"],["note_moyenne","DECIMAL"]
+  ]},
+  {id:"ADMIN", zone:"user", x:1340, y:380, attrs:[
+    ["id_admin","INT",true],["niveau","ENUM(ADMIN/SUPER_ADMIN)"]
+  ]},
+  {id:"ADRESSE", zone:"user", x:60, y:700, attrs:[
+    ["id_adresse","INT",true],["libelle","VARCHAR"],["rue","VARCHAR"],
+    ["complement","VARCHAR"],["ville","VARCHAR"],["code_postal","VARCHAR"],
+    ["pays","VARCHAR"],["latitude","DECIMAL"],["longitude","DECIMAL"],
+    ["instructions_livraison","TEXT"]
+  ]},
+
+  /* ---------- Catalogue & stock ---------- */
+  {id:"PRODUIT", zone:"catalog", x:1700, y:40, attrs:[
+    ["id_produit","INT",true],["nom","VARCHAR"],["description","TEXT"],
+    ["prix_unitaire_centimes","INT"],["image_principale_url","VARCHAR"],
+    ["poids_grammes","INT"],["stock_disponible","INT"],["stock_reserve","INT"],
+    ["seuil_alerte","INT"],["est_visible","BOOL"],["date_ajout","DATETIME"]
+  ]},
+  {id:"CATEGORIE", zone:"catalog", x:2050, y:40, attrs:[
+    ["id_categorie","INT",true],["nom","VARCHAR"],["slug","VARCHAR"],["description","TEXT"]
+  ]},
+  {id:"PHOTO_PRODUIT", zone:"catalog", x:2400, y:40, attrs:[
+    ["id_photo","INT",true],["url","VARCHAR"],["ordre","INT"],["texte_alternatif","VARCHAR"]
+  ]},
+  {id:"ALERTE_DISPONIBILITE", zone:"catalog", x:2750, y:40, attrs:[
+    ["id_alerte","INT",true],["date_demande","DATETIME"],
+    ["date_notification","DATETIME"],["statut","ENUM(ATTENTE/NOTIFIEE/ANNULEE)"]
+  ]},
+  {id:"MOUVEMENT_STOCK", zone:"catalog", x:2050, y:560, attrs:[
+    ["id_mouvement","INT",true],
+    ["type","ENUM(VENTE/REAPPRO/AJUSTEMENT/RETOUR)"],
+    ["quantite","INT signé"],["motif","VARCHAR"],["stock_apres","INT"],
+    ["date_mouvement","DATETIME"]
+  ]},
+
+  /* ---------- Panier & commande ---------- */
+  {id:"PANIER", zone:"order", x:60, y:1060, attrs:[
+    ["id_panier","INT",true],["cle_session","VARCHAR"],["date_creation","DATETIME"],
+    ["date_maj","DATETIME"],["statut","ENUM(ACTIF/CONVERTI/ABANDONNE)"]
+  ]},
+  {id:"LIGNE_PANIER", zone:"order", x:430, y:1060, attrs:[
+    ["id_ligne_panier","INT",true],["quantite","INT"],
+    ["prix_capture_centimes","INT"],["date_ajout","DATETIME"]
+  ]},
+  {id:"COMMANDE", zone:"order", x:900, y:1060, attrs:[
+    ["id_commande","INT",true],["numero_commande","VARCHAR"],
+    ["type_service","ENUM(EXPRESS/STANDARD)"],["statut_actuel","ENUM"],
+    ["montant_produits_centimes","INT"],["montant_livraison_centimes","INT"],
+    ["montant_remise_centimes","INT"],["montant_total_centimes","INT"],
+    ["date_commande","DATETIME"],["date_livraison_estimee","DATETIME"]
+  ]},
+  {id:"SOUS_COMMANDE", zone:"order", x:1350, y:1060, attrs:[
+    ["id_sous_commande","INT",true],["statut_preparation","ENUM"],
+    ["montant_vendeur_centimes","INT"],["montant_commission_centimes","INT"],
+    ["date_expedition_entrepot","DATETIME"]
+  ]},
+  {id:"LIGNE_COMMANDE", zone:"order", x:1800, y:1060, attrs:[
+    ["id_ligne_commande","INT",true],["nom_produit_capture","VARCHAR"],
+    ["prix_unitaire_centimes","INT"],["quantite","INT"],["sous_total_centimes","INT"]
+  ]},
+  {id:"HISTORIQUE_STATUT", zone:"order", x:600, y:1400, attrs:[
+    ["id_historique","INT",true],["type_objet","ENUM(COMMANDE/LIVRAISON)"],
+    ["statut_avant","VARCHAR"],["statut_apres","VARCHAR"],
+    ["commentaire","TEXT"],["date_changement","DATETIME"]
+  ]},
+
+  /* ---------- Paiement & facturation ---------- */
+  {id:"PAIEMENT", zone:"pay", x:60, y:1680, attrs:[
+    ["id_paiement","INT",true],["montant_centimes","INT"],["methode","ENUM"],
+    ["statut_paiement","ENUM(ATTENTE/CAPTURE/ECHOUE/REMBOURSE)"],
+    ["reference_stripe","VARCHAR"],["date_paiement","DATETIME"]
+  ]},
+  {id:"REPARTITION_VENDEUR", zone:"pay", x:500, y:1680, attrs:[
+    ["id_repartition","INT",true],["montant_vendeur_centimes","INT"],
+    ["montant_commission_centimes","INT"],["reference_transfert_stripe","VARCHAR"],
+    ["statut","ENUM"]
+  ]},
+  {id:"REMBOURSEMENT", zone:"pay", x:1380, y:1680, attrs:[
+    ["id_remboursement","INT",true],["montant_centimes","INT"],["motif","VARCHAR"],
+    ["type","ENUM(TOTAL/PARTIEL)"],["reference_stripe","VARCHAR"],["date","DATETIME"]
+  ]},
+  {id:"FACTURE", zone:"pay", x:1820, y:1680, attrs:[
+    ["id_facture","INT",true],["numero_facture","VARCHAR"],["date_emission","DATETIME"],
+    ["montant_ht_centimes","INT"],["montant_ttc_centimes","INT"],
+    ["taux_tva","DECIMAL"],["url_pdf","VARCHAR"]
+  ]},
+  {id:"PROMOTION", zone:"pay", x:2260, y:1680, attrs:[
+    ["id_promotion","INT",true],["code","VARCHAR"],
+    ["type_reduction","ENUM(POURCENT/MONTANT/FRAIS)"],["valeur","DECIMAL"],
+    ["montant_minimum_centimes","INT"],["date_debut","DATE"],["date_fin","DATE"],
+    ["quantite_max","INT"],["quantite_utilisee","INT"],["cumulable","BOOL"]
+  ]},
+
+  /* ---------- Livraison & logistique ---------- */
+  {id:"ZONE_LIVRAISON", zone:"deliv", x:60, y:2260, attrs:[
+    ["id_zone","INT",true],["nom","VARCHAR"],["polygone_gps","GEOJSON"],
+    ["frais_base_centimes","INT"],["seuil_gratuite_centimes","INT"]
+  ]},
+  {id:"LIVRAISON", zone:"deliv", x:500, y:2260, attrs:[
+    ["id_livraison","INT",true],["statut_livraison","ENUM"],["distance_km","DECIMAL"],
+    ["frais_calcules_centimes","INT"],["remuneration_livreur_centimes","INT"],
+    ["date_attribution","DATETIME"],["date_prise_en_charge","DATETIME"],
+    ["date_estimee","DATETIME"],["date_reelle","DATETIME"],["code_confirmation","VARCHAR"]
+  ]},
+  {id:"TENTATIVE_LIVRAISON", zone:"deliv", x:940, y:2260, attrs:[
+    ["id_tentative","INT",true],["numero_tentative","INT"],
+    ["resultat","ENUM(LIVREE/ABSENT/INTROUVABLE/REFUSEE)"],
+    ["commentaire","TEXT"],["preuve_url","VARCHAR"],["date_tentative","DATETIME"]
+  ]},
+  {id:"TOURNEE", zone:"deliv", x:1380, y:2260, attrs:[
+    ["id_tournee","INT",true],["statut","ENUM(BROUILLON/PRETE/EN_COURS/TERMINEE)"],
+    ["date_creation","DATETIME"],["date_debut","DATETIME"],["date_fin","DATETIME"],
+    ["nombre_arrets","INT"],["distance_totale_km","DECIMAL"]
+  ]},
+  {id:"ARRET_TOURNEE", zone:"deliv", x:1820, y:2260, attrs:[
+    ["id_arret","INT",true],["ordre","INT"],
+    ["statut","ENUM(A_FAIRE/LIVRE/ECHOUE/REPORTE)"],
+    ["heure_estimee","DATETIME"],["heure_reelle","DATETIME"]
+  ]},
+  {id:"ENTREPOT", zone:"deliv", x:2260, y:2260, attrs:[
+    ["id_entrepot","INT",true],["nom","VARCHAR"],["capacite","INT"],["est_actif","BOOL"]
+  ]},
+
+  /* ---------- Engagement & communication ---------- */
+  {id:"AVIS", zone:"engage", x:60, y:2900, attrs:[
+    ["id_avis","INT",true],["cible","ENUM(PRODUIT/VENDEUR/LIVREUR)"],
+    ["id_cible","INT"],["note","INT 1-5"],["commentaire","TEXT"],
+    ["date_avis","DATETIME"],["statut_moderation","ENUM"]
+  ]},
+  {id:"LITIGE", zone:"engage", x:500, y:2900, attrs:[
+    ["id_litige","INT",true],["motif","ENUM(NON_CONFORME/ENDOMMAGE/NON_RECU)"],
+    ["description","TEXT"],["preuves_urls","TEXT"],
+    ["statut","ENUM(OUVERT/EN_COURS/RESOLU/REJETE)"],["resolution","TEXT"],
+    ["montant_rembourse_centimes","INT"],["date_ouverture","DATETIME"],
+    ["date_resolution","DATETIME"]
+  ]},
+  {id:"NOTIFICATION", zone:"engage", x:940, y:2900, attrs:[
+    ["id_notification","INT",true],["type","ENUM"],["titre","VARCHAR"],
+    ["contenu","TEXT"],["lien_action","VARCHAR"],
+    ["canal","ENUM(IN_APP/EMAIL/PUSH)"],["date_envoi","DATETIME"],["date_lecture","DATETIME"]
+  ]},
+  {id:"JOURNAL_AUDIT", zone:"engage", x:1380, y:2900, attrs:[
+    ["id_audit","INT",true],["action","VARCHAR"],["type_objet","VARCHAR"],
+    ["id_objet","INT"],["donnees_avant","JSON"],["donnees_apres","JSON"],
+    ["adresse_ip","VARCHAR"],["date_action","DATETIME"]
+  ]},
+];
+
+// Associations : verbe + cardinalités (min,max) sur chaque branche + attributs portés
+const RELATIONS = [
+  /* --- identité : spécialisation d'UTILISATEUR en profils de rôle --- */
+  {id:"A1", verb:"EST_CLIENT", x:60, y:270, attrs:[],
+    links:[["UTILISATEUR","1,1"],["CLIENT","0,1"]]},
+  {id:"A2", verb:"EST_VENDEUR", x:380, y:270, attrs:[],
+    links:[["UTILISATEUR","1,1"],["VENDEUR","0,1"]]},
+  {id:"A3", verb:"EST_GESTIONNAIRE", x:700, y:270, attrs:[],
+    links:[["UTILISATEUR","1,1"],["GESTIONNAIRE","0,1"]]},
+  {id:"A4", verb:"EST_LIVREUR", x:1020, y:270, attrs:[],
+    links:[["UTILISATEUR","1,1"],["LIVREUR","0,1"]]},
+  {id:"A5", verb:"EST_ADMIN", x:1340, y:270, attrs:[],
+    links:[["UTILISATEUR","1,1"],["ADMIN","0,1"]]},
+
+  {id:"A6", verb:"POSSEDER", x:60, y:560, attrs:["est_principale"],
+    links:[["CLIENT","1,N"],["ADRESSE","0,1"]]},
+  {id:"A7", verb:"SE_SITUER_A", x:380, y:700, attrs:[],
+    links:[["VENDEUR","1,1"],["ADRESSE","0,1"]]},
+  {id:"A8", verb:"EMPLOYER", x:700, y:620, attrs:[], xor:true,
+    links:[["VENDEUR","0,N"],["GESTIONNAIRE","0,1"]]},
+  {id:"A9", verb:"TRAVAILLER_A", x:1020, y:620, attrs:[], xor:true,
+    links:[["ENTREPOT","0,N"],["GESTIONNAIRE","0,1"]]},
+  {id:"A10", verb:"RATTACHE_A", x:1340, y:620, attrs:[],
+    links:[["ENTREPOT","0,N"],["LIVREUR","0,1"]]},
+
+  /* --- catalogue --- */
+  {id:"A11", verb:"PROPOSER", x:1450, y:700, attrs:[],
+    links:[["VENDEUR","1,1"],["PRODUIT","1,N"]]},
+  {id:"A12", verb:"CLASSER", x:1900, y:330, attrs:[],
+    links:[["PRODUIT","1,1"],["CATEGORIE","0,N"]]},
+  {id:"A13", verb:"SE_DECOMPOSER (réflexif)", x:2280, y:200, attrs:["parent / enfants"],
+    links:[["CATEGORIE","0,1"],["CATEGORIE","0,N"]]},
+  {id:"A14", verb:"ILLUSTRER", x:2400, y:330, attrs:[],
+    links:[["PRODUIT","1,N"],["PHOTO_PRODUIT","1,1"]]},
+  {id:"A15", verb:"PORTER_SUR", x:2750, y:240, attrs:[],
+    links:[["PRODUIT","0,N"],["ALERTE_DISPONIBILITE","1,1"]]},
+  {id:"A16", verb:"S_ABONNER", x:2750, y:560, attrs:[],
+    links:[["UTILISATEUR","0,N"],["ALERTE_DISPONIBILITE","1,1"]]},
+  {id:"A17", verb:"TRACER", x:1700, y:560, attrs:["motif obligatoire si ajustement"],
+    links:[["PRODUIT","0,N"],["MOUVEMENT_STOCK","1,1"]]},
+
+  /* --- panier & commande --- */
+  {id:"A18", verb:"REMPLIR", x:300, y:940, attrs:[],
+    links:[["CLIENT","1,N"],["PANIER","0,1"]]},
+  {id:"A19", verb:"CONTENIR", x:250, y:1300, attrs:[],
+    links:[["PANIER","1,N"],["LIGNE_PANIER","1,1"]]},
+  {id:"A20", verb:"REFERENCER", x:650, y:940, attrs:[],
+    links:[["LIGNE_PANIER","0,N"],["PRODUIT","1,1"]]},
+  {id:"A21", verb:"DONNER_LIEU_A", x:60, y:1560, attrs:["date_conversion"],
+    links:[["PANIER","1,1"],["COMMANDE","0,N"]]},
+  {id:"A22", verb:"PASSER", x:900, y:830, attrs:[],
+    links:[["CLIENT","1,N"],["COMMANDE","1,1"]]},
+  {id:"A23", verb:"LIVRER_A", x:1350, y:830, attrs:["adresse figée à la commande"],
+    links:[["ADRESSE","0,N"],["COMMANDE","1,1"]]},
+  {id:"A24", verb:"PREPARER", x:1620, y:830, attrs:[],
+    links:[["VENDEUR","1,N"],["SOUS_COMMANDE","1,1"]]},
+  {id:"A25", verb:"SE_SCINDER_EN", x:1350, y:1300, attrs:[],
+    links:[["COMMANDE","1,N"],["SOUS_COMMANDE","1,1"]]},
+  {id:"A26", verb:"COMPOSER", x:1800, y:1300, attrs:[],
+    links:[["SOUS_COMMANDE","1,N"],["LIGNE_COMMANDE","1,1"]]},
+  {id:"A27", verb:"CONCERNER", x:2100, y:940, attrs:["nom et prix recopiés"],
+    links:[["LIGNE_COMMANDE","0,N"],["PRODUIT","1,1"]]},
+  {id:"A28", verb:"EVOLUER", x:700, y:1300, attrs:[],
+    links:[["COMMANDE","1,N"],["HISTORIQUE_STATUT","1,1"]]},
+
+  /* --- paiement --- */
+  {id:"A29", verb:"REGLER", x:430, y:1560, attrs:[],
+    links:[["COMMANDE","1,1"],["PAIEMENT","1,1"]]},
+  {id:"A30", verb:"REPARTIR", x:280, y:1900, attrs:["Stripe Connect"],
+    links:[["PAIEMENT","1,N"],["REPARTITION_VENDEUR","1,1"]]},
+  {id:"A31", verb:"REVENIR_A", x:1150, y:1900, attrs:[],
+    links:[["SOUS_COMMANDE","1,1"],["REPARTITION_VENDEUR","0,1"]]},
+  {id:"A32", verb:"REMBOURSER", x:1150, y:1560, attrs:[],
+    links:[["PAIEMENT","0,N"],["REMBOURSEMENT","1,1"]]},
+  {id:"A33", verb:"GENERER", x:1620, y:1560, attrs:[],
+    links:[["COMMANDE","1,1"],["FACTURE","0,1"]]},
+  {id:"A34", verb:"APPLIQUER", x:2050, y:1560, attrs:["montant_remise_applique"],
+    links:[["COMMANDE","0,N"],["PROMOTION","0,N"]]},
+
+  /* --- livraison --- */
+  {id:"A35", verb:"DECLENCHER", x:900, y:2080, attrs:[],
+    links:[["COMMANDE","1,1"],["LIVRAISON","0,1"]]},
+  {id:"A36", verb:"ASSURER", x:300, y:2080, attrs:[],
+    links:[["LIVREUR","0,N"],["LIVRAISON","0,1"]]},
+  {id:"A37", verb:"DESSERVIR", x:280, y:2450, attrs:[],
+    links:[["ZONE_LIVRAISON","1,1"],["LIVRAISON","0,N"]]},
+  {id:"A38", verb:"APPARTENIR_A", x:60, y:2080, attrs:[],
+    links:[["ADRESSE","0,N"],["ZONE_LIVRAISON","1,1"]]},
+  {id:"A39", verb:"TENTER", x:760, y:2450, attrs:["preuve photo"],
+    links:[["LIVRAISON","1,N"],["TENTATIVE_LIVRAISON","1,1"]]},
+  {id:"A40", verb:"REGROUPER", x:1600, y:2450, attrs:["ordre de passage"],
+    links:[["TOURNEE","1,N"],["ARRET_TOURNEE","1,1"]]},
+  {id:"A41", verb:"CIBLER", x:1150, y:2080, attrs:[],
+    links:[["ARRET_TOURNEE","1,1"],["LIVRAISON","0,1"]]},
+  {id:"A42", verb:"CONFIER", x:1380, y:2080, attrs:[],
+    links:[["LIVREUR","0,N"],["TOURNEE","0,1"]]},
+  {id:"A43", verb:"CONSTITUER", x:1620, y:2080, attrs:[],
+    links:[["GESTIONNAIRE","0,N"],["TOURNEE","1,1"]]},
+  {id:"A44", verb:"IMPLANTER", x:2260, y:2080, attrs:[],
+    links:[["ADRESSE","0,N"],["ENTREPOT","1,1"]]},
+  {id:"A45", verb:"TRANSITER_PAR", x:2500, y:1900, attrs:["date_reception"],
+    links:[["SOUS_COMMANDE","0,N"],["ENTREPOT","0,1"]]},
+
+  /* --- engagement --- */
+  {id:"A46", verb:"REDIGER", x:60, y:2790, attrs:[],
+    links:[["CLIENT","0,N"],["AVIS","1,1"]]},
+  {id:"A47", verb:"NOTER", x:300, y:2790, attrs:["avis possible après LIVREE"],
+    links:[["COMMANDE","1,N"],["AVIS","0,1"]]},
+  {id:"A48", verb:"OUVRIR", x:500, y:2790, attrs:[],
+    links:[["COMMANDE","0,N"],["LITIGE","1,1"]]},
+  {id:"A49", verb:"ARBITRER", x:740, y:2790, attrs:[],
+    links:[["ADMIN","0,N"],["LITIGE","0,1"]]},
+  {id:"A50", verb:"RECEVOIR", x:980, y:2790, attrs:[],
+    links:[["UTILISATEUR","1,1"],["NOTIFICATION","0,N"]]},
+  {id:"A51", verb:"JOURNALISER", x:1420, y:2790, attrs:[],
+    links:[["UTILISATEUR","0,N"],["JOURNAL_AUDIT","1,1"]]},
+];
+
+/* =========================================================
+   RENDU
+   ========================================================= */
+const canvas = document.getElementById('canvas');
+const svg = document.getElementById('links');
+const entityEls = {};
+
+// zone group labels
+const zoneLabelPos = {
+  user:[60,10], catalog:[1700,10], order:[60,1010],
+  pay:[60,1620], deliv:[60,2200], engage:[60,2850]
+};
+Object.entries(zoneLabelPos).forEach(([z,[x,y]])=>{
+  const d = document.createElement('div');
+  d.className='zoneLabel';
+  d.style.left=x+'px'; d.style.top=y+'px';
+  d.style.setProperty('--zc', ZONES[z].color);
+  d.textContent = ZONES[z].label;
+  canvas.appendChild(d);
+});
+
+ENTITIES.forEach(e=>{
+  const box = document.createElement('div');
+  box.className='entity';
+  box.style.left=e.x+'px'; box.style.top=e.y+'px';
+  box.style.setProperty('--zc', ZONES[e.zone].color);
+  const head = document.createElement('div');
+  head.className='head'; head.textContent=e.id;
+  box.appendChild(head);
+  const ul = document.createElement('ul');
+  e.attrs.forEach(([name,type,pk])=>{
+    const li = document.createElement('li');
+    if(pk) li.classList.add('pk');
+    const n = document.createElement('span'); n.textContent=(pk?'# ':'')+name;
+    const t = document.createElement('span'); t.className='type'; t.textContent=type;
+    li.appendChild(n); li.appendChild(t);
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+  canvas.appendChild(box);
+  entityEls[e.id]=box;
+});
+
+const assocEls = {};
+RELATIONS.forEach(r=>{
+  const el = document.createElement('div');
+  el.className='assoc'+(r.xor?' xor':'');
+  el.style.left=r.x+'px'; el.style.top=r.y+'px';
+  const v = document.createElement('div'); v.className='verb'; v.textContent=r.verb;
+  el.appendChild(v);
+  if(r.attrs.length){
+    const a = document.createElement('div'); a.className='attrs';
+    a.innerHTML = r.attrs.map(x=>'<i>+</i> '+x).join('<br>');
+    el.appendChild(a);
+  }
+  canvas.appendChild(el);
+  assocEls[r.id]=el;
+});
+
+/* =========================================================
+   TRACÉ DES LIENS (SVG), calculé après mise en page
+   ========================================================= */
+function pointOnEdge(rect, towardX, towardY, containerRect){
+  // point on the rectangle border closest to a target point, in canvas coords
+  const cx = rect.left - containerRect.left + rect.width/2;
+  const cy = rect.top - containerRect.top + rect.height/2;
+  const dx = towardX - cx, dy = towardY - cy;
+  const w = rect.width/2, h = rect.height/2;
+  if(dx===0 && dy===0) return {x:cx,y:cy};
+  const scaleX = w/Math.abs(dx || 1e-6);
+  const scaleY = h/Math.abs(dy || 1e-6);
+  const scale = Math.min(scaleX, scaleY);
+  return {x: cx+dx*scale, y: cy+dy*scale};
+}
+
+function drawLinks(){
+  svg.innerHTML='';
+  canvas.querySelectorAll('.card').forEach(c=>c.remove());
+  const containerRect = canvas.getBoundingClientRect();
+  const scale = currentScale;
+  RELATIONS.forEach(r=>{
+    const aRect = assocEls[r.id].getBoundingClientRect();
+    const aCenter = {
+      x:(aRect.left-containerRect.left)/scale + aRect.width/scale/2,
+      y:(aRect.top-containerRect.top)/scale + aRect.height/scale/2
+    };
+    r.links.forEach(([entId,card])=>{
+      const eRect = entityEls[entId].getBoundingClientRect();
+      const eRectC = {
+        left:(eRect.left-containerRect.left)/scale, top:(eRect.top-containerRect.top)/scale,
+        width:eRect.width/scale, height:eRect.height/scale
+      };
+      const p1 = pointOnEdge({left:eRectC.left+containerRect.left,top:eRectC.top+containerRect.top,width:eRectC.width,height:eRectC.height}, aCenter.x+containerRect.left, aCenter.y+containerRect.top, containerRect);
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y);
+      line.setAttribute('x2', aCenter.x); line.setAttribute('y2', aCenter.y);
+      line.setAttribute('stroke', r.xor ? '#ff6b6b' : 'var(--line)');
+      line.setAttribute('stroke-width','1.4');
+      line.setAttribute('stroke-dasharray', r.xor ? '4,3' : 'none');
+      svg.appendChild(line);
+
+      // cardinality label near entity end, offset a bit toward association
+      const lx = p1.x + (aCenter.x-p1.x)*0.16;
+      const ly = p1.y + (aCenter.y-p1.y)*0.16;
+      const label = document.createElement('div');
+      label.className='card';
+      label.textContent=card;
+      label.style.left=lx+'px'; label.style.top=ly+'px';
+      canvas.appendChild(label);
+    });
+  });
+}
+
+/* =========================================================
+   LÉGENDE
+   ========================================================= */
+document.getElementById('legend').innerHTML = `
+  <div class="box">
+    <h3>Notation Merise</h3>
+    Rectangle = <b>entité</b> (existence autonome).<br>
+    Bulle orange = <b>association</b> (verbe reliant deux entités).<br>
+    <code>#attribut</code> = clé primaire · texte sous une bulle = attribut porté par
+    l'association (quantité, prix capturé, ordre de passage…).<br>
+    Étiquette <code>(min,max)</code> sur chaque branche = cardinalité.
+  </div>
+  <div class="box">
+    <h3>Se déplacer</h3>
+    <b>Glisser une entité</b> pour la déplacer : les liens et les cardinalités
+    se recalculent. Le modèle est dense (33 entités), donc quelques traits se
+    croisent — déplacer une boîte est le moyen le plus rapide de lire une zone.<br>
+    <code>reset</code> remet le zoom à 100 %.
+  </div>
+  <div class="box">
+    <h3>Zones du modèle</h3>
+    ${Object.entries(ZONES).map(([k,z])=>`<span class="swatch" style="background:${z.color}"></span>${z.label}<br>`).join('')}
+  </div>
+  <div class="box">
+    <h3>Contraintes notables</h3>
+    <b>Spécialisation</b> — A1 à A5 : un UTILISATEUR porte l'authentification
+    (e-mail unique, mot de passe, statut de compte) et se spécialise en
+    <i>un seul</i> profil de rôle. C'est ce qui garantit qu'un e-mail est unique
+    dans toute la plateforme.<br><br>
+    <b>Exclusion (XOR)</b> — A8/A9, traits rouges pointillés : un GESTIONNAIRE est
+    <i>soit</i> employé par un VENDEUR (<code>STAFF_VENDEUR</code>), <i>soit</i>
+    rattaché à un ENTREPOT de la plateforme (<code>STAFF_ENTREPOT</code>) — jamais
+    les deux.<br><br>
+    <b>Découpage du panier</b> — A21 : un PANIER donne <code>(0,N)</code> COMMANDE.
+    Un panier mixte produit une commande par vendeur Express plus une commande
+    Standard multi-vendeur, qui se scinde en SOUS_COMMANDE (A25).<br><br>
+    <b>Réflexivité</b> — A13 : CATEGORIE se référence elle-même (catégorie parente
+    et sous-catégories).<br><br>
+    <b>Deux circuits de livraison</b> — Express : COMMANDE → LIVRAISON → LIVREUR
+    (A35, A36). Standard : SOUS_COMMANDE → ENTREPOT (A45), puis TOURNEE →
+    ARRET_TOURNEE → LIVRAISON (A40, A41).
+  </div>
+  <div class="box">
+    <h3>Non dessiné, volontairement</h3>
+    Trois rattachements existent dans le modèle mais ne sont pas tracés, pour
+    garder le schéma lisible :<br>
+    • <code>MOUVEMENT_STOCK.auteur</code> → UTILISATEUR ;<br>
+    • <code>PROMOTION.vendeur</code> → VENDEUR (vide = promotion plateforme) ;<br>
+    • la cible d'un AVIS, portée par <code>cible</code> + <code>id_cible</code> :
+    un avis vise <i>soit</i> un PRODUIT, <i>soit</i> un VENDEUR, <i>soit</i> un
+    LIVREUR (exclusion, jamais deux à la fois).<br><br>
+    Le détail complet de chaque attribut est dans
+    <code>dictionnaire-donnees.md</code>, qui fait foi sur ce schéma.
+  </div>
+`;
+
+/* =========================================================
+   DEPLACEMENT DES ENTITES (glisser-deposer)
+   ========================================================= */
+(function enableDrag(){
+  let dragged=null, startX=0, startY=0, originX=0, originY=0;
+  Object.entries(entityEls).forEach(([id,el])=>{
+    el.style.cursor='grab';
+    el.addEventListener('mousedown', ev=>{
+      dragged=el; el.style.cursor='grabbing'; el.style.zIndex=20;
+      startX=ev.clientX; startY=ev.clientY;
+      originX=parseFloat(el.style.left); originY=parseFloat(el.style.top);
+      ev.preventDefault();
+    });
+  });
+  window.addEventListener('mousemove', ev=>{
+    if(!dragged) return;
+    dragged.style.left = (originX + (ev.clientX-startX)/currentScale) + 'px';
+    dragged.style.top  = (originY + (ev.clientY-startY)/currentScale) + 'px';
+    requestAnimationFrame(drawLinks);
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!dragged) return;
+    dragged.style.cursor='grab'; dragged.style.zIndex=3; dragged=null;
+    requestAnimationFrame(drawLinks);
+  });
+})();
+
+/* =========================================================
+   ZOOM / PAN
+   ========================================================= */
+let currentScale = 1;
+function applyScale(){
+  canvas.style.transform = 'scale('+currentScale+')';
+  document.getElementById('zoomLabel').textContent = Math.round(currentScale*100)+'%';
+  requestAnimationFrame(drawLinks);
+}
+document.getElementById('zoomIn').onclick = ()=>{ currentScale=Math.min(1.6,currentScale+0.1); applyScale(); };
+document.getElementById('zoomOut').onclick = ()=>{ currentScale=Math.max(0.4,currentScale-0.1); applyScale(); };
+document.getElementById('zoomReset').onclick = ()=>{ currentScale=1; applyScale(); };
+
+window.addEventListener('resize', ()=>requestAnimationFrame(drawLinks));
+window.addEventListener('load', ()=>{
+  // give the browser one frame to lay out entity/assoc boxes before measuring
+  requestAnimationFrame(()=>requestAnimationFrame(drawLinks));
+});
+setTimeout(drawLinks, 60);
+</script>
+</body>
+</html>

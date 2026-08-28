@@ -1,0 +1,23 @@
+:root {
+  /* Couleurs de la marque — plan-organisation/04-maquettes/identite-visuelle.html */
+  --encre: #0b1220;
+  --marque: #14b8a6;
+  --marque-foncee: #0f766e;
+  --marque-claire: #5eead4;
+  --sub: #94a3b8;
+
+  color-scheme: dark;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 50% -10%, #12303a, var(--encre));
+  color: #e2e8f0;
+  display: grid;
+  place-items: center;
+}

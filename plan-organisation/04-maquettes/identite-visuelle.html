@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Identité visuelle — Colibri</title>
+<style>
+  :root{
+    --encre:#0b1220; --encre2:#131c2e; --panel:#ffffff; --bord:#e2e8f0;
+    --texte:#0f172a; --sub:#64748b;
+    --marque-1:#0f766e; --marque-2:#14b8a6; --marque-3:#5eead4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#f1f5f9; color:var(--texte);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  header{
+    background:linear-gradient(135deg,#0b1220,#12303a 60%,#0f766e);
+    color:#fff; padding:48px 40px 40px;
+  }
+  header h1{margin:0 0 6px; font-size:26px; letter-spacing:-.02em;}
+  header p{margin:0; color:#94d8cf; font-size:14px; max-width:70ch;}
+  main{max-width:1180px; margin:0 auto; padding:32px 24px 80px;}
+  section{
+    background:var(--panel); border:1px solid var(--bord); border-radius:16px;
+    padding:28px 32px; margin-bottom:24px;
+  }
+  section h2{
+    margin:0 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:.09em;
+    color:var(--marque-1);
+  }
+  section h2 + p.chapeau{margin:0 0 24px; color:var(--sub); font-size:14px; max-width:78ch;}
+  h3{font-size:15px; margin:28px 0 10px;}
+  p{margin:0 0 12px;}
+  .sub{color:var(--sub); font-size:13.5px;}
+  code{
+    background:#f1f5f9; padding:1px 6px; border-radius:5px;
+    font-family:Consolas,monospace; font-size:12.5px; color:#0f766e;
+  }
+  .scene{
+    display:flex; gap:20px; flex-wrap:wrap; align-items:center;
+  }
+  .plaque{
+    flex:1 1 320px; border-radius:14px; padding:36px 32px;
+    display:flex; align-items:center; justify-content:center; min-height:190px;
+  }
+  .plaque.clair{background:#fff; border:1px solid var(--bord);}
+  .plaque.sombre{background:linear-gradient(150deg,#0b1220,#132133);}
+  .plaque.couleur{background:linear-gradient(135deg,var(--marque-1),var(--marque-2));}
+  .grille{display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end;}
+  .case{
+    text-align:center; background:#fff; border:1px solid var(--bord);
+    border-radius:12px; padding:18px 20px 12px; min-width:120px;
+  }
+  .case .lg{display:block; margin:0 auto 10px;}
+  .case span{font-size:11px; color:var(--sub); letter-spacing:.04em;}
+  table{border-collapse:collapse; width:100%; font-size:13.5px; margin:8px 0 4px;}
+  th,td{border-bottom:1px solid var(--bord); padding:9px 12px; text-align:left; vertical-align:top;}
+  th{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--sub);}
+  .oui{color:#15803d; font-weight:700;} .non{color:#b91c1c; font-weight:700;}
+  .nuance{display:flex; gap:12px; flex-wrap:wrap; margin:10px 0 4px;}
+  .puce{border-radius:10px; padding:12px 14px; min-width:132px; color:#fff; font-size:12px;}
+  .puce b{display:block; font-size:13px; letter-spacing:.02em;}
+  .puce.claire{color:#0f172a;}
+  pre{
+    background:#0b1220; color:#cbd5e1; padding:18px 20px; border-radius:12px;
+    overflow-x:auto; font-size:12px; line-height:1.6;
+  }
+  .reco{
+    border-left:3px solid var(--marque-2); background:#f0fdfa;
+    padding:14px 18px; border-radius:0 10px 10px 0; margin:16px 0;
+  }
+  .reco b{color:var(--marque-1);}
+  .noms{display:flex; gap:16px; flex-wrap:wrap;}
+  .nom{
+    flex:1 1 240px; border:1px solid var(--bord); border-radius:12px; padding:18px 20px;
+  }
+  .nom.retenu{border-color:var(--marque-2); background:#f0fdfa;}
+  .nom h4{margin:0 0 8px; font-size:20px; letter-spacing:-.01em;}
+  .nom p{font-size:13px; color:var(--sub); margin:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Identité visuelle</h1>
+  <p>Réponse au bloc D-2. Le nom proposé, la marque en trois dimensions, ses déclinaisons,
+     et les règles pour ne pas l'abîmer. Rien ici n'est figé tant que tu n'as pas dit oui.</p>
+</header>
+
+<main>
+
+<!-- ══════════════════ LE NOM ══════════════════ -->
+<section>
+  <h2>1 · Le nom</h2>
+  <p class="chapeau">Un nom de plateforme doit tenir dans une phrase parlée, se retenir après
+     une seule lecture, et ne pas mentir sur ce que fait le produit.</p>
+
+  <div class="noms">
+    <div class="nom retenu">
+      <h4>Colibri</h4>
+      <p><b>Ma recommandation.</b> Les quatre premières lettres écrivent <b>coli</b>s.
+         L'oiseau est le plus rapide et le plus précis qui soit, et il fait du surplace
+         avant de repartir — l'Express et le Standard dans le même mot. Un vrai mot
+         français, qu'on prononce sans hésiter et qu'on écrit sans se tromper.</p>
+    </div>
+    <div class="nom">
+      <h4>Kolis</h4>
+      <p>Le mot « colis » avec un K : très court, très lisible, plus probablement libre
+         en nom de domaine. Plus froid, et l'idée de rapidité disparaît.</p>
+    </div>
+    <div class="nom">
+      <h4>Ravito</h4>
+      <p>De « ravitaillement ». Chaleureux, familier, mais penche nettement du côté
+         nourriture — gênant pour une plateforme qui vend aussi de l'électronique.</p>
+    </div>
+    <div class="nom">
+      <h4>Élan</h4>
+      <p>Un seul mot, élégant, qui dit le mouvement. Mais il ne dit ni le commerce ni la
+         livraison : il faudrait une signature pour l'expliquer à chaque fois.</p>
+    </div>
+  </div>
+
+  <div class="reco">
+    <b>Ce que je dois te dire honnêtement</b> : « Colibri » est un nom de marque assez
+    répandu en France, et <code>colibri.fr</code> est certainement pris. Pour un projet
+    de portfolio, c'est sans conséquence. Si tu veux un jour un domaine, vise
+    <code>colibri.app</code>, <code>colibri-livraison.fr</code> ou une forme composée.
+    Les trois autres noms ci-dessus ont le même logo : changer de nom coûte une ligne.
+  </div>
+
+  <p class="sub">Signature d'accompagnement, à utiliser quand le nom seul ne suffit pas :
+     <b>Colibri — commander, livrer, suivre.</b></p>
+</section>
+
+<!-- ══════════════════ LE LOGO ══════════════════ -->
+<section>
+  <h2>2 · La marque</h2>
+  <p class="chapeau">Un colis en volume — trois faces, trois lumières — d'où s'échappe
+     une aile. Le colis dit le commerce, l'aile dit la livraison, et le relief dit qu'on
+     a soigné le détail. Tout est en SVG : net à 16 pixels comme sur une affiche, et
+     pas un octet d'image à charger.</p>
+
+  <div class="scene">
+    <div class="plaque clair">
+      <svg width="330" height="96" viewBox="0 0 330 96" role="img" aria-label="Colibri">
+        <defs>
+          <linearGradient id="fT" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7ff0dd"/><stop offset="1" stop-color="#14b8a6"/>
+          </linearGradient>
+          <linearGradient id="fL" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0f9b8e"/><stop offset="1" stop-color="#0b5d55"/>
+          </linearGradient>
+          <linearGradient id="fR" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0d7d72"/><stop offset="1" stop-color="#073d38"/>
+          </linearGradient>
+          <linearGradient id="fA" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#a7f3e4"/>
+          </linearGradient>
+          <radialGradient id="sh" cx="50%" cy="50%">
+            <stop offset="0" stop-color="#0b1220" stop-opacity=".22"/>
+            <stop offset="1" stop-color="#0b1220" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <g transform="translate(4,2)">
+          <ellipse cx="50" cy="88" rx="34" ry="6" fill="url(#sh)"/>
+          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+          <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
+          <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none" stroke="#ffffff" stroke-opacity=".45" stroke-width="1.1"/>
+          <path d="M35 26.5 L50 35 L35 43.5 L20 35 Z" fill="#ffffff" fill-opacity=".16"/>
+          <path d="M50 52 L50 82" stroke="#062e2a" stroke-opacity=".35" stroke-width="1.1"/>
+          <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
+          <path d="M54 12 C70 3 82 5 83 14 C75 10 65 10 54 12 Z" fill="#ffffff" fill-opacity=".55"/>
+        </g>
+        <text x="112" y="62" font-family="Segoe UI,system-ui,sans-serif" font-size="42"
+              font-weight="600" letter-spacing="-1.2" fill="#0b1220">colibri</text>
+      </svg>
+    </div>
+    <div class="plaque sombre">
+      <svg width="330" height="96" viewBox="0 0 330 96" role="img" aria-label="Colibri">
+        <g transform="translate(4,2)">
+          <ellipse cx="50" cy="88" rx="34" ry="6" fill="#000" opacity=".35"/>
+          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+          <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
+          <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none" stroke="#ffffff" stroke-opacity=".5" stroke-width="1.1"/>
+          <path d="M35 26.5 L50 35 L35 43.5 L20 35 Z" fill="#ffffff" fill-opacity=".18"/>
+          <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
+          <path d="M54 12 C70 3 82 5 83 14 C75 10 65 10 54 12 Z" fill="#ffffff" fill-opacity=".6"/>
+        </g>
+        <text x="112" y="62" font-family="Segoe UI,system-ui,sans-serif" font-size="42"
+              font-weight="600" letter-spacing="-1.2" fill="#ffffff">colibri</text>
+      </svg>
+    </div>
+  </div>
+
+  <h3>Comment le relief est obtenu</h3>
+  <table>
+    <tr><th>Procédé</th><th>Effet</th></tr>
+    <tr><td>Trois faces isométriques, jamais la même valeur</td><td>Le cerveau lit un volume avant de lire une forme</td></tr>
+    <tr><td>Un dégradé par face, du clair vers le foncé</td><td>Une lumière unique, venue du haut-gauche</td></tr>
+    <tr><td>Filet blanc à 45 % sur les arêtes du dessus</td><td>Le biseau — c'est lui qui donne le « fini »</td></tr>
+    <tr><td>Losange blanc à 16 % sur la face du dessus</td><td>Reflet spéculaire : la surface paraît lisse</td></tr>
+    <tr><td>Ombre portée elliptique et floue au sol</td><td>Le colis se pose, il ne flotte pas</td></tr>
+    <tr><td>Aile en dégradé inverse, plus claire vers l'extérieur</td><td>Le mouvement va vers la droite, vers l'avant</td></tr>
+  </table>
+</section>
+
+<!-- ══════════════════ DÉCLINAISONS ══════════════════ -->
+<section>
+  <h2>3 · Déclinaisons</h2>
+  <p class="chapeau">Le symbole seul sert d'icône d'application, de favicon et d'avatar.
+     Il reste lisible jusqu'à 16 pixels parce qu'il ne repose sur aucun détail fin.</p>
+
+  <div class="grille">
+    <div class="case">
+      <svg class="lg" width="96" height="96" viewBox="0 0 100 96"><g transform="translate(0,2)">
+        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
+        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.1"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
+      </g></svg><span>96 px</span>
+    </div>
+    <div class="case">
+      <svg class="lg" width="48" height="48" viewBox="0 0 100 96"><g transform="translate(0,2)">
+        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
+        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
+      </g></svg><span>48 px</span>
+    </div>
+    <div class="case">
+      <svg class="lg" width="32" height="32" viewBox="0 0 100 96"><g transform="translate(0,2)">
+        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
+        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
+      </g></svg><span>32 px · favicon</span>
+    </div>
+    <div class="case">
+      <svg class="lg" width="16" height="16" viewBox="0 0 100 96"><g transform="translate(0,2)">
+        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
+        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
+      </g></svg><span>16 px</span>
+    </div>
+    <div class="case" style="background:#0b1220;">
+      <svg class="lg" width="64" height="64" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#fff">
+        <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
+        <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
+      </g></svg><span style="color:#94a3b8">monochrome blanc</span>
+    </div>
+    <div class="case">
+      <svg class="lg" width="64" height="64" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#0b1220">
+        <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
+        <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
+      </g></svg><span>monochrome encre</span>
+    </div>
+  </div>
+
+  <h3>Le symbole aux couleurs des rôles</h3>
+  <p class="sub">Même forme, teinte de l'espace où l'on se trouve : l'icône de l'onglet du
+     navigateur dit déjà à quel rôle on est connecté. Les cinq accents viennent de
+     <code>design-system.md</code> § 2 et ne changent pas.</p>
+  <div class="grille" style="margin-top:14px">
+    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#16a34a">
+      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
+      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
+    </g></svg><span>Client</span></div>
+    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#2563eb">
+      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
+      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
+    </g></svg><span>Vendeur</span></div>
+    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#ea580c">
+      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
+      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
+    </g></svg><span>Gestionnaire</span></div>
+    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#7c3aed">
+      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
+      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
+    </g></svg><span>Livreur</span></div>
+    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#b91c1c">
+      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
+      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
+    </g></svg><span>Admin</span></div>
+  </div>
+
+  <h3>Le même logo avec les autres noms</h3>
+  <p class="sub">Pour que le choix du nom ne soit pas un pari : voici ce que donnerait
+     chacun. Le symbole ne change pas.</p>
+  <div class="grille" style="margin-top:14px; gap:18px">
+    <div class="case" style="min-width:200px">
+      <svg class="lg" width="180" height="52" viewBox="0 0 200 60">
+        <g transform="translate(0,4) scale(0.52)"><path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/><path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/></g>
+        <text x="58" y="40" font-family="Segoe UI,sans-serif" font-size="26" font-weight="600" letter-spacing="-.7" fill="#0b1220">kolis</text>
+      </svg><span>Kolis</span>
+    </div>
+    <div class="case" style="min-width:200px">
+      <svg class="lg" width="180" height="52" viewBox="0 0 200 60">
+        <g transform="translate(0,4) scale(0.52)"><path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/><path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/></g>
+        <text x="58" y="40" font-family="Segoe UI,sans-serif" font-size="26" font-weight="600" letter-spacing="-.7" fill="#0b1220">ravito</text>
+      </svg><span>Ravito</span>
+    </div>
+    <div class="case" style="min-width:200px">
+      <svg class="lg" width="180" height="52" viewBox="0 0 200 60">
+        <g transform="translate(0,4) scale(0.52)"><path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
+        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/><path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
+        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/></g>
+        <text x="58" y="40" font-family="Segoe UI,sans-serif" font-size="26" font-weight="600" letter-spacing="-.7" fill="#0b1220">élan</text>
+      </svg><span>Élan</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ COULEURS ══════════════════ -->
+<section>
+  <h2>4 · Les couleurs de la marque</h2>
+  <p class="chapeau">Le turquoise n'est aucun des cinq accents de rôle : la marque reste
+     reconnaissable dans n'importe quel espace sans se confondre avec lui.</p>
+  <div class="nuance">
+    <div class="puce" style="background:#0b1220"><b>Encre</b>#0b1220<br>textes, fonds sombres</div>
+    <div class="puce" style="background:#0f766e"><b>Marque foncée</b>#0f766e<br>face droite, liens</div>
+    <div class="puce" style="background:#14b8a6"><b>Marque</b>#14b8a6<br>couleur principale</div>
+    <div class="puce claire" style="background:#5eead4"><b>Marque claire</b>#5eead4<br>aile, accents sur fond sombre</div>
+    <div class="puce claire" style="background:#f0fdfa"><b>Voile</b>#f0fdfa<br>fonds de blocs</div>
+  </div>
+  <p class="sub" style="margin-top:14px">Contraste vérifié : l'encre sur blanc et le blanc sur
+     encre dépassent largement le seuil AA. Le turquoise <code>#14b8a6</code> ne sert
+     <b>jamais</b> à écrire du texte fin sur fond blanc — uniquement en aplat, en trait
+     ou sur fond sombre.</p>
+</section>
+
+<!-- ══════════════════ RÈGLES ══════════════════ -->
+<section>
+  <h2>5 · Ce qu'on fait, ce qu'on ne fait pas</h2>
+  <table>
+    <tr><th style="width:34%">Règle</th><th>Pourquoi</th></tr>
+    <tr><td><span class="oui">Zone de protection</span> égale à la moitié de la hauteur du symbole</td><td>Un logo collé à un bord ou à un texte perd son autorité</td></tr>
+    <tr><td><span class="oui">Taille minimale</span> : 16 px pour le symbole, 96 px de large pour le logo complet</td><td>En dessous, l'aile se referme sur le colis</td></tr>
+    <tr><td><span class="oui">Sur photo</span> : version monochrome blanche, sur une zone calme</td><td>Les dégradés se noient dans une image</td></tr>
+    <tr><td><span class="non">Jamais</span> déformer, incliner, ajouter une ombre portée en CSS</td><td>Le relief est déjà dans le dessin ; en rajouter le rend sale</td></tr>
+    <tr><td><span class="non">Jamais</span> recolorer l'aile séparément du colis</td><td>Ce sont deux morceaux d'un seul objet</td></tr>
+    <tr><td><span class="non">Jamais</span> écrire « COLIBRI » en capitales</td><td>Le mot-symbole est en bas de casse, c'est ce qui le rend doux</td></tr>
+    <tr><td><span class="non">Jamais</span> l'exporter en PNG pour l'intégrer</td><td>C'est du SVG : net partout, et modifiable</td></tr>
+  </table>
+</section>
+
+<!-- ══════════════════ CODE ══════════════════ -->
+<section>
+  <h2>6 · Le symbole, à copier tel quel</h2>
+  <p class="chapeau">Ce bloc devient <code>web/src/composants/LogoColibri.vue</code> et
+     <code>web/public/favicon.svg</code>. Aucune image à charger, aucune requête réseau.</p>
+<pre>&lt;svg viewBox="0 0 100 96" xmlns="http://www.w3.org/2000/svg"&gt;
+  &lt;defs&gt;
+    &lt;linearGradient id="cT" x1="0" y1="0" x2="1" y2="1"&gt;
+      &lt;stop offset="0" stop-color="#7ff0dd"/&gt;&lt;stop offset="1" stop-color="#14b8a6"/&gt;
+    &lt;/linearGradient&gt;
+    &lt;linearGradient id="cL" x1="0" y1="0" x2="0" y2="1"&gt;
+      &lt;stop offset="0" stop-color="#0f9b8e"/&gt;&lt;stop offset="1" stop-color="#0b5d55"/&gt;
+    &lt;/linearGradient&gt;
+    &lt;linearGradient id="cR" x1="0" y1="0" x2="0" y2="1"&gt;
+      &lt;stop offset="0" stop-color="#0d7d72"/&gt;&lt;stop offset="1" stop-color="#073d38"/&gt;
+    &lt;/linearGradient&gt;
+    &lt;linearGradient id="cA" x1="0" y1="1" x2="1" y2="0"&gt;
+      &lt;stop offset="0" stop-color="#2dd4bf"/&gt;&lt;stop offset="1" stop-color="#a7f3e4"/&gt;
+    &lt;/linearGradient&gt;
+  &lt;/defs&gt;
+  &lt;g transform="translate(0,2)"&gt;
+    &lt;path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#cT)"/&gt;          &lt;!-- dessus --&gt;
+    &lt;path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#cL)"/&gt;          &lt;!-- gauche --&gt;
+    &lt;path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#cR)"/&gt;          &lt;!-- droite --&gt;
+    &lt;path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none"
+          stroke="#fff" stroke-opacity=".45" stroke-width="1.1"/&gt;       &lt;!-- biseau --&gt;
+    &lt;path d="M35 26.5 L50 35 L35 43.5 L20 35 Z" fill="#fff" fill-opacity=".16"/&gt;
+    &lt;path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#cA)"/&gt; &lt;!-- aile --&gt;
+    &lt;path d="M54 12 C70 3 82 5 83 14 C75 10 65 10 54 12 Z" fill="#fff" fill-opacity=".55"/&gt;
+  &lt;/g&gt;
+&lt;/svg&gt;</pre>
+  <p class="sub">Pour la version monochrome, on supprime les dégradés et on applique une
+     seule couleur avec trois opacités : <code>.95</code> dessus, <code>.62</code> gauche,
+     <code>.38</code> droite. C'est ce qui produit les variantes par rôle ci-dessus, sans
+     dessiner cinq fichiers.</p>
+</section>
+
+</main>
+</body>
+</html>

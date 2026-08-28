@@ -1,0 +1,42 @@
+# ── Secrets ──────────────────────────────────────────────────────────────
+# La regle la plus importante du fichier. Une cle Stripe publiee sur GitHub
+# est detectee et exploitee en quelques heures : c'est automatise.
+.env
+.env.*
+!.env.example
+
+# ── Python / Django ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.sqlite3
+backend/staticfiles/
+backend/media/
+.pytest_cache/
+.ruff_cache/
+
+# ── Node / Vue ───────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# ── Mobile (Capacitor) ───────────────────────────────────────────────────
+frontend-mobile/android/
+frontend-mobile/ios/
+*.apk
+*.aab
+
+# ── Images de demonstration telechargees ─────────────────────────────────
+# Le script de peuplement les recupere seul (D-24) : les versionner
+# alourdirait le depot de plusieurs dizaines de megaoctets pour rien.
+donnees-demo/images-telechargees/
+
+# ── Outils ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
