@@ -12,71 +12,58 @@
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
-| **1** | **Corriger ta configuration Cloudinary** dans `backend/.env` — voir l'encadré ci-dessous. C'est la seule chose bloquante | 3 min | § C |
-| **2** | **`python demarrer.py`, puis Ctrl+Maj+R.** Le catalogue revient : le bug venait de moi, pas de toi | 2 min | § D |
-| **3** | **Connecte-toi avec Karim** (`karim@exemple.fr`), va dans **Catalogue** : tu peux créer un produit, y déposer des photos et ajuster ton stock | 5 min | — |
-| **4** | **Dis-moi ce qui ne va pas**, précisément | 5 min | — |
+| **1** | **`python demarrer.py`, Ctrl+Maj+R**, et déroule le parcours complet : ajoute deux produits de boutiques différentes, ouvre le panier à droite, clique **Passer commande** | 5 min | § D |
+| **2** | **Connecte-toi avec Karim**, va dans **Commandes reçues** : tu vois ta part, ce que tu touches, et le bouton de l'étape suivante — un seul, jamais deux | 3 min | — |
+| **3** | **Connecte-toi en admin** (`admin@rivdinde.local`), va dans **Validations** : Inès attend depuis le début | 2 min | — |
+| **4** | **Dis-moi ce qui ne va pas.** C'est le moment : la structure est posée, la changer plus tard coûtera plus cher | 10 min | — |
 
 ---
 
-## ⚠ Ta configuration Cloudinary est fausse
+## Ce que tu m'as reproché, et ce que j'en ai fait
 
-Le service refuse tes clés : **`Invalid cloud_name Root`**. Tu as mis `Root`
-comme `CLOUDINARY_CLOUD_NAME` — c'est le nom du dossier racine affiché dans leur
-interface, pas le nom de ton espace.
-
-Le vrai nom se lit sur le tableau de bord Cloudinary, en haut : **Product
-Environment Credentials**, ligne `Cloud name`. C'est une suite de lettres, par
-exemple `dxk3f9abc`. Corrige `CLOUDINARY_CLOUD_NAME` dans `backend/.env` et
-relance.
-
-**Tant que ce n'est pas corrigé, rien ne casse** : sans configuration valable,
-les images vont sur le disque local et tout fonctionne. Mais le jour du
-déploiement, ce sera bloquant — le disque du conteneur est effacé à chaque
-redéploiement ([D-19](journal-decisions.md)). Le message d'erreur est maintenant
-explicite au lieu d'un 500 muet.
+| | Ton constat | Ce qui a changé |
+|---|---|---|
+| **H-1/2/3** | Catalogue vide, connexion impossible | **Ma faute** : un en-tête non déclaré côté serveur bloquait le navigateur avant l'envoi. Corrigé, 5 tests le verrouillent |
+| **H-6** | « Le catalogue et l'espace client sont trop différents » | **Une seule coquille** pour tout le site — sidebar, navbar, panneau droit, accent de couleur. J'avais élargi la règle du CMS à tort : elle vaut pour le contenu et les animations, pas pour la structure ([D-38](journal-decisions.md)) |
+| **H-7** | Le panier apparaît et disparaît | Panneau **stable**, replié en bande où le compteur reste visible ([D-39](journal-decisions.md)) |
+| **H-8** | « Fais-moi un truc cohérent, du début à la fin » | Le catalogue public et celui de l'espace partagent la même coquille, le même magasin de données, les mêmes filtres. Cinq composants ont disparu |
+| **H-9** | Le livreur mobile, le client web + mobile, le reste web | Consigné ([D-40](journal-decisions.md)). L'espace web du livreur affiche un bandeau qui le renvoie au mobile, plutôt que des écrans à moitié utiles |
+| **H-10** | Tu as corrigé Cloudinary | Vérifié : le téléversement passe |
 
 ---
 
-## Ce qui bloquait tout, et pourquoi c'était ma faute
+## Ce qui a été construit
 
-Catalogue vide, connexion impossible, « L'API ne répond pas » : **un seul bug,
-et il était à moi.** J'avais ajouté un en-tête `X-Panier-Session` à toutes les
-requêtes du front sans le déclarer côté serveur. Le navigateur bloque alors
-chaque appel **avant même de l'envoyer**, et le front ne reçoit qu'une erreur
-réseau — alors que l'API répondait parfaitement.
+**Le parcours d'achat est complet**, du catalogue à la commande :
 
-Ni `pytest` ni un client en ligne de commande ne déclenchent ce contrôle : **seul
-un navigateur le fait**. C'est exactement le genre de bug que seuls tes essais
-peuvent révéler. Corrigé, et **cinq tests** simulent désormais ce que le
-navigateur envoie avant chaque requête, pour que ça ne se reproduise pas.
+- **Panier** dans le panneau de droite, sans compte, qui suit à la connexion.
+- **Préparation de commande** qui montre le découpage **avant** de valider : un
+  panier de deux boutiques annonce deux commandes livrées séparément.
+- **Le découpage** ([D-10](journal-decisions.md)) : une commande par boutique
+  Express, une seule commande Standard multi-vendeur, la commission calculée,
+  le stock réservé et non débité, le nom et le prix recopiés.
+- **Suivi client** avec une frise dont le vocabulaire change selon le circuit —
+  « en tournée » n'a aucun sens pour un plat livré en vingt minutes.
+- **Commandes reçues** côté vendeur : sa part seulement, ce qu'il touche, et
+  **les boutons que le serveur autorise** — impossible de sauter une étape.
+- **Validations** côté admin.
 
-**H-3** est réglé au passage : un lien « Retour au catalogue » figure maintenant
-en haut des écrans de connexion, d'inscription et d'attente, et le logo y est
-cliquable — sur toute plateforme marchande, le logo ramène à la boutique.
+**93 tests** : 73 backend, 20 front.
 
 ---
 
-## Ce qui a été ajouté
+## Ce qui manque encore, et je te le dis franchement
 
-**Les écrans vendeur** :
-- **Catalogue** : liste dense avec boutons-icônes — voir la fiche publique,
-  modifier, retirer du catalogue — état vide qui explique quoi faire.
-- **Fiche produit** en trois onglets : informations, photos, stock. Trois onglets
-  plutôt qu'un formulaire fleuve, pour ne voir que l'étape en cours.
-- **Photos** : dépôt par glisser-déposer, choix de la photo principale,
-  suppression. Le serveur vérifie **le contenu réel du fichier** et non son
-  extension, retire les métadonnées EXIF — une photo de téléphone porte les
-  coordonnées GPS de qui l'a prise — recadre et convertit en WebP.
-- **Stock** : ajustement avec **motif obligatoire**, refus si le stock devient
-  négatif ou passe sous ce qui est réservé, et historique complet avec l'auteur
-  de chaque mouvement.
+| Manque | Pourquoi |
+|---|---|
+| **Paiement Stripe** | Le prochain gros morceau. La commande se crée et réserve le stock ; il reste à débiter et à répartir |
+| **Livraison et tournées** | Les tables existent, le code métier non. Une livraison naît d'une commande payée |
+| **Application mobile** | Le livreur y travaille ; c'est un chantier à part entière |
+| **Avis, litiges, promotions, factures** | Palier 2, assumé depuis le début |
 
-**La règle du bloc H-4 est enregistrée** : en cas de conflit, l'usage des CMS
-marchands l'emporte sur les règles d'or ([D-36](journal-decisions.md)). Elles
-restent le comportement par défaut, pas un carcan.
-
-**80 tests** — 60 backend, 20 front.
+Le relevé complet, décision par décision, est dans
+[etat-reel.md](etat-reel.md) — c'est le document à ouvrir pour savoir ce que le
+code fait vraiment, sans avoir à me croire sur parole.
 
 
 ---

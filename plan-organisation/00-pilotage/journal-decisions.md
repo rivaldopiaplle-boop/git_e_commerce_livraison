@@ -401,3 +401,34 @@ Cloudinary sont présentes dans `backend/.env` (`conftest.py`).
 tests se sont mis à téléverser pour de vrai — et à échouer. Un test doit passer
 dans un train, dans une chaîne d'intégration sans secrets, et donner le même
 résultat à chaque exécution.
+
+### D-38 — Une seule coquille pour tout le site
+Sidebar rétractable à gauche, navbar en haut, panneau rétractable à droite : la
+même structure habille **le catalogue public et les espaces de travail**. Un
+visiteur, un client et un vendeur voient le même cadre ; seul le contenu change.
+Un visiteur porte l'accent vert du client, puisque c'est ce qu'il s'apprête à
+devenir.
+**Pourquoi cette décision existe** : j'avais construit la vitrine avec une
+disposition en-tête + pied de page, différente de celle des espaces. Ton
+constat, bloc H-6 puis H-8 : *« le catalogue et l'espace client sont trop
+différents […] fais-moi un truc cohérent, du début à la fin. »*
+**Ce que ça a supprimé** : cinq composants devenus inutiles — la coquille les
+remplace tous.
+
+### D-39 — Le panneau de droite est stable, pas surgissant
+Il occupe une colonne de la page et se **replie en bande** où le compteur du
+panier reste visible. Ce n'est jamais une fenêtre qui apparaît par-dessus la
+page avec un voile.
+**Ta formulation, bloc H-7** : *« le panier est une fenêtre qui apparaît à
+droite et redisparaît, alors que ça devait être stable mais rétractable. »*
+
+### D-40 — Chaque rôle sur son support, et un seul
+| Rôle | Support |
+|---|---|
+| Client | **Web et mobile** — il achète sur les deux |
+| Livreur | **Mobile uniquement** — une main sur le guidon |
+| Vendeur, gestionnaire, admin | **Web uniquement** — ce sont des postes de travail |
+
+**Ta formulation, bloc H-9** : *« le livreur est mobile, le client mobile plus
+web, et le reste web. »* L'espace web d'un livreur affiche donc un bandeau qui
+le renvoie à l'application mobile, plutôt que des écrans à moitié utiles.

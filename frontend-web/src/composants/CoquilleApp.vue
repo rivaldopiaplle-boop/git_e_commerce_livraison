@@ -1,37 +1,57 @@
 <script setup lang="ts">
-// La coquille commune aux cinq roles : sidebar retractable a gauche, navbar en
-// haut, panneau retractable a droite (regles d'or 6 et 8).
+// LA coquille — la seule. Sidebar retractable a gauche, navbar en haut,
+// panneau retractable a droite (regles d'or 6 et 8).
 //
-// Une seule application, cinq peaux : seule la couleur d'accent change, portee
-// par une variable CSS. Ecrire une coquille par role serait le debut de la
-// divergence (design-system.md § 8).
-import { Bell, ChevronsLeft, LogOut, PanelRight, Search, X } from '@lucide/vue'
-import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+// Elle habille **aussi bien le catalogue public que les espaces de travail**.
+// C'etait le reproche du bloc H-6 : les CMS decident de l'affichage du contenu
+// et des animations, pas de la structure ni des couleurs. Un visiteur et un
+// vendeur voient donc le meme cadre ; seul le contenu change.
+import {
+  Bell, ChevronsLeft, LogIn, LogOut, Search, ShoppingCart, Smartphone, UserRound,
+} from '@lucide/vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
+import BandeauLivrerA from './BandeauLivrerA.vue'
+import LogoRivDinde from './LogoRivDinde.vue'
+import PanneauLateral from './PanneauLateral.vue'
 import { descriptionDuRole } from '../roles'
 import { useAuthentification } from '../stores/authentification'
-import LogoRivDinde from './LogoRivDinde.vue'
+import { useCatalogue } from '../stores/catalogue'
+import { usePanier } from '../stores/panier'
 
 const session = useAuthentification()
+const catalogue = useCatalogue()
+const panier = usePanier()
 const route = useRoute()
+const routeur = useRouter()
 
 const sidebarOuverte = ref(true)
-const panneauOuvert = ref(false)
 
 const role = computed(() => descriptionDuRole(session.role))
+const surLeCatalogue = computed(() => route.name === 'vitrine')
 
-// L'entree active se deduit de la route, elle n'est plus un compteur local :
-// arriver par un lien direct doit surligner la bonne entree.
+const initiales = computed(() => {
+  const u = session.utilisateur
+  return u ? `${u.prenom[0] ?? ''}${u.nom[0] ?? ''}`.toUpperCase() : ''
+})
+
 const entreeActive = computed(() =>
   role.value.navigation.findIndex((entree) => entree.route === route.name),
 )
 const titre = computed(
-  () => role.value.navigation[entreeActive.value]?.libelle ?? 'Mon espace',
+  () => role.value.navigation[entreeActive.value]?.libelle ?? role.value.espace,
 )
-const initiales = computed(() => {
-  const u = session.utilisateur
-  return u ? `${u.prenom[0] ?? ''}${u.nom[0] ?? ''}`.toUpperCase() : '?'
+
+// La barre de recherche pilote le catalogue. Depuis un autre ecran, chercher
+// ramene sur le catalogue : c'est ce que fait toute plateforme marchande.
+const recherche = ref(catalogue.recherche)
+watch(recherche, (valeur) => {
+  if (!surLeCatalogue.value) routeur.push({ name: 'vitrine' })
+  catalogue.chercher(valeur)
+})
+watch(() => catalogue.recherche, (valeur) => {
+  if (valeur !== recherche.value) recherche.value = valeur
 })
 </script>
 
@@ -45,12 +65,12 @@ const initiales = computed(() => {
       class="flex shrink-0 flex-col bg-ardoise text-slate-300 transition-[width] duration-200"
       :class="sidebarOuverte ? 'w-[248px]' : 'w-[76px]'"
     >
-      <div class="flex h-[68px] items-center gap-3 px-5">
+      <RouterLink :to="{ name: 'vitrine' }" class="flex h-[68px] items-center gap-3 px-5">
         <LogoRivDinde :taille="34" />
         <span v-if="sidebarOuverte" class="font-semibold tracking-tight text-white">RivDinde</span>
-      </div>
+      </RouterLink>
 
-      <nav class="flex flex-1 flex-col gap-0.5 px-3">
+      <nav class="flex flex-col gap-0.5 px-3">
         <component
           :is="entree.route ? 'RouterLink' : 'button'"
           v-for="(entree, index) in role.navigation"
@@ -78,9 +98,16 @@ const initiales = computed(() => {
         </component>
       </nav>
 
+      <!-- Les filtres du catalogue vivent dans la sidebar, pas dans la page :
+           c'est la place que leur donnent les regles d'or, et celle que leur
+           donnent les catalogues marchands. -->
+      <div v-if="surLeCatalogue && sidebarOuverte" class="mt-6 flex flex-col gap-5 px-3 pb-4">
+        <slot name="filtres" />
+      </div>
+
       <button
         type="button"
-        class="mx-3 mb-3 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12.5px]
+        class="mt-auto mx-3 mb-3 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12.5px]
                text-slate-500 transition-colors duration-150 hover:bg-white/6 hover:text-slate-300"
         @click="sidebarOuverte = !sidebarOuverte"
       >
@@ -96,20 +123,24 @@ const initiales = computed(() => {
     <!-- ── Colonne centrale ─────────────────────────────────────────── -->
     <div class="flex min-w-0 flex-1 flex-col">
       <header
-        class="flex h-[68px] shrink-0 items-center justify-between gap-6 border-b
+        class="flex h-[68px] shrink-0 items-center justify-between gap-5 border-b
                border-slate-200 bg-white px-6"
       >
         <div class="min-w-0">
-          <p class="text-[11px] font-bold tracking-[0.09em] uppercase" :style="{ color: role.accent }">
+          <p class="text-[11px] font-bold tracking-[0.09em] uppercase"
+             :style="{ color: role.accent }">
             {{ role.espace }}
           </p>
           <h1 class="truncate text-[17px] font-semibold tracking-tight">{{ titre }}</h1>
         </div>
 
         <div class="flex items-center gap-2.5">
+          <BandeauLivrerA v-if="surLeCatalogue" clair class="hidden xl:block" />
+
           <div class="relative hidden md:block">
             <Search :size="16" class="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" />
             <input
+              v-model="recherche"
               type="search"
               placeholder="Rechercher…"
               class="w-56 rounded-xl border border-slate-200 bg-slate-50 py-2 pr-3 pl-9
@@ -120,90 +151,88 @@ const initiales = computed(() => {
 
           <button
             type="button"
-            title="Notifications"
             class="relative flex h-9 w-9 items-center justify-center rounded-xl border
                    border-slate-200 text-slate-600 transition-colors duration-150
-                   hover:bg-slate-50"
-            @click="panneauOuvert = !panneauOuvert"
+                   hover:bg-slate-50 lg:hidden"
+            title="Mon panier"
+            @click="panier.ouvert = !panier.ouvert"
           >
-            <Bell :size="17" />
-          </button>
-
-          <button
-            type="button"
-            title="Panneau lateral"
-            class="hidden h-9 w-9 items-center justify-center rounded-xl border border-slate-200
-                   text-slate-600 transition-colors duration-150 hover:bg-slate-50 lg:flex"
-            @click="panneauOuvert = !panneauOuvert"
-          >
-            <PanelRight :size="17" />
-          </button>
-
-          <div class="ml-1 flex items-center gap-2.5 border-l border-slate-200 pl-3">
+            <ShoppingCart :size="17" />
             <span
-              class="flex h-9 w-9 items-center justify-center rounded-full text-[12.5px] font-bold"
-              :style="{ background: role.accentDoux, color: role.accent }"
+              v-if="panier.nombreArticles"
+              class="absolute -top-1 -right-1 flex h-[17px] min-w-[17px] items-center
+                     justify-center rounded-full px-1 text-[10px] font-bold text-white"
+              :style="{ background: role.accent }"
             >
-              {{ initiales }}
+              {{ panier.nombreArticles }}
             </span>
-            <div class="hidden leading-tight sm:block">
-              <b class="block text-[13px]">{{ session.utilisateur?.prenom }}</b>
-              <span class="text-[11.5px] text-slate-500">{{ session.utilisateur?.email }}</span>
+          </button>
+
+          <template v-if="session.estConnecte">
+            <div class="ml-1 flex items-center gap-2.5 border-l border-slate-200 pl-3">
+              <span
+                class="flex h-9 w-9 items-center justify-center rounded-full text-[12.5px]
+                       font-bold"
+                :style="{ background: role.accentDoux, color: role.accent }"
+              >
+                {{ initiales }}
+              </span>
+              <div class="hidden leading-tight sm:block">
+                <b class="block text-[13px]">{{ session.utilisateur?.prenom }}</b>
+                <span class="text-[11.5px] text-slate-500">{{ session.utilisateur?.email }}</span>
+              </div>
+              <button
+                type="button"
+                title="Se deconnecter"
+                class="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500
+                       transition-colors duration-150 hover:bg-red-50 hover:text-red-600"
+                @click="session.deconnecter()"
+              >
+                <LogOut :size="17" />
+              </button>
             </div>
-            <button
-              type="button"
-              title="Se deconnecter"
-              class="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500
-                     transition-colors duration-150 hover:bg-red-50 hover:text-red-600"
-              @click="session.deconnecter()"
+          </template>
+
+          <template v-else>
+            <RouterLink
+              :to="{ name: 'connexion' }"
+              class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2
+                     text-[13px] text-slate-700 transition-colors hover:bg-slate-50"
             >
-              <LogOut :size="17" />
-            </button>
-          </div>
+              <LogIn :size="15" />
+              <span class="hidden sm:block">Se connecter</span>
+            </RouterLink>
+            <RouterLink
+              :to="{ name: 'inscription' }"
+              class="hidden items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold
+                     text-white transition-opacity hover:opacity-90 sm:flex"
+              :style="{ background: role.accent }"
+            >
+              <UserRound :size="15" />
+              Creer un compte
+            </RouterLink>
+          </template>
         </div>
       </header>
+
+      <!-- Le livreur travaille sur son telephone : le lui dire vaut mieux que
+           lui servir des ecrans web a moitie utiles (bloc H-9). -->
+      <p
+        v-if="role.plateforme === 'mobile'"
+        class="flex items-center gap-2.5 border-b border-violet-200 bg-violet-50 px-6 py-2.5
+               text-[13px] text-violet-900"
+      >
+        <Smartphone :size="16" />
+        L espace livreur se utilise depuis l application mobile. Cet ecran web sert au
+        suivi, pas aux courses.
+      </p>
 
       <main class="flex-1 overflow-x-hidden p-6">
         <slot />
       </main>
     </div>
 
-    <!-- ── Panneau lateral droit ────────────────────────────────────── -->
-    <Transition
-      enter-active-class="transition-all duration-200"
-      enter-from-class="opacity-0 translate-x-4"
-      leave-active-class="transition-all duration-150"
-      leave-to-class="opacity-0 translate-x-4"
-    >
-      <aside
-        v-if="panneauOuvert"
-        class="hidden w-[320px] shrink-0 border-l border-slate-200 bg-white p-5 lg:block"
-      >
-        <div class="flex items-center justify-between">
-          <b class="text-[14px]">Notifications</b>
-          <button
-            type="button"
-            class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400
-                   transition-colors hover:bg-slate-100"
-            @click="panneauOuvert = false"
-          >
-            <X :size="16" />
-          </button>
-        </div>
-
-        <div class="mt-16 flex flex-col items-center text-center">
-          <span
-            class="flex h-14 w-14 items-center justify-center rounded-2xl"
-            :style="{ background: role.accentDoux, color: role.accent }"
-          >
-            <Bell :size="22" />
-          </span>
-          <b class="mt-4 text-[14px]">Aucune notification</b>
-          <p class="mt-1 text-[13px] text-slate-500">
-            Les changements de statut de vos commandes s'afficheront ici.
-          </p>
-        </div>
-      </aside>
-    </Transition>
+    <!-- ── Panneau lateral droit, stable et retractable ─────────────── -->
+    <PanneauLateral />
   </div>
 </template>

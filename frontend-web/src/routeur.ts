@@ -25,6 +25,19 @@ const routes: RouteRecordRaw[] = [
     meta: { acces: 'public' },
   },
   {
+    path: '/boutiques',
+    name: 'boutiques',
+    component: () => import('./vues/publiques/Boutiques.vue'),
+    meta: { acces: 'public' },
+  },
+  {
+    path: '/commande',
+    name: 'commande',
+    component: () => import('./vues/client/PasserCommande.vue'),
+    // Publique : on prepare sa commande sans compte, on le cree pour valider.
+    meta: { acces: 'public' },
+  },
+  {
     path: '/rejoindre',
     name: 'rejoindre',
     component: () => import('./vues/publiques/Rejoindre.vue'),
@@ -70,6 +83,24 @@ const routes: RouteRecordRaw[] = [
     path: '/espace/catalogue/:id',
     name: 'vendeur-produit',
     component: () => import('./vues/vendeur/FicheProduitVendeur.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/mes-commandes',
+    name: 'mes-commandes',
+    component: () => import('./vues/client/MesCommandes.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/commandes',
+    name: 'vendeur-commandes',
+    component: () => import('./vues/vendeur/CommandesRecues.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/validations',
+    name: 'admin-validations',
+    component: () => import('./vues/admin/Validations.vue'),
     meta: { acces: 'prive' },
   },
   { path: '/:reste(.*)*', redirect: '/' },

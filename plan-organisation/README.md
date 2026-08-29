@@ -29,7 +29,8 @@ plan-organisation/
 ├── 00-pilotage/                 Comment le projet se conduit
 │   ├── regles-d-or.md              Tes 8 règles, rendues opposables
 │   ├── critique-etat-des-lieux.md  Ce qui va, ce qui ne va pas, ce qui manque
-│   ├── journal-decisions.md        Ce qui est tranché, et pourquoi (D-01 à D-27)
+│   ├── journal-decisions.md        Ce qui est tranché, et pourquoi (D-01 à D-40)
+│   ├── etat-reel.md                Ce que le code fait vraiment, décision par décision
 │   ├── questions-ouvertes.md       Ce qui reste à trancher, par urgence
 │   ├── ta-part-du-travail.md       Ce que tu dois installer, créer, vérifier
 │   └── glossaire.md                Un mot = un sens
@@ -130,4 +131,4 @@ pas debout.
 | Identité visuelle | **RivDinde** — nom, logo 3D, déclinaisons ([identite-visuelle.html](04-maquettes/identite-visuelle.html)), en attente de ton feu vert |
 | Décisions | **30 prises, 0 en attente** |
 | Ta part | [ta-part-du-travail.md](00-pilotage/ta-part-du-travail.md) — installer les outils, lancer, commiter |
-| Code | **Tranches 0 à 2** — 33 entités, authentification par rôle, vitrine publique et catalogue filtré par rayon, 48 tests |
+| Code | **Catalogue, panier, commande, stock, validations** — 93 tests. Relevé complet dans [etat-reel.md](00-pilotage/etat-reel.md) |

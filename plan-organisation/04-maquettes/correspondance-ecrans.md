@@ -40,12 +40,12 @@ base neuve.
 
 | Maquette | Route | Vue | Endpoints | Palier | État |
 |---|---|---|---|---|---|
-| Catalogue | `/` | `VueCatalogue` | `GET /produits`, `GET /boutiques` | 1 | à faire |
-| Fiche produit | `/produit/:id` | `VueProduit` | `GET /produits/{id}`, `POST /panier/lignes`, `POST /produits/{id}/alerte-dispo` | 1 | à faire |
+| Catalogue | `/` | `VueCatalogue` | `GET /produits`, `GET /boutiques` | 1 | **fait** |
+| Fiche produit | `/produit/:id` | `VueProduit` | `GET /produits/{id}`, `POST /panier/lignes`, `POST /produits/{id}/alerte-dispo` | 1 | **fait** |
 | Panier (panneau droit) | — | `PanneauPanier` | `GET /panier`, `PATCH`, `DELETE`, `GET /panier/apercu-commandes` | 1 | à faire |
-| Tunnel de commande | `/commande` | `VueTunnel` | `POST /commandes`, `POST /paiements/intention` | 1 | à faire |
+| Tunnel de commande | `/commande` | `VueTunnel` | `POST /commandes`, `POST /paiements/intention` | 1 | **fait** |
 | Confirmation | `/commande/confirmation` | `VueConfirmation` | `GET /commandes` | 1 | à faire |
-| Mes commandes | `/mes-commandes` | `VueMesCommandes` | `GET /commandes` | 1 | à faire |
+| Mes commandes | `/mes-commandes` | `VueMesCommandes` | `GET /commandes` | 1 | **fait** |
 | Détail commande | `/mes-commandes/:id` | `VueCommande` | `GET /commandes/{id}`, `GET .../historique`, `GET /livraisons/{id}/suivi` | 1 | à faire |
 | Adresses | `/compte/adresses` | `VueAdresses` | `GET/POST/PATCH /moi/adresses` | 1 | à faire |
 | Notifications | `/compte/notifications` | `VueNotifications` | `GET /notifications` | 1 | à faire |
@@ -54,10 +54,10 @@ base neuve.
 
 | Maquette | Route | Vue | Endpoints | Palier | État |
 |---|---|---|---|---|---|
-| Tableau de bord (onglets) | `/vendeur` | `VueVendeurAccueil` | `GET /commandes?statut=`, `GET /produits?stock_bas=1` | 1 | à faire |
-| Commandes entrantes | `/vendeur/commandes` | `VueVendeurCommandes` | `GET /commandes`, `PATCH /sous-commandes/{id}/statut` | 1 | à faire |
-| Catalogue | `/vendeur/catalogue` | `VueVendeurCatalogue` | `GET/POST/PATCH /produits` | 1 | à faire |
-| Stock | `/vendeur/stock` | `VueVendeurStock` | `PATCH /produits/{id}/stock` | 1 | à faire |
+| Tableau de bord (onglets) | `/vendeur` | `VueVendeurAccueil` | `GET /commandes?statut=`, `GET /produits?stock_bas=1` | 1 | **fait** |
+| Commandes entrantes | `/vendeur/commandes` | `VueVendeurCommandes` | `GET /commandes`, `PATCH /sous-commandes/{id}/statut` | 1 | **fait** |
+| Catalogue | `/vendeur/catalogue` | `VueVendeurCatalogue` | `GET/POST/PATCH /produits` | 1 | **fait** |
+| Stock | `/vendeur/stock` | `VueVendeurStock` | `PATCH /produits/{id}/stock` | 1 | **fait** |
 | Personnel | `/vendeur/personnel` | `VueVendeurPersonnel` | `POST /vendeurs/gestionnaires` | 1 | à faire |
 | Paramètres boutique | `/vendeur/parametres` | `VueVendeurParametres` | `PATCH /boutiques/{id}` | 1 | à faire |
 | Avis reçus | `/vendeur/avis` | `VueVendeurAvis` | `GET /avis?vendeur=` | 2 | à faire |
@@ -67,7 +67,7 @@ base neuve.
 | Maquette | Route | Vue | Endpoints | Palier | État |
 |---|---|---|---|---|---|
 | Commandes à préparer (staff vendeur) | `/gestion/commandes` | `VueGestionCommandes` | `GET /commandes`, `PATCH /sous-commandes/{id}/statut` | 1 | à faire |
-| Stock (staff vendeur) | `/gestion/stock` | `VueGestionStock` | `PATCH /produits/{id}/stock` | 1 | à faire |
+| Stock (staff vendeur) | `/gestion/stock` | `VueGestionStock` | `PATCH /produits/{id}/stock` | 1 | **fait** |
 | Colis reçus (staff entrepôt) | `/gestion/colis` | `VueEntrepotColis` | `GET /entrepots/{id}/colis` | 1 | à faire |
 | Tournées à préparer | `/gestion/tournees` | `VueEntrepotTournees` | `POST /entrepots/{id}/tournees`, `PATCH /tournees/{id}/arrets`, `POST /tournees/{id}/affecter` | 1 | à faire |
 
@@ -76,7 +76,7 @@ base neuve.
 | Maquette | Route | Vue | Endpoints | Palier | État |
 |---|---|---|---|---|---|
 | Tableau de bord | `/admin` | `VueAdminAccueil` | `GET /admin/tableau-de-bord` | 1 | à faire |
-| Validations | `/admin/validations` | `VueAdminValidations` | `GET /admin/validations`, `POST .../valider`, `.../rejeter` | 1 | à faire |
+| Validations | `/admin/validations` | `VueAdminValidations` | `GET /admin/validations`, `POST .../valider`, `.../rejeter` | 1 | **fait** |
 | Utilisateurs | `/admin/utilisateurs` | `VueAdminUtilisateurs` | `GET /admin/utilisateurs`, `POST .../suspendre` | 1 | à faire |
 | Vue commande complète | `/admin/commandes/:id` | `VueAdminCommande` | `GET /commandes/{id}` et tout son historique | 1 | à faire |
 | Entrepôts | `/admin/entrepots` | `VueAdminEntrepots` | `POST /admin/entrepots`, `.../gestionnaires` | 1 | à faire |

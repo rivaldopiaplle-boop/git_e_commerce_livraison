@@ -160,6 +160,39 @@ de son compte.
 Les trois routes de photos sont détaillées — formats, limites, traitement serveur,
 stockage — dans [contrat-medias.md](contrat-medias.md). Une fiche produit renvoie
 `image_principale_url` **et** le tableau `photos` ordonné.
+
+### Stock — implémenté
+
+| Verbe | Chemin | Qui | Effet |
+|---|---|---|---|
+| `PATCH` | `/produits/{id}/stock` | V, GV | Ajuste. **Motif obligatoire** si `type=AJUSTEMENT` |
+| `GET` | `/produits/{id}/mouvements` | V, GV | L'historique, avec l'auteur de chaque mouvement |
+| `GET` | `/vendeurs/stock-bas` | V, GV | Les produits sous leur seuil d'alerte |
+
+Le stock ne peut jamais devenir négatif, ni descendre sous `stock_reserve` —
+ce qui est retenu par un paiement en cours ([D-15](../00-pilotage/journal-decisions.md)).
+
+### Panier et commande — implémentés
+
+| Verbe | Chemin | Qui | Effet |
+|---|---|---|---|
+| `GET` | `/panier` | P | Le panier courant. En-tête `X-Panier-Session` pour un visiteur |
+| `POST` | `/panier/lignes` | P | Ajoute. `409` si le stock ne suit pas |
+| `PATCH` `DELETE` | `/panier/lignes/{id}` | P | Change la quantité, retire |
+| `GET` | `/panier/apercu-commandes` | P | **Ce que le panier donnera**, avant tout engagement |
+| `POST` | `/commandes` | C | Applique le découpage (D-10) et réserve le stock |
+| `GET` | `/mes-commandes` | C | Le suivi client |
+| `GET` | `/commandes/{id}` | C, V, A | Le détail, avec son historique de statuts |
+| `GET` | `/vendeurs/commandes` | V, GV | La file de préparation — **sa part seulement** |
+| `PATCH` | `/vendeurs/sous-commandes/{id}` | V, GV | Fait avancer d'un cran |
+
+`PATCH /vendeurs/sous-commandes/{id}` renvoie `suites_possibles` : **le front
+n'a pas à connaître la machine à états**, il affiche les boutons que le serveur
+lui donne. C'est ce qui garantit qu'un vendeur ne saute jamais une étape.
+
+**L'en-tête `X-Panier-Session`** doit être déclaré dans `CORS_ALLOW_HEADERS`,
+sinon le navigateur bloque *toutes* les requêtes avant de les envoyer. Cinq
+tests le vérifient — ce bug a rendu l'application entièrement muette une fois.
 | GET | `/categories` | P | Arborescence complète |
 | GET | `/boutiques` | P | Filtrées par rayon si `lat`/`lon` fournis |
 | GET | `/boutiques/{id}` | P | |

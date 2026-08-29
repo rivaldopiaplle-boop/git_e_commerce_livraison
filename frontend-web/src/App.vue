@@ -1,30 +1,28 @@
 <script setup lang="ts">
+// Deux enveloppes seulement, et c'est voulu :
+//
+//   pleine page   connexion, inscription, attente de validation
+//   coquille      TOUT le reste — catalogue public compris
+//
+// Le bloc H-6 a tranche : les CMS decident de l'affichage du contenu et des
+// animations, jamais de la structure. Il n'y a donc qu'une seule structure.
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import CoquilleApp from './composants/CoquilleApp.vue'
-import DispositionPublique from './composants/DispositionPublique.vue'
+import FiltresCatalogue from './composants/FiltresCatalogue.vue'
 
 const route = useRoute()
-
-// Trois enveloppes possibles :
-//   pleine page   connexion, inscription, attente de validation
-//   publique      en-tete + pied de page : le magasin
-//   coquille      sidebar + navbar : les espaces de travail
-const disposition = computed(() => {
-  if (route.meta.plein) return 'pleine'
-  return route.meta.acces === 'public' ? 'publique' : 'coquille'
-})
+const pleinePage = computed(() => route.meta.plein === true)
 </script>
 
 <template>
-  <RouterView v-if="disposition === 'pleine'" />
-
-  <DispositionPublique v-else-if="disposition === 'publique'">
-    <RouterView />
-  </DispositionPublique>
+  <RouterView v-if="pleinePage" />
 
   <CoquilleApp v-else>
+    <template #filtres>
+      <FiltresCatalogue />
+    </template>
     <RouterView />
   </CoquilleApp>
 </template>

@@ -1,5 +1,5 @@
-import type { BoutiqueFacette, Univers } from '../composants/BarreFiltres.vue'
 import type { Produit } from '../composants/CarteProduit.vue'
+import type { BoutiqueFacette, Univers } from '../stores/catalogue'
 import { api, appelerComplet } from './client'
 
 export type Boutique = {

@@ -121,7 +121,11 @@ catalogue est en ligne :
 - **14 produits de démonstration** avec de vraies photos, et huit comptes
   nommés d'après les personae des scénarios.
 
-**80 tests** (60 backend, 20 front), `ruff` sans reproche, TypeScript strict.
+**93 tests** (73 backend, 20 front), `ruff` sans reproche, TypeScript strict.
+
+Le parcours d'achat est complet : catalogue public, panier sans compte qui suit
+à la connexion, aperçu du découpage avant validation, commandes créées selon la
+règle Express/Standard, préparation côté vendeur, validations côté admin.
 
 Côté vendeur : catalogue avec boutons-icônes, fiche produit à trois onglets,
 téléversement de photos qui vérifie le contenu réel des fichiers et retire les
