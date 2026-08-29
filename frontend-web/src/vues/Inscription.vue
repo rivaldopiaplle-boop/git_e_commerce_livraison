@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bike, KeyRound, Mail, Store, User, UserPlus } from '@lucide/vue'
+import { ArrowLeft, Bike, KeyRound, Mail, Store, User, UserPlus } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -84,6 +84,15 @@ async function valider() {
 
     <main class="flex flex-1 items-center justify-center px-6 py-12">
       <form class="w-full max-w-[440px] animate-[apparition_0.2s_ease-out]" @submit.prevent="valider">
+        <RouterLink
+          to="/"
+          class="mb-6 inline-flex items-center gap-2 text-[13px] text-[#b49a8c]
+                 transition-colors duration-150 hover:text-marque-clair"
+        >
+          <ArrowLeft :size="15" />
+          Retour au catalogue
+        </RouterLink>
+
         <div class="mb-6 lg:hidden">
           <LogoRivDinde :taille="52" />
         </div>

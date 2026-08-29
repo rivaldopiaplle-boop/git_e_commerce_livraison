@@ -12,40 +12,71 @@
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
-| **1** | **`python demarrer.py`, puis Ctrl+Maj+R** sur <http://localhost:5173>. Tape dans la recherche : ça filtre **pendant la frappe**. Efface : tout revient | 3 min | § D |
-| **2** | **Ajoute un produit au panier** — la carte au survol, ou depuis la fiche. Le panneau de droite s'ouvre. **Aucun compte n'est nécessaire.** Puis connecte-toi avec Léa : le panier te suit | 3 min | — |
-| **3** | **Bascule Lyon → Paris** dans le bandeau : « Restauration » disparaît des filtres, les compteurs suivent. C'était le bug que tu as trouvé | 2 min | — |
+| **1** | **Corriger ta configuration Cloudinary** dans `backend/.env` — voir l'encadré ci-dessous. C'est la seule chose bloquante | 3 min | § C |
+| **2** | **`python demarrer.py`, puis Ctrl+Maj+R.** Le catalogue revient : le bug venait de moi, pas de toi | 2 min | § D |
+| **3** | **Connecte-toi avec Karim** (`karim@exemple.fr`), va dans **Catalogue** : tu peux créer un produit, y déposer des photos et ajuster ton stock | 5 min | — |
 | **4** | **Dis-moi ce qui ne va pas**, précisément | 5 min | — |
 
-Je committe et je pousse désormais moi-même — **sauf `questions.txt`**, qui ne
-partira jamais sur le dépôt. Tu n'as plus à t'en occuper.
+---
+
+## ⚠ Ta configuration Cloudinary est fausse
+
+Le service refuse tes clés : **`Invalid cloud_name Root`**. Tu as mis `Root`
+comme `CLOUDINARY_CLOUD_NAME` — c'est le nom du dossier racine affiché dans leur
+interface, pas le nom de ton espace.
+
+Le vrai nom se lit sur le tableau de bord Cloudinary, en haut : **Product
+Environment Credentials**, ligne `Cloud name`. C'est une suite de lettres, par
+exemple `dxk3f9abc`. Corrige `CLOUDINARY_CLOUD_NAME` dans `backend/.env` et
+relance.
+
+**Tant que ce n'est pas corrigé, rien ne casse** : sans configuration valable,
+les images vont sur le disque local et tout fonctionne. Mais le jour du
+déploiement, ce sera bloquant — le disque du conteneur est effacé à chaque
+redéploiement ([D-19](journal-decisions.md)). Le message d'erreur est maintenant
+explicite au lieu d'un 500 muet.
 
 ---
 
-## Ce que tu avais signalé, et ce que j'en ai fait
+## Ce qui bloquait tout, et pourquoi c'était ma faute
 
-| | Ton constat | Ce qui a été fait |
-|---|---|---|
-| **G-8** | Une animation à côté du titre | La mascotte se balance doucement — deux mouvements combinés pour que ce ne soit pas mécanique, et suspendue si le système demande moins de mouvement. Une vraie animation 3D reste hors de ma portée : envoie-moi une vidéo et je l'intègre |
-| **G-9** | La recherche ne filtre qu'à Entrée, et effacer ne remet rien | Recherche **instantanée**, 250 ms après la dernière frappe, avec un bouton « Effacer » explicite |
-| **G-10** | « Plats 4 » depuis Paris alors qu'on ne voit rien | Les compteurs sont **calculés sur le résultat réellement visible** ([D-35](journal-decisions.md)). Depuis Paris, « Restauration » disparaît entièrement |
-| **G-11** | Sept catégories à plat | Regroupées en **univers** — Restauration, High-tech — via la réflexivité déjà prévue au modèle |
-| **G-12** | Ni panier, ni sidebar, ni panneau droit | **Panier complet** sans compte, qui suit à la connexion ([D-34](journal-decisions.md)) · **sidebar de filtres** repliable à gauche · **panneau panier** à droite · ajout rapide au survol d'une carte |
-| **G-14** | Un clavier avec la photo d'une chaise | J'ai **regardé les 14 images**, pas seulement celle-là : 4 étaient fausses. Toutes corrigées et revérifiées |
-| **G-15** | Pas de filtrage par boutique | Facette « Boutiques » avec son compteur |
-| **G-16** | Trois boutons qui ne font rien | Les liens sont corrects — **deux tests le prouvent maintenant**. J'ai trouvé et corrigé deux plantages de rendu qui pouvaient rendre la page muette, et ajouté un gestionnaire d'erreurs qui les rend visibles dans la console. Si ça persiste, ouvre F12 et envoie-moi le message |
+Catalogue vide, connexion impossible, « L'API ne répond pas » : **un seul bug,
+et il était à moi.** J'avais ajouté un en-tête `X-Panier-Session` à toutes les
+requêtes du front sans le déclarer côté serveur. Le navigateur bloque alors
+chaque appel **avant même de l'envoyer**, et le front ne reçoit qu'une erreur
+réseau — alors que l'API répondait parfaitement.
+
+Ni `pytest` ni un client en ligne de commande ne déclenchent ce contrôle : **seul
+un navigateur le fait**. C'est exactement le genre de bug que seuls tes essais
+peuvent révéler. Corrigé, et **cinq tests** simulent désormais ce que le
+navigateur envoie avant chaque requête, pour que ça ne se reproduise pas.
+
+**H-3** est réglé au passage : un lien « Retour au catalogue » figure maintenant
+en haut des écrans de connexion, d'inscription et d'attente, et le logo y est
+cliquable — sur toute plateforme marchande, le logo ramène à la boutique.
 
 ---
 
-## Ce qui a changé, côté code
+## Ce qui a été ajouté
 
-- **Panier** : API complète (voir, ajouter, modifier, retirer), session anonyme,
-  fusion à la connexion, garde de stock, prix courant, alerte multi-boutique.
-- **Facettes** : univers, catégories et boutiques, avec des compteurs honnêtes.
-- **62 tests** — 42 backend, 20 front — dont 10 sur le seul panier.
-- **Deux bugs de fragilité corrigés** dans la fiche produit : une chaîne
-  optionnelle interrompue plantait tout l'écran si la charge utile changeait de
-  forme. Le test les a trouvés, pas moi.
+**Les écrans vendeur** :
+- **Catalogue** : liste dense avec boutons-icônes — voir la fiche publique,
+  modifier, retirer du catalogue — état vide qui explique quoi faire.
+- **Fiche produit** en trois onglets : informations, photos, stock. Trois onglets
+  plutôt qu'un formulaire fleuve, pour ne voir que l'étape en cours.
+- **Photos** : dépôt par glisser-déposer, choix de la photo principale,
+  suppression. Le serveur vérifie **le contenu réel du fichier** et non son
+  extension, retire les métadonnées EXIF — une photo de téléphone porte les
+  coordonnées GPS de qui l'a prise — recadre et convertit en WebP.
+- **Stock** : ajustement avec **motif obligatoire**, refus si le stock devient
+  négatif ou passe sous ce qui est réservé, et historique complet avec l'auteur
+  de chaque mouvement.
+
+**La règle du bloc H-4 est enregistrée** : en cas de conflit, l'usage des CMS
+marchands l'emporte sur les règles d'or ([D-36](journal-decisions.md)). Elles
+restent le comportement par défaut, pas un carcan.
+
+**80 tests** — 60 backend, 20 front.
 
 
 ---

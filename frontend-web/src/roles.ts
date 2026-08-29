@@ -12,7 +12,12 @@ import type { Component } from 'vue'
 
 import type { Role } from './stores/authentification'
 
-export type EntreeNavigation = { libelle: string; icone: Component; prochainement?: boolean }
+export type EntreeNavigation = {
+  libelle: string
+  icone: Component
+  route?: string
+  prochainement?: boolean
+}
 
 type DescriptionRole = {
   espace: string
@@ -27,8 +32,8 @@ export const ROLES: Record<Role, DescriptionRole> = {
     accent: '#16a34a',
     accentDoux: '#e8f8ee',
     navigation: [
-      { libelle: 'Accueil', icone: LayoutDashboard },
-      { libelle: 'Catalogue', icone: ShoppingBag, prochainement: true },
+      { libelle: 'Accueil', icone: LayoutDashboard, route: 'espace' },
+      { libelle: 'Catalogue', icone: ShoppingBag, route: 'vitrine' },
       { libelle: 'Mes commandes', icone: Receipt, prochainement: true },
       { libelle: 'Mes adresses', icone: MapPin, prochainement: true },
       { libelle: 'Notifications', icone: Bell, prochainement: true },
@@ -39,10 +44,10 @@ export const ROLES: Record<Role, DescriptionRole> = {
     accent: '#2563eb',
     accentDoux: '#eaf0ff',
     navigation: [
-      { libelle: 'Tableau de bord', icone: LayoutDashboard },
-      { libelle: 'Catalogue', icone: Package, prochainement: true },
+      { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
+      { libelle: 'Catalogue', icone: Package, route: 'vendeur-catalogue' },
       { libelle: 'Commandes', icone: ClipboardList, prochainement: true },
-      { libelle: 'Stock', icone: Boxes, prochainement: true },
+      { libelle: 'Stock', icone: Boxes, route: 'vendeur-catalogue' },
       { libelle: 'Personnel', icone: Users, prochainement: true },
       { libelle: 'Ma boutique', icone: Store, prochainement: true },
     ],

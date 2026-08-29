@@ -116,10 +116,31 @@ l'enregistrement des modèles dans le back-office technique.
 | Catalogue de démonstration | **14 produits, 14 photos réelles** téléchargées sous licence libre, converties en WebP, EXIF retiré |
 | Vitrine publique | Bannière, bandeau « Livrer à … », filtres à facettes, grille, fiche produit avec galerie |
 
-**Reste à faire dans cette tranche** : le téléversement de photos par le vendeur
-depuis son navigateur ([contrat-medias.md](../03-contrats/contrat-medias.md)),
-les écrans vendeur de gestion du catalogue, et le géocodage d'une adresse saisie
-à la main ([D-25](../00-pilotage/journal-decisions.md)).
+**Complété ensuite** : téléversement de photos par le vendeur (vérification du
+contenu réel du fichier, retrait des métadonnées EXIF, recadrage, conversion en
+WebP), écrans vendeur de catalogue et de fiche produit, choix de la photo
+principale.
+
+**Reste** : le géocodage d'une adresse saisie à la main
+([D-25](../00-pilotage/journal-decisions.md)).
+
+---
+
+## Tranche 3 — Stock — **livrée**
+
+1. ✅ Ajustement avec **motif obligatoire** sur un ajustement manuel, refusé
+   sinon (scénario 4.4).
+2. ✅ Le stock ne peut jamais devenir négatif, ni descendre sous ce qui est
+   réservé par un paiement en cours ([D-15](../00-pilotage/journal-decisions.md)).
+3. ✅ Historique des mouvements avec type, quantité signée, stock après, motif
+   et **auteur** — sans lui, un écart n'a plus d'explication le lendemain.
+4. ✅ Le **personnel du vendeur** peut ajuster le stock, mais n'accède ni aux
+   prix ni au chiffre d'affaires ([D-04](../00-pilotage/journal-decisions.md)).
+5. ✅ Écran de stock avec formulaire d'ajustement et tableau d'historique.
+
+**Test de sortie — passé** : un ajustement sans motif est refusé et le stock ne
+bouge pas ; un gestionnaire peut ajuster ; un vendeur qui vise le produit d'un
+autre reçoit 404.
 
 ---
 

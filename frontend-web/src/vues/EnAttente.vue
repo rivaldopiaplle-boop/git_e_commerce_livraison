@@ -2,7 +2,7 @@
 // L'ecran d'attente de validation. Il existe parce qu'un vendeur qui se
 // connecte et tombe sur un tableau de bord vide croit que l'application est
 // cassee : chaque role a besoin d'un etat vide pense (scenario 0).
-import { CheckCircle2, Clock, LogOut, Mail } from '@lucide/vue'
+import { ArrowLeft, CheckCircle2, Clock, LogOut, Mail } from '@lucide/vue'
 
 import LogoRivDinde from '../composants/LogoRivDinde.vue'
 import { useAuthentification } from '../stores/authentification'
@@ -65,8 +65,15 @@ const etapes = [
         </li>
       </ol>
 
-      <div class="flex items-center justify-between border-t border-encre-3 pt-6">
-        <span class="text-[12.5px] text-[#7c6459]">Aucune action n'est attendue de votre part.</span>
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-encre-3 pt-6">
+        <RouterLink
+          to="/"
+          class="inline-flex items-center gap-2 text-[13px] text-[#b49a8c] transition-colors
+                 duration-150 hover:text-marque-clair"
+        >
+          <ArrowLeft :size="15" />
+          Parcourir le catalogue
+        </RouterLink>
         <button type="button" class="bouton-discret" @click="session.deconnecter()">
           <LogOut :size="15" />
           Se deconnecter

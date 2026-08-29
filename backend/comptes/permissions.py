@@ -81,3 +81,28 @@ class EstLivreurValide(EstLivreur):
             return False
         profil = getattr(requete.user, "profil_livreur", None)
         return bool(profil and profil.statut_validation == StatutValidation.VALIDE)
+
+
+class EstVendeurOuSonPersonnel(BasePermission):
+    """Le vendeur, ou un gestionnaire employe par un vendeur.
+
+    Le stock est un travail d'atelier : le gestionnaire qui prepare les
+    commandes constate les casses et les ecarts. Lui refuser l'ajustement
+    obligerait a deranger le vendeur a chaque fois. Les prix et le chiffre
+    d'affaires, eux, restent au vendeur seul (D-04).
+    """
+
+    message = "Reserve au vendeur et a son personnel."
+
+    def has_permission(self, requete, vue):
+        utilisateur = requete.user
+        if not utilisateur or not utilisateur.is_authenticated:
+            return False
+        if utilisateur.statut_compte != StatutCompte.ACTIF:
+            return False
+        if utilisateur.role == Role.VENDEUR:
+            return True
+        if utilisateur.role != Role.GESTIONNAIRE:
+            return False
+        profil = getattr(utilisateur, "profil_gestionnaire", None)
+        return bool(profil and profil.vendeur_id)

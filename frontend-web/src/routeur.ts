@@ -54,6 +54,24 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./vues/Accueil.vue'),
     meta: { acces: 'prive' },
   },
+  {
+    path: '/espace/catalogue',
+    name: 'vendeur-catalogue',
+    component: () => import('./vues/vendeur/CatalogueVendeur.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/catalogue/nouveau',
+    name: 'vendeur-nouveau',
+    component: () => import('./vues/vendeur/FicheProduitVendeur.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/catalogue/:id',
+    name: 'vendeur-produit',
+    component: () => import('./vues/vendeur/FicheProduitVendeur.vue'),
+    meta: { acces: 'prive' },
+  },
   { path: '/:reste(.*)*', redirect: '/' },
 ]
 

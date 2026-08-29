@@ -12,6 +12,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -176,6 +177,17 @@ CORS_ALLOWED_ORIGINS = env_liste(
     "CORS_ORIGINS", "http://localhost:5173,http://localhost:8100"
 )
 
+# Tout en-tete personnalise doit etre declare ici, sinon le navigateur bloque
+# la requete AVANT de l'envoyer — et le front ne recoit qu'une erreur reseau
+# sans explication. Ni pytest ni un client en ligne de commande ne declenchent
+# ce controle : seul un navigateur le fait. C'est ainsi que le catalogue s'est
+# retrouve vide alors que l'API repondait parfaitement.
+CORS_ALLOW_HEADERS = (
+    *default_headers,
+    # La cle qui identifie le panier d'un visiteur sans compte (D-34).
+    "x-panier-session",
+)
+
 
 # ── Langue, heure, fichiers ──────────────────────────────────────────────
 #
@@ -201,8 +213,22 @@ if DEBUG:
     WHITENOISE_USE_FINDERS = True
     WHITENOISE_AUTOREFRESH = True
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = RACINE / "media"
+
+# Les images televersees. Sans configuration, elles vont sur le disque local et
+# tout fonctionne (D-18). En ligne, Cloudinary est OBLIGATOIRE : le disque du
+# conteneur est efface a chaque redeploiement (D-19).
+CLOUDINARY_ACTIF = bool(env("CLOUDINARY_CLOUD_NAME") and env("CLOUDINARY_API_KEY"))
+if CLOUDINARY_ACTIF:  # pragma: no cover - demande un compte
+    import cloudinary
+
+    cloudinary.config(
+        cloud_name=env("CLOUDINARY_CLOUD_NAME"),
+        api_key=env("CLOUDINARY_API_KEY"),
+        api_secret=env("CLOUDINARY_API_SECRET"),
+        secure=True,
+    )
 
 
 # ── Courriels ────────────────────────────────────────────────────────────

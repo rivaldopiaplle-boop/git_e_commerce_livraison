@@ -91,6 +91,14 @@
            hover:border-marque hover:text-marque-clair;
   }
 
+  /* Le champ des espaces de travail : fond clair, contrairement aux ecrans
+     publics qui sont sur fond de marque. */
+  .champ-clair {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[14px]
+           text-slate-900 transition-colors duration-150 focus:border-slate-400
+           focus:outline-none;
+  }
+
   .carte-sombre {
     @apply rounded-2xl border border-encre-3 bg-encre/60 backdrop-blur-sm;
   }

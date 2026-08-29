@@ -375,3 +375,29 @@ ment est pire que pas de compteur.
 **Effet de bord voulu** : les catégories sont regroupées en **univers**
 (Restauration, High-tech) grâce à la réflexivité déjà prévue au modèle. Sept
 catégories à plat ne se lisent pas ; deux univers, oui.
+
+### D-36 — En cas de conflit, l'usage des CMS marchands l'emporte sur les règles d'or
+Tes règles d'or 6 à 8 décrivent l'interface que tu avais en tête au départ :
+sidebar rétractable, navbar, panneau droit, onglets, cinq onglets en bas sur
+mobile. **Elles restent la règle par défaut.** Mais quand l'une d'elles entre en
+conflit avec la façon dont les plateformes marchandes font réellement les
+choses, c'est l'usage marchand qui gagne — sans qu'on ait à reposer la question.
+**Ta formulation, bloc H-4** : *« le CMS est supérieur aux règles d'or, retiens
+ça fortement. »*
+**Pourquoi c'est juste** : ces plateformes ont mesuré chaque détail en chiffre
+d'affaires. Leur ergonomie n'est pas affaire de goût, et un recruteur reconnaît
+immédiatement une interface qui suit ces codes.
+**Ce que ça a déjà changé** : la page d'accueil est le catalogue et non un
+tableau de bord ; le panier est un panneau qui glisse avec un compteur dans
+l'en-tête, pas une page ; la recherche est instantanée et centrale ; les filtres
+sont à facettes avec compteurs.
+**Ce qu'on n'emprunte toujours pas** : leur architecture — constructeurs de
+pages, moteurs de thèmes, systèmes de greffons.
+
+### D-37 — Un test ne touche jamais le réseau
+Toute la suite force le stockage local des images, même quand des clés
+Cloudinary sont présentes dans `backend/.env` (`conftest.py`).
+**Pourquoi cette décision existe** : dès que tu as renseigné tes clés, trois
+tests se sont mis à téléverser pour de vrai — et à échouer. Un test doit passer
+dans un train, dans une chaîne d'intégration sans secrets, et donner le même
+résultat à chaque exécution.

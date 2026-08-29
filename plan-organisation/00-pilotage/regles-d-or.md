@@ -1,5 +1,11 @@
 # Règles d'or — comment ce projet se conduit
 
+> **Priorité, décidée au bloc H-4** : quand l'une de ces règles entre en conflit
+> avec la façon dont les CMS et plateformes marchandes font réellement les
+> choses, **l'usage marchand l'emporte** ([D-36](journal-decisions.md)). Ces
+> règles restent le comportement par défaut, pas un carcan.
+
+
 > Les huit règles que tu as posées, reformulées en règles opposables : chaque
 > document du dossier doit pouvoir être confronté à cette page. Si un document
 > les contredit, c'est le document qui a tort.

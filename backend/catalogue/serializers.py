@@ -7,7 +7,7 @@ lenteur d'un catalogue.
 """
 from rest_framework import serializers
 
-from .models import Categorie, PhotoProduit, Produit
+from .models import Categorie, MouvementStock, PhotoProduit, Produit
 
 
 def url_absolue(chemin, requete):
@@ -128,3 +128,20 @@ class BoutiqueSerializer(serializers.Serializer):
 
     def get_distance_km(self, vendeur):
         return self.context.get("distances", {}).get(vendeur.id)
+
+
+class MouvementStockSerializer(serializers.ModelSerializer):
+    auteur = serializers.SerializerMethodField()
+    libelle_type = serializers.CharField(source="get_type_display", read_only=True)
+
+    class Meta:
+        model = MouvementStock
+        fields = [
+            "id", "type", "libelle_type", "quantite", "motif",
+            "stock_apres", "date_mouvement", "auteur",
+        ]
+
+    def get_auteur(self, mouvement):
+        # Qui a fait quoi : sans cette trace, un ecart de stock n'a plus
+        # d'explication le lendemain.
+        return str(mouvement.auteur) if mouvement.auteur else "—"

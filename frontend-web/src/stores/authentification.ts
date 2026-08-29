@@ -6,6 +6,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { api, poserJeton } from '../api/client'
+import { poserJetonVendeur } from '../api/vendeur'
 
 export type Role = 'CLIENT' | 'VENDEUR' | 'GESTIONNAIRE' | 'LIVREUR' | 'ADMIN'
 
@@ -49,6 +50,9 @@ export const useAuthentification = defineStore('authentification', () => {
     acces.value = identite.acces
     rafraichissement.value = identite.rafraichissement
     poserJeton(identite.acces)
+    // Le televersement multipart passe par `fetch` brut, hors du client
+    // commun : il lui faut le jeton, lui aussi.
+    poserJetonVendeur(identite.acces)
     localStorage.setItem(
       CLE_STOCKAGE,
       JSON.stringify({ acces: identite.acces, rafraichissement: identite.rafraichissement }),
@@ -61,6 +65,7 @@ export const useAuthentification = defineStore('authentification', () => {
     try {
       const { acces: a, rafraichissement: r } = JSON.parse(brut)
       poserJeton(a)
+      poserJetonVendeur(a)
       acces.value = a
       rafraichissement.value = r
       const donnees = await api.get<{ utilisateur: Utilisateur; profil: never }>('/moi')
@@ -97,6 +102,7 @@ export const useAuthentification = defineStore('authentification', () => {
     acces.value = null
     rafraichissement.value = null
     poserJeton(null)
+    poserJetonVendeur(null)
     localStorage.removeItem(CLE_STOCKAGE)
   }
 

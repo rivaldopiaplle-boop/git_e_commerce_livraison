@@ -7,21 +7,32 @@ structurellement impossible une commande Express longue distance.
 """
 from django.db.models import Count, Q
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from coeur.geographie import distance_km
+from coeur.stockage import FichierRefuse, enregistrer_photo, supprimer_photo
 from comptes.models import StatutValidation, TypeService, Vendeur
-from comptes.permissions import EstVendeur
+from comptes.permissions import EstVendeur, EstVendeurOuSonPersonnel
 
-from .models import Categorie, Produit
+from .models import Categorie, PhotoProduit, Produit, TypeMouvement
 from .serializers import (
     BoutiqueSerializer,
     CategorieSerializer,
+    MouvementStockSerializer,
+    PhotoProduitSerializer,
     ProduitDetailSerializer,
     ProduitEcritureSerializer,
     ProduitListeSerializer,
+)
+from .services import (
+    RegleMetier,
+    ajouter_photo,
+    ajuster_stock,
+    reordonner_photos,
+    supprimer_photo_du_produit,
 )
 
 
@@ -291,3 +302,187 @@ def modifier_produit(requete, identifiant):
     return Response({"data": ProduitDetailSerializer(
         produit, context={"request": requete}
     ).data})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Photos — contrat-medias.md
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _produit_du_vendeur(requete, identifiant):
+    """Le produit, s'il appartient bien a la boutique de qui appelle.
+
+    404 et non 403 : repondre « interdit » revelerait qu'un produit portant cet
+    identifiant existe chez un concurrent.
+    """
+    profil = getattr(requete.user, "profil_vendeur", None)
+    if profil is None:
+        return None
+    return Produit.objects.filter(pk=identifiant, vendeur=profil).first()
+
+
+@api_view(["POST"])
+@permission_classes([EstVendeur])
+@parser_classes([MultiPartParser, FormParser])
+def televerser_photos(requete, identifiant):
+    produit = _produit_du_vendeur(requete, identifiant)
+    if produit is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    fichiers = requete.FILES.getlist("photos") or requete.FILES.getlist("photo")
+    if not fichiers:
+        return Response(
+            {"erreur": {"code": "validation", "message": "Aucun fichier recu.", "details": {}}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    ajoutees = []
+    for fichier in fichiers:
+        try:
+            url = enregistrer_photo(fichier)
+            ajoutees.append(ajouter_photo(produit, url))
+        except (FichierRefuse, RegleMetier) as refus:
+            # On s'arrete au premier refus, mais on garde ce qui est deja passe :
+            # perdre trois photos valides a cause de la quatrieme serait pire.
+            return Response(
+                {"erreur": {"code": "validation", "message": str(refus),
+                            "details": {"acceptees": len(ajoutees)}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    return Response(
+        {"data": PhotoProduitSerializer(
+            produit.photos.order_by("ordre"), many=True, context={"request": requete}
+        ).data},
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["PATCH"])
+@permission_classes([EstVendeur])
+def ordonner_photos(requete, identifiant):
+    produit = _produit_du_vendeur(requete, identifiant)
+    if produit is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        reordonner_photos(produit, [int(x) for x in requete.data.get("ordre", [])])
+    except (RegleMetier, ValueError, TypeError) as refus:
+        return Response(
+            {"erreur": {"code": "validation", "message": str(refus), "details": {}}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return Response({"data": PhotoProduitSerializer(
+        produit.photos.order_by("ordre"), many=True, context={"request": requete}
+    ).data})
+
+
+@api_view(["DELETE"])
+@permission_classes([EstVendeur])
+def retirer_photo(requete, identifiant, id_photo):
+    produit = _produit_du_vendeur(requete, identifiant)
+    if produit is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    photo = PhotoProduit.objects.filter(pk=id_photo, produit=produit).first()
+    if photo is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    chemin = photo.url
+    supprimer_photo_du_produit(produit, photo)
+    supprimer_photo(chemin)
+    return Response({"data": PhotoProduitSerializer(
+        produit.photos.order_by("ordre"), many=True, context={"request": requete}
+    ).data})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Stock — scenario 4.4
+# ═══════════════════════════════════════════════════════════════════════════
+
+@api_view(["PATCH"])
+@permission_classes([EstVendeurOuSonPersonnel])
+def modifier_stock(requete, identifiant):
+    """Le vendeur ET son personnel ajustent le stock.
+
+    Le gestionnaire prepare les commandes et constate les ecarts : lui refuser
+    l'ajustement obligerait a deranger le vendeur pour chaque casse. Il n'a en
+    revanche aucun acces aux prix ni au chiffre d'affaires (D-04).
+    """
+    produit = _produit_accessible(requete, identifiant)
+    if produit is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        mouvement = ajuster_stock(
+            produit,
+            quantite=int(requete.data.get("quantite", 0)),
+            type_mouvement=requete.data.get("type", TypeMouvement.AJUSTEMENT),
+            motif=str(requete.data.get("motif", "")),
+            auteur=requete.user,
+        )
+    except (RegleMetier, ValueError, TypeError) as refus:
+        return Response(
+            {"erreur": {"code": "validation", "message": str(refus), "details": {}}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return Response({"data": {
+        "stock_disponible": produit.stock_disponible,
+        "stock_commandable": produit.stock_commandable,
+        "mouvement": MouvementStockSerializer(mouvement).data,
+    }})
+
+
+@api_view(["GET"])
+@permission_classes([EstVendeurOuSonPersonnel])
+def mouvements_du_produit(requete, identifiant):
+    produit = _produit_accessible(requete, identifiant)
+    if produit is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    mouvements = produit.mouvements.select_related("auteur")[:100]
+    return Response({"data": MouvementStockSerializer(mouvements, many=True).data})
+
+
+def _produit_accessible(requete, identifiant):
+    """Le produit, pour le vendeur proprietaire ou pour son personnel."""
+    utilisateur = requete.user
+    profil_vendeur = getattr(utilisateur, "profil_vendeur", None)
+    if profil_vendeur is not None:
+        return Produit.objects.filter(pk=identifiant, vendeur=profil_vendeur).first()
+
+    profil_gestionnaire = getattr(utilisateur, "profil_gestionnaire", None)
+    if profil_gestionnaire is not None and profil_gestionnaire.vendeur_id:
+        return Produit.objects.filter(
+            pk=identifiant, vendeur_id=profil_gestionnaire.vendeur_id
+        ).first()
+    return None
+
+
+@api_view(["GET"])
+@permission_classes([EstVendeurOuSonPersonnel])
+def stock_bas(requete):
+    """Les produits sous leur seuil d'alerte : la premiere chose que le vendeur
+    doit voir en arrivant (contrat-web.md)."""
+    utilisateur = requete.user
+    profil = getattr(utilisateur, "profil_vendeur", None)
+    identifiant_vendeur = profil.id if profil else getattr(
+        getattr(utilisateur, "profil_gestionnaire", None), "vendeur_id", None
+    )
+    if identifiant_vendeur is None:
+        return Response({"data": []})
+
+    produits = Produit.objects.filter(
+        vendeur_id=identifiant_vendeur,
+        stock_disponible__lte=models_F_seuil(),
+    ).select_related("vendeur")
+    return Response({"data": ProduitListeSerializer(
+        produits, many=True, context={"request": requete}
+    ).data})
+
+
+def models_F_seuil():
+    from django.db.models import F
+
+    return F("seuil_alerte")

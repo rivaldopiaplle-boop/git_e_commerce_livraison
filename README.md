@@ -121,7 +121,11 @@ catalogue est en ligne :
 - **14 produits de démonstration** avec de vraies photos, et huit comptes
   nommés d'après les personae des scénarios.
 
-**48 tests** (32 backend, 16 front), `ruff` sans reproche, TypeScript strict.
+**80 tests** (60 backend, 20 front), `ruff` sans reproche, TypeScript strict.
+
+Côté vendeur : catalogue avec boutons-icônes, fiche produit à trois onglets,
+téléversement de photos qui vérifie le contenu réel des fichiers et retire les
+métadonnées, et un stock qui refuse tout ajustement sans motif.
 
 Le plan des onze tranches, chacune avec son test de sortie, est dans
 [demarrage-projet.md](plan-organisation/05-execution/demarrage-projet.md).

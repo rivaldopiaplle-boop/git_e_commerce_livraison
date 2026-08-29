@@ -24,13 +24,13 @@ const arguments_ = [
              bg-marque/15 blur-3xl"
     />
 
-    <div class="relative">
+    <RouterLink to="/" class="relative block" title="Retour au catalogue">
       <LogoRivDinde variante="complet" :taille="132" />
       <h1 class="mt-8 text-4xl font-semibold tracking-tight text-white">RivDinde</h1>
       <p class="mt-2 text-sm tracking-[0.14em] text-marque-clair uppercase">
         commander, livrer, suivre
       </p>
-    </div>
+    </RouterLink>
 
     <ul class="relative flex flex-col gap-6">
       <li v-for="argument in arguments_" :key="argument.titre" class="flex gap-4">

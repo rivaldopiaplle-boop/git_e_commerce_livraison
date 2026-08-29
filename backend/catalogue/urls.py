@@ -10,4 +10,16 @@ urlpatterns = [
 
     path("vendeurs/produits", views.mes_produits, name="mes-produits"),
     path("vendeurs/produits/<int:identifiant>", views.modifier_produit, name="modifier-produit"),
+    path("vendeurs/stock-bas", views.stock_bas, name="stock-bas"),
+
+    # Photos — contrat-medias.md § 6
+    path("produits/<int:identifiant>/photos", views.televerser_photos, name="televerser-photos"),
+    path("produits/<int:identifiant>/photos/ordre", views.ordonner_photos, name="ordonner-photos"),
+    path("produits/<int:identifiant>/photos/<int:id_photo>", views.retirer_photo,
+         name="retirer-photo"),
+
+    # Stock — scenario 4.4
+    path("produits/<int:identifiant>/stock", views.modifier_stock, name="modifier-stock"),
+    path("produits/<int:identifiant>/mouvements", views.mouvements_du_produit,
+         name="mouvements-produit"),
 ]

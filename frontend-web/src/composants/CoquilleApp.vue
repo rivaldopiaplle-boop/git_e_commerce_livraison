@@ -7,18 +7,28 @@
 // divergence (design-system.md § 8).
 import { Bell, ChevronsLeft, LogOut, PanelRight, Search, X } from '@lucide/vue'
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { descriptionDuRole } from '../roles'
 import { useAuthentification } from '../stores/authentification'
 import LogoRivDinde from './LogoRivDinde.vue'
 
 const session = useAuthentification()
+const route = useRoute()
 
 const sidebarOuverte = ref(true)
 const panneauOuvert = ref(false)
-const entreeActive = ref(0)
 
 const role = computed(() => descriptionDuRole(session.role))
+
+// L'entree active se deduit de la route, elle n'est plus un compteur local :
+// arriver par un lien direct doit surligner la bonne entree.
+const entreeActive = computed(() =>
+  role.value.navigation.findIndex((entree) => entree.route === route.name),
+)
+const titre = computed(
+  () => role.value.navigation[entreeActive.value]?.libelle ?? 'Mon espace',
+)
 const initiales = computed(() => {
   const u = session.utilisateur
   return u ? `${u.prenom[0] ?? ''}${u.nom[0] ?? ''}`.toUpperCase() : '?'
@@ -41,10 +51,12 @@ const initiales = computed(() => {
       </div>
 
       <nav class="flex flex-1 flex-col gap-0.5 px-3">
-        <button
+        <component
+          :is="entree.route ? 'RouterLink' : 'button'"
           v-for="(entree, index) in role.navigation"
           :key="entree.libelle"
-          type="button"
+          :to="entree.route ? { name: entree.route } : undefined"
+          :type="entree.route ? undefined : 'button'"
           :title="entree.libelle"
           class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-left
                  text-[13.5px] transition-colors duration-150"
@@ -54,7 +66,6 @@ const initiales = computed(() => {
               : 'text-slate-400 hover:bg-white/6 hover:text-slate-100'
           "
           :style="index === entreeActive ? { background: 'var(--accent)' } : undefined"
-          @click="entreeActive = index"
         >
           <component :is="entree.icone" :size="18" class="shrink-0" />
           <span v-if="sidebarOuverte" class="truncate">{{ entree.libelle }}</span>
@@ -64,7 +75,7 @@ const initiales = computed(() => {
           >
             bientot
           </span>
-        </button>
+        </component>
       </nav>
 
       <button
@@ -92,9 +103,7 @@ const initiales = computed(() => {
           <p class="text-[11px] font-bold tracking-[0.09em] uppercase" :style="{ color: role.accent }">
             {{ role.espace }}
           </p>
-          <h1 class="truncate text-[17px] font-semibold tracking-tight">
-            {{ role.navigation[entreeActive]?.libelle }}
-          </h1>
+          <h1 class="truncate text-[17px] font-semibold tracking-tight">{{ titre }}</h1>
         </div>
 
         <div class="flex items-center gap-2.5">
