@@ -18,8 +18,8 @@ COPY . .
 
 # Un utilisateur sans privileges : si l'application est compromise, elle n'est
 # pas root dans son conteneur.
-RUN adduser --disabled-password --gecos "" colibri && chown -R colibri /app
-USER colibri
+RUN adduser --disabled-password --gecos "" rivdinde && chown -R rivdinde /app
+USER rivdinde
 
 EXPOSE 8000
 

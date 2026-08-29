@@ -230,9 +230,9 @@ def demarrer_conteneurs():
         if "port is already allocated" in sortie or "address already in use" in sortie:
             fatal(
                 "Un port est deja pris",
-                "Un autre projet occupe un des ports de Colibri.\n"
+                "Un autre projet occupe un des ports de RivDinde.\n"
                 "Voir qui : docker ps\n"
-                "Les ports de Colibri sont 5433, 1026 et 8026 — ils sont deja\n"
+                "Les ports de RivDinde sont 5433, 1026 et 8026 — ils sont deja\n"
                 "decales de ceux du projet banque (5432, 1025, 8025).",
             )
         fatal("Les conteneurs n'ont pas demarre", "Lis le message ci-dessus.")
@@ -242,7 +242,7 @@ def demarrer_conteneurs():
     info("Attente de Postgres…")
     for _ in range(40):
         code, sortie = executer(
-            'docker inspect --format "{{.State.Health.Status}}" colibri-base'
+            'docker inspect --format "{{.State.Health.Status}}" rivdinde-base'
         )
         if "healthy" in sortie:
             ok("Postgres accepte les connexions (port 5433)")
@@ -303,6 +303,30 @@ def preparer_backend():
         echec(sortie[-1500:])
         fatal("Les migrations ont echoue", "Lis le message ci-dessus.")
     ok("Base a jour")
+
+    # Sans compte administrateur, /admin/ demande des identifiants que
+    # personne ne possede. La commande est idempotente et ne touche pas au
+    # mot de passe d'un compte deja en place.
+    code, sortie = executer('"%s" manage.py seed_admin' % py, cwd=BACKEND)
+    if code != 0:
+        echec("La creation du compte administrateur a echoue :")
+        print(sortie[-800:])
+    else:
+        for ligne in sortie.strip().splitlines():
+            if ligne.strip():
+                info(ligne.rstrip())
+
+    # Les comptes de demonstration. Idempotent : ne touche a rien s'ils sont
+    # deja la. C'est ce qui permet de derouler un scenario du dossier de
+    # conception a l'ecran, sans rien saisir a la main.
+    code, sortie = executer('"%s" manage.py seed_demo' % py, cwd=BACKEND)
+    if code != 0:
+        echec("Le jeu de demonstration n'a pas pu etre cree :")
+        print(sortie[-800:])
+    else:
+        for ligne in sortie.strip().splitlines():
+            if ligne.strip():
+                info(ligne.rstrip())
 
 
 def preparer_web():
@@ -381,7 +405,7 @@ def lancer(avec_web):
 def etat():
     etape("Etat des services")
     controles = [
-        ("Base Postgres", "docker", "colibri-base"),
+        ("Base Postgres", "docker", "rivdinde-base"),
         ("Courriels (Mailpit)", "http", "http://localhost:8026"),
         ("API Django", "http", "http://localhost:8000/api/v1/sante"),
         ("Front web", "http", "http://localhost:5173"),
@@ -400,7 +424,7 @@ def etat():
 def main():
     options = set(sys.argv[1:])
 
-    print(_c("1", "\n  Colibri") + _c("2", " — commander, livrer, suivre"))
+    print(_c("1", "\n  RivDinde") + _c("2", " — commander, livrer, suivre"))
 
     if "--arreter" in options:
         etape("Arret des conteneurs")

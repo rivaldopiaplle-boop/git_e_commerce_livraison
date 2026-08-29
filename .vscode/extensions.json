@@ -1,0 +1,22 @@
+{
+  // Ce que VS Code proposera d'installer a l'ouverture du projet. Versionne
+  // exprès : le jour ou quelqu'un d'autre ouvre le depot — ou toi sur une
+  // autre machine — il n'a pas a deviner ce qu'il lui manque.
+  "recommendations": [
+    // Indispensable : sans elle, un fichier .vue est du texte brut.
+    // Coloration, autocompletion, verification des types dans <template>.
+    "Vue.volar",
+
+    // Le meme ruff que l'integration continue, mais dans l'editeur : les
+    // erreurs apparaissent en ecrivant au lieu d'apparaitre en CI.
+    "charliermarsh.ruff",
+
+    "ms-python.python",
+    "ms-azuretools.vscode-docker"
+  ],
+  "unwantedRecommendations": [
+    // L'ancienne extension Vue 2. Installee en meme temps que Volar, les deux
+    // se disputent les fichiers .vue et l'autocompletion devient erratique.
+    "octref.vetur"
+  ]
+}

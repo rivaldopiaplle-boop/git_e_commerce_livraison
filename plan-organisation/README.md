@@ -63,6 +63,7 @@ plan-organisation/
 └── 05-execution/                Comment on le fabrique
     ├── stack-technique.md          Choix techniques, et ce qu'on refuse
     ├── demarrage-projet.md         Les tranches, dans l'ordre, avec tests de sortie
+    ├── de-nestjs-react-a-django-vue.md  Le guide de traduction depuis le projet banque
     ├── qualite-et-verification.md  Linters, tests, banc de preuves
     └── vitrine-et-demonstration.md La démonstration de dix minutes
 ```
@@ -82,6 +83,7 @@ plan-organisation/
 | Comment une photo de produit arrive | `03-contrats/contrat-medias.md` |
 | Ce que je dois faire, moi | `00-pilotage/ta-part-du-travail.md` |
 | Quoi coder maintenant | `05-execution/demarrage-projet.md` |
+| L'équivalent Django/Vue de ce que je connais | `05-execution/de-nestjs-react-a-django-vue.md` |
 | Le nom, le logo, les couleurs de marque | `04-maquettes/identite-visuelle.html` |
 | Pourquoi on a choisi ça | `00-pilotage/journal-decisions.md` |
 
@@ -125,7 +127,7 @@ pas debout.
 | Diagramme MCD | **Régénéré et vérifié** — aligné avec le dictionnaire |
 | Contrats | Écrits — API, web, mobile, médias, notifications, déploiement, CI/CD |
 | Maquettes | Faites (5 rôles, web + mobile, états vides) |
-| Identité visuelle | **Colibri** — nom, logo 3D, déclinaisons ([identite-visuelle.html](04-maquettes/identite-visuelle.html)), en attente de ton feu vert |
+| Identité visuelle | **RivDinde** — nom, logo 3D, déclinaisons ([identite-visuelle.html](04-maquettes/identite-visuelle.html)), en attente de ton feu vert |
 | Décisions | **30 prises, 0 en attente** |
 | Ta part | [ta-part-du-travail.md](00-pilotage/ta-part-du-travail.md) — installer les outils, lancer, commiter |
-| Code | **Tranche 0 vérifiée** — API, base, front, tests et linter au vert. Restent le rendu navigateur et le premier envoi |
+| Code | **Tranches 0 à 2** — 33 entités, authentification par rôle, vitrine publique et catalogue filtré par rayon, 48 tests |

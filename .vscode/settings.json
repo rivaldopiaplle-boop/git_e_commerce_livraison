@@ -1,0 +1,40 @@
+{
+  // Reglages partages du projet. Ils ne touchent que ce dossier, jamais ta
+  // configuration personnelle de VS Code.
+
+  // ── Python ──────────────────────────────────────────────────────────────
+  // L'interpreteur de l'environnement virtuel du backend, pour que
+  // l'autocompletion connaisse Django au lieu de souligner chaque import.
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["backend"],
+
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // ── Vue et front ────────────────────────────────────────────────────────
+  "[vue]": { "editor.defaultFormatter": "Vue.volar" },
+  "vue.server.hybridMode": true,
+
+  // ── Confort general ─────────────────────────────────────────────────────
+  "editor.rulers": [100],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.eol": "\n",
+
+  // Ces dossiers alourdissent la recherche sans jamais contenir ce qu'on cherche.
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/staticfiles": true,
+    "**/dist": true
+  },
+
+  // Le francais est la langue du projet, y compris dans les commentaires.
+  "cSpell.language": "fr,en"
+}

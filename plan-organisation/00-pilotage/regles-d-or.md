@@ -75,7 +75,7 @@ densité. Voir [design-system.md](../04-maquettes/design-system.md).
 | ------------ | ------- | --------- |
 | Client       | Vert    | `#16a34a` |
 | Vendeur      | Bleu    | `#2563eb` |
-| Gestionnaire | Orange  | `#ea580c` |
+| Gestionnaire | Sarcelle | `#0d9488` |
 | Livreur      | Violet  | `#7c3aed` |
 | Admin        | Rouge   | `#b91c1c` |
 

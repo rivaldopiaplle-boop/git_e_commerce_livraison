@@ -82,7 +82,7 @@ contenu (règle d'or n°7).
 Un vendeur ne voit **jamais** les données d'un autre vendeur, y compris dans une
 commande multi-vendeur où il ne voit que sa sous-commande.
 
-## 5. Gestionnaire — accent orange `#ea580c`
+## 5. Gestionnaire — accent sarcelle `#0d9488`
 
 L'interface est la même, le contenu dépend de `type_gestionnaire`.
 

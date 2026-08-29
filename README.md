@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="frontend-web/public/favicon.svg" width="88" alt="Colibri">
+<img src="frontend-web/public/logo-rivdinde-256.webp" width="150" alt="RivDinde">
 
-# Colibri
+# RivDinde
 
 **commander, livrer, suivre**
 
@@ -78,7 +78,7 @@ règlement pour le client, réparti par Stripe Connect.
 ## Structure
 
 ```
-colibri/
+rivdinde/
 ├── plan-organisation/     Toute la conception : décisions, modèle, contrats, maquettes
 ├── backend/               Django 5 + Django REST Framework
 ├── frontend-web/          Vue 3 + Vite + TypeScript
@@ -101,6 +101,7 @@ un modèle de **33 entités**, sept contrats, et des maquettes des cinq rôles.
 | Où en est le projet, quoi faire ensuite | [plan-organisation/README.md](plan-organisation/README.md) |
 | Ce que le MVP contient, et ce qu'il refuse | [perimetre-et-mvp.md](plan-organisation/01-produit/perimetre-et-mvp.md) |
 | Pourquoi tel choix technique | [journal-decisions.md](plan-organisation/00-pilotage/journal-decisions.md) |
+| L'équivalent Django/Vue de NestJS/React | [de-nestjs-react-a-django-vue.md](plan-organisation/05-execution/de-nestjs-react-a-django-vue.md) |
 | Le modèle de données | [mcd.html](plan-organisation/02-modele/mcd.html) · [dictionnaire-donnees.md](plan-organisation/02-modele/dictionnaire-donnees.md) |
 | L'identité visuelle | [identite-visuelle.html](plan-organisation/04-maquettes/identite-visuelle.html) |
 
@@ -108,13 +109,19 @@ un modèle de **33 entités**, sept contrats, et des maquettes des cinq rôles.
 
 ## État
 
-**Tranche 0 sur 11** — le squelette qui tourne, et c'est vérifié : `ruff` sans
-reproche, deux tests au vert, l'API qui renvoie
-`{"statut":"en ligne","base_de_donnees":"connectee"}`, le front qui compile et
-sert sa page. L'intégration continue, elle, ne s'exécutera qu'au premier envoi.
+**Tranches 0 à 2 sur 11.** Le socle tourne, les comptes fonctionnent, et le
+catalogue est en ligne :
 
-Rien de fonctionnel encore, et c'est voulu : ce socle est ce qui rend le reste
-reprenable après trois semaines d'interruption.
+- **33 entités** en base, inscription et connexion par rôle, un vendeur bloqué
+  tant qu'un administrateur ne l'a pas validé ;
+- une **vitrine publique** — on regarde avant de créer un compte — avec bandeau
+  « Livrer à … », filtres à facettes, grille de produits et fiche détaillée ;
+- le **filtrage Express par rayon** : depuis Lyon, les boutiques proches
+  apparaissent avec leur distance ; depuis Marseille, elles disparaissent ;
+- **14 produits de démonstration** avec de vraies photos, et huit comptes
+  nommés d'après les personae des scénarios.
+
+**48 tests** (32 backend, 16 front), `ruff` sans reproche, TypeScript strict.
 
 Le plan des onze tranches, chacune avec son test de sortie, est dans
 [demarrage-projet.md](plan-organisation/05-execution/demarrage-projet.md).

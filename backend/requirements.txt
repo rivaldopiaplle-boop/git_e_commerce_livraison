@@ -3,9 +3,18 @@
 
 Django>=5.1,<6.0
 djangorestframework>=3.15,<4.0
+
+# Jetons JWT : inscription, connexion, rafraichissement. Le standard de fait
+# cote DRF, et l'equivalent direct du passport-jwt du projet banque.
+djangorestframework-simplejwt>=5.3,<6.0
 django-cors-headers>=4.4,<5.0
 dj-database-url>=2.2,<3.0
 python-dotenv>=1.0,<2.0
 psycopg[binary]>=3.2,<4.0
+
+# Traitement des images televersees : verification du contenu reel du fichier,
+# retrait des metadonnees EXIF (coordonnees GPS du vendeur), image de repli du
+# jeu de demonstration. Voir 03-contrats/contrat-medias.md.
+pillow>=10.4,<12.0
 gunicorn>=23.0,<24.0
 whitenoise>=6.7,<7.0

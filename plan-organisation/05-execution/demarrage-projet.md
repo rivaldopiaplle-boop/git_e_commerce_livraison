@@ -60,7 +60,7 @@ jamais. Et c'est ce qui rend le projet reprenable après une interruption.
 
 ---
 
-## Tranche 1 — Modèle et comptes (1 semaine)
+## Tranche 1 — Modèle et comptes — **code écrit, vérifié en local**
 
 1. Traduire le [dictionnaire de données](../02-modele/dictionnaire-donnees.md) en
    modèles Django — **tout le MVP d'un coup**, Standard et entrepôt compris. Une
@@ -74,13 +74,26 @@ jamais. Et c'est ce qui rend le projet reprenable après une interruption.
 6. Écrans web : connexion, inscription, écran d'attente de validation, coquille
    d'application avec sidebar, navbar et accent de couleur par rôle.
 
-**Test de sortie** : un client s'inscrit et se connecte ; un vendeur créé reste
-bloqué tant que l'admin ne valide pas, et un test automatisé le prouve ; les cinq
-accents de couleur s'affichent correctement selon le rôle connecté.
+**Test de sortie — passé** :
+
+| Ce qui est prouvé | Comment |
+|---|---|
+| Les 33 entités existent en base | 37 tables créées, `manage.py migrate` |
+| Un client s'inscrit et se connecte | Test automatisé + appel réel vérifié |
+| Un vendeur reste bloqué tant que l'admin ne valide pas | `test_un_vendeur_en_attente_se_connecte_mais_ne_peut_rien_faire` |
+| Un rôle ne peut pas entrer chez un autre | Appel réel : `403 non_autorise` |
+| Un mot de passe faible est refusé | Le test a trouvé que les validateurs manquaient — corrigé |
+| Les cinq accents s'affichent selon le rôle | `CoquilleApp.vue`, une variable CSS par rôle |
+
+**19 tests**, `ruff` sans reproche, front qui compile en TypeScript strict.
+
+Ce qui a été livré au-delà du plan initial : `seed_demo` (huit comptes nommés
+d'après les personae des scénarios), le format d'erreur unique de l'API, et
+l'enregistrement des modèles dans le back-office technique.
 
 ---
 
-## Tranche 2 — Catalogue (1 semaine)
+## Tranche 2 — Catalogue — **en grande partie livrée**
 
 1. API produits et catégories, avec les droits vendeur.
 2. Filtrage géographique du catalogue Express (à vol d'oiseau, sans PostGIS).
@@ -92,9 +105,21 @@ accents de couleur s'affichent correctement selon le rôle connecté.
 6. Écran client : catalogue, fiche produit, galerie, bandeau « Livrer à … ».
 7. États vides des deux côtés.
 
-**Test de sortie** : un vendeur ajoute un produit **avec trois photos** depuis le
-navigateur, il apparaît chez un client situé dans le rayon avec sa galerie, et
-**n'apparaît pas** chez un client situé au-delà.
+**Fait et vérifié** :
+
+| | Preuve |
+|---|---|
+| API catalogue publique — produits, fiche, catégories, boutiques | Répond **sans aucun jeton** |
+| Filtrage Express par rayon ([D-09](../00-pilotage/journal-decisions.md)) | Depuis Lyon : 14 produits dont 6 Express avec leur distance. Depuis Marseille : 8, aucun Express |
+| Un vendeur non validé n'a aucun produit au catalogue | Test automatisé |
+| Un vendeur ne modifie pas le produit d'un autre | `404`, et non `403` — répondre « interdit » révélerait que le produit existe |
+| Catalogue de démonstration | **14 produits, 14 photos réelles** téléchargées sous licence libre, converties en WebP, EXIF retiré |
+| Vitrine publique | Bannière, bandeau « Livrer à … », filtres à facettes, grille, fiche produit avec galerie |
+
+**Reste à faire dans cette tranche** : le téléversement de photos par le vendeur
+depuis son navigateur ([contrat-medias.md](../03-contrats/contrat-medias.md)),
+les écrans vendeur de gestion du catalogue, et le géocodage d'une adresse saisie
+à la main ([D-25](../00-pilotage/journal-decisions.md)).
 
 ---
 

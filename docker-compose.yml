@@ -8,7 +8,7 @@
 #
 # ── Pourquoi des ports decales ───────────────────────────────────────────
 # Le projet banque occupe deja 5432 (Postgres), 1025 et 8025 (Mailpit) sur
-# cette machine. Colibri prend donc 5433, 1026 et 8026 : les deux projets
+# cette machine. RivDinde prend donc 5433, 1026 et 8026 : les deux projets
 # tournent en meme temps sans qu'on ait a en arreter un.
 #
 # Seul le port de l'HOTE change. A l'interieur du conteneur, Postgres ecoute
@@ -18,11 +18,11 @@
 services:
   base:
     image: postgres:16-alpine
-    container_name: colibri-base
+    container_name: rivdinde-base
     environment:
-      POSTGRES_USER: colibri
-      POSTGRES_PASSWORD: colibri
-      POSTGRES_DB: colibri
+      POSTGRES_USER: rivdinde
+      POSTGRES_PASSWORD: rivdinde
+      POSTGRES_DB: rivdinde
     ports:
       - "5433:5432"
     volumes:
@@ -31,7 +31,7 @@ services:
     # Postgres accepte les connexions — l'erreur arrive alors dix secondes
     # plus tard sous une forme incomprehensible.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U colibri -d colibri"]
+      test: ["CMD-SHELL", "pg_isready -U rivdinde -d rivdinde"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -42,7 +42,7 @@ services:
     # message qu'aurait recu le destinataire, sans qu'aucun courriel ne
     # quitte la machine. Aucun compte, aucune inscription, aucun risque.
     image: axllent/mailpit:latest
-    container_name: colibri-courriels
+    container_name: rivdinde-courriels
     ports:
       - "1026:1025"
       - "8026:8025"

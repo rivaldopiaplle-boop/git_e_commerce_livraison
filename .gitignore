@@ -34,9 +34,15 @@ frontend-mobile/ios/
 # alourdirait le depot de plusieurs dizaines de megaoctets pour rien.
 donnees-demo/images-telechargees/
 
+# ── Ta boite d'entree ────────────────────────────────────────────────────
+# questions.txt est ton brouillon personnel : il ne part jamais sur le depot
+# distant, qui est public et montre a des recruteurs.
+plan-organisation/questions.txt
+
 # ── Outils ───────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json

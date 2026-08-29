@@ -117,7 +117,7 @@ qu'on a **refusé** montre du jugement.
 Monorepo, un seul dépôt Git :
 
 ```
-colibri/
+rivdinde/
 ├── plan-organisation/     ← ce dossier
 ├── backend/               ← Django 5 + DRF
 ├── frontend-web/          ← Vue 3 + Vite + TypeScript

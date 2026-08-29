@@ -3,396 +3,307 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Identité visuelle — Colibri</title>
+<title>Identité visuelle — RivDinde</title>
 <style>
   :root{
-    --encre:#0b1220; --encre2:#131c2e; --panel:#ffffff; --bord:#e2e8f0;
-    --texte:#0f172a; --sub:#64748b;
-    --marque-1:#0f766e; --marque-2:#14b8a6; --marque-3:#5eead4;
+    --encre:#2a160f; --panel:#ffffff; --bord:#e7ddd6; --texte:#26150e; --sub:#7c6459;
+    --marque:#ea8c2a; --marque-foncee:#d46f1d; --marque-claire:#f0a344;
+    --peluche:#9e5329; --peluche-foncee:#592d19;
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; background:#f1f5f9; color:var(--texte);
-    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    line-height:1.65; -webkit-font-smoothing:antialiased;
+    margin:0; background:#f7f2ee; color:var(--texte);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif; line-height:1.65;
+    -webkit-font-smoothing:antialiased;
   }
   header{
-    background:linear-gradient(135deg,#0b1220,#12303a 60%,#0f766e);
-    color:#fff; padding:48px 40px 40px;
+    background:linear-gradient(140deg,#2a160f,#4a2718 55%,#9e5329);
+    color:#fff; padding:46px 40px 40px;
   }
   header h1{margin:0 0 6px; font-size:26px; letter-spacing:-.02em;}
-  header p{margin:0; color:#94d8cf; font-size:14px; max-width:70ch;}
-  main{max-width:1180px; margin:0 auto; padding:32px 24px 80px;}
+  header p{margin:0; color:#f0c9a0; font-size:14px; max-width:74ch;}
+  main{max-width:1140px; margin:0 auto; padding:32px 24px 80px;}
   section{
     background:var(--panel); border:1px solid var(--bord); border-radius:16px;
     padding:28px 32px; margin-bottom:24px;
   }
   section h2{
     margin:0 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:.09em;
-    color:var(--marque-1);
+    color:var(--peluche);
   }
   section h2 + p.chapeau{margin:0 0 24px; color:var(--sub); font-size:14px; max-width:78ch;}
   h3{font-size:15px; margin:28px 0 10px;}
   p{margin:0 0 12px;}
   .sub{color:var(--sub); font-size:13.5px;}
-  code{
-    background:#f1f5f9; padding:1px 6px; border-radius:5px;
-    font-family:Consolas,monospace; font-size:12.5px; color:#0f766e;
-  }
-  .scene{
-    display:flex; gap:20px; flex-wrap:wrap; align-items:center;
-  }
+  code{background:#f4ece7; padding:1px 6px; border-radius:5px;
+       font-family:Consolas,monospace; font-size:12.5px; color:var(--peluche-foncee);}
+  .scene{display:flex; gap:20px; flex-wrap:wrap; align-items:center;}
   .plaque{
-    flex:1 1 320px; border-radius:14px; padding:36px 32px;
-    display:flex; align-items:center; justify-content:center; min-height:190px;
+    flex:1 1 300px; border-radius:14px; padding:32px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; min-height:200px;
   }
   .plaque.clair{background:#fff; border:1px solid var(--bord);}
-  .plaque.sombre{background:linear-gradient(150deg,#0b1220,#132133);}
-  .plaque.couleur{background:linear-gradient(135deg,var(--marque-1),var(--marque-2));}
-  .grille{display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end;}
+  .plaque.sombre{background:linear-gradient(150deg,#2a160f,#4a2718);}
+  .grille{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-end;}
   .case{
     text-align:center; background:#fff; border:1px solid var(--bord);
-    border-radius:12px; padding:18px 20px 12px; min-width:120px;
+    border-radius:12px; padding:18px 20px 12px; min-width:112px;
   }
-  .case .lg{display:block; margin:0 auto 10px;}
+  .case img,.case svg{display:block; margin:0 auto 10px;}
   .case span{font-size:11px; color:var(--sub); letter-spacing:.04em;}
   table{border-collapse:collapse; width:100%; font-size:13.5px; margin:8px 0 4px;}
   th,td{border-bottom:1px solid var(--bord); padding:9px 12px; text-align:left; vertical-align:top;}
   th{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--sub);}
   .oui{color:#15803d; font-weight:700;} .non{color:#b91c1c; font-weight:700;}
   .nuance{display:flex; gap:12px; flex-wrap:wrap; margin:10px 0 4px;}
-  .puce{border-radius:10px; padding:12px 14px; min-width:132px; color:#fff; font-size:12px;}
-  .puce b{display:block; font-size:13px; letter-spacing:.02em;}
-  .puce.claire{color:#0f172a;}
-  pre{
-    background:#0b1220; color:#cbd5e1; padding:18px 20px; border-radius:12px;
-    overflow-x:auto; font-size:12px; line-height:1.6;
-  }
-  .reco{
-    border-left:3px solid var(--marque-2); background:#f0fdfa;
-    padding:14px 18px; border-radius:0 10px 10px 0; margin:16px 0;
-  }
-  .reco b{color:var(--marque-1);}
-  .noms{display:flex; gap:16px; flex-wrap:wrap;}
-  .nom{
-    flex:1 1 240px; border:1px solid var(--bord); border-radius:12px; padding:18px 20px;
-  }
-  .nom.retenu{border-color:var(--marque-2); background:#f0fdfa;}
-  .nom h4{margin:0 0 8px; font-size:20px; letter-spacing:-.01em;}
-  .nom p{font-size:13px; color:var(--sub); margin:0;}
+  .puce{border-radius:10px; padding:12px 14px; min-width:140px; color:#fff; font-size:12px;}
+  .puce b{display:block; font-size:13px;}
+  .puce.claire{color:#26150e;}
+  pre{background:#2a160f; color:#e8d9cd; padding:18px 20px; border-radius:12px;
+      overflow-x:auto; font-size:12px; line-height:1.6;}
+  .note{border-left:3px solid var(--marque); background:#fdf5ec;
+        padding:14px 18px; border-radius:0 10px 10px 0; margin:16px 0;}
+  details{border:1px solid var(--bord); border-radius:12px; padding:14px 18px; background:#fbf7f4;}
+  summary{cursor:pointer; font-weight:600; font-size:14px;}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Identité visuelle</h1>
-  <p>Réponse au bloc D-2. Le nom proposé, la marque en trois dimensions, ses déclinaisons,
-     et les règles pour ne pas l'abîmer. Rien ici n'est figé tant que tu n'as pas dit oui.</p>
+  <h1>Identité visuelle — RivDinde</h1>
+  <p>Le nom, la marque, ses deux objets, ses couleurs et les règles pour ne pas
+     l'abîmer. Nom et logo tranchés au bloc F : c'est ta décision et ton image.</p>
 </header>
 
 <main>
 
-<!-- ══════════════════ LE NOM ══════════════════ -->
+<!-- ══════════════ 1 · LA MARQUE ══════════════ -->
 <section>
-  <h2>1 · Le nom</h2>
-  <p class="chapeau">Un nom de plateforme doit tenir dans une phrase parlée, se retenir après
-     une seule lecture, et ne pas mentir sur ce que fait le produit.</p>
-
-  <div class="noms">
-    <div class="nom retenu">
-      <h4>Colibri</h4>
-      <p><b>Ma recommandation.</b> Les quatre premières lettres écrivent <b>coli</b>s.
-         L'oiseau est le plus rapide et le plus précis qui soit, et il fait du surplace
-         avant de repartir — l'Express et le Standard dans le même mot. Un vrai mot
-         français, qu'on prononce sans hésiter et qu'on écrit sans se tromper.</p>
-    </div>
-    <div class="nom">
-      <h4>Kolis</h4>
-      <p>Le mot « colis » avec un K : très court, très lisible, plus probablement libre
-         en nom de domaine. Plus froid, et l'idée de rapidité disparaît.</p>
-    </div>
-    <div class="nom">
-      <h4>Ravito</h4>
-      <p>De « ravitaillement ». Chaleureux, familier, mais penche nettement du côté
-         nourriture — gênant pour une plateforme qui vend aussi de l'électronique.</p>
-    </div>
-    <div class="nom">
-      <h4>Élan</h4>
-      <p>Un seul mot, élégant, qui dit le mouvement. Mais il ne dit ni le commerce ni la
-         livraison : il faudrait une signature pour l'expliquer à chaque fois.</p>
-    </div>
-  </div>
-
-  <div class="reco">
-    <b>Ce que je dois te dire honnêtement</b> : « Colibri » est un nom de marque assez
-    répandu en France, et <code>colibri.fr</code> est certainement pris. Pour un projet
-    de portfolio, c'est sans conséquence. Si tu veux un jour un domaine, vise
-    <code>colibri.app</code>, <code>colibri-livraison.fr</code> ou une forme composée.
-    Les trois autres noms ci-dessus ont le même logo : changer de nom coûte une ligne.
-  </div>
-
-  <p class="sub">Signature d'accompagnement, à utiliser quand le nom seul ne suffit pas :
-     <b>Colibri — commander, livrer, suivre.</b></p>
-</section>
-
-<!-- ══════════════════ LE LOGO ══════════════════ -->
-<section>
-  <h2>2 · La marque</h2>
-  <p class="chapeau">Un colis en volume — trois faces, trois lumières — d'où s'échappe
-     une aile. Le colis dit le commerce, l'aile dit la livraison, et le relief dit qu'on
-     a soigné le détail. Tout est en SVG : net à 16 pixels comme sur une affiche, et
-     pas un octet d'image à charger.</p>
+  <h2>1 · La marque</h2>
+  <p class="chapeau">Une dinde en rendu 3D perchée sur un « R » en peluche, et le
+     mot-symbole en lettres pleines. Le « R » est ton initiale ; la dinde est la
+     mascotte. C'est un logo que personne d'autre n'a — et en entretien, un projet
+     dont on se rappelle l'image vaut mieux qu'un projet de plus.</p>
 
   <div class="scene">
     <div class="plaque clair">
-      <svg width="330" height="96" viewBox="0 0 330 96" role="img" aria-label="Colibri">
-        <defs>
-          <linearGradient id="fT" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#7ff0dd"/><stop offset="1" stop-color="#14b8a6"/>
-          </linearGradient>
-          <linearGradient id="fL" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#0f9b8e"/><stop offset="1" stop-color="#0b5d55"/>
-          </linearGradient>
-          <linearGradient id="fR" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#0d7d72"/><stop offset="1" stop-color="#073d38"/>
-          </linearGradient>
-          <linearGradient id="fA" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#a7f3e4"/>
-          </linearGradient>
-          <radialGradient id="sh" cx="50%" cy="50%">
-            <stop offset="0" stop-color="#0b1220" stop-opacity=".22"/>
-            <stop offset="1" stop-color="#0b1220" stop-opacity="0"/>
-          </radialGradient>
-        </defs>
-        <g transform="translate(4,2)">
-          <ellipse cx="50" cy="88" rx="34" ry="6" fill="url(#sh)"/>
-          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-          <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
-          <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none" stroke="#ffffff" stroke-opacity=".45" stroke-width="1.1"/>
-          <path d="M35 26.5 L50 35 L35 43.5 L20 35 Z" fill="#ffffff" fill-opacity=".16"/>
-          <path d="M50 52 L50 82" stroke="#062e2a" stroke-opacity=".35" stroke-width="1.1"/>
-          <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
-          <path d="M54 12 C70 3 82 5 83 14 C75 10 65 10 54 12 Z" fill="#ffffff" fill-opacity=".55"/>
-        </g>
-        <text x="112" y="62" font-family="Segoe UI,system-ui,sans-serif" font-size="42"
-              font-weight="600" letter-spacing="-1.2" fill="#0b1220">colibri</text>
-      </svg>
+      <img src="../../frontend-web/public/logo-rivdinde-512.webp" width="260" height="260"
+           alt="RivDinde" style="border-radius:20px">
+      <span class="sub">sur fond clair</span>
     </div>
     <div class="plaque sombre">
-      <svg width="330" height="96" viewBox="0 0 330 96" role="img" aria-label="Colibri">
-        <g transform="translate(4,2)">
-          <ellipse cx="50" cy="88" rx="34" ry="6" fill="#000" opacity=".35"/>
-          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-          <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
-          <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-          <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none" stroke="#ffffff" stroke-opacity=".5" stroke-width="1.1"/>
-          <path d="M35 26.5 L50 35 L35 43.5 L20 35 Z" fill="#ffffff" fill-opacity=".18"/>
-          <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
-          <path d="M54 12 C70 3 82 5 83 14 C75 10 65 10 54 12 Z" fill="#ffffff" fill-opacity=".6"/>
-        </g>
-        <text x="112" y="62" font-family="Segoe UI,system-ui,sans-serif" font-size="42"
-              font-weight="600" letter-spacing="-1.2" fill="#ffffff">colibri</text>
-      </svg>
+      <img src="../../frontend-web/public/logo-rivdinde-512.webp" width="260" height="260"
+           alt="RivDinde" style="border-radius:20px">
+      <span style="color:#f0c9a0; font-size:13.5px">sur fond sombre — son terrain naturel</span>
     </div>
   </div>
 
-  <h3>Comment le relief est obtenu</h3>
-  <table>
-    <tr><th>Procédé</th><th>Effet</th></tr>
-    <tr><td>Trois faces isométriques, jamais la même valeur</td><td>Le cerveau lit un volume avant de lire une forme</td></tr>
-    <tr><td>Un dégradé par face, du clair vers le foncé</td><td>Une lumière unique, venue du haut-gauche</td></tr>
-    <tr><td>Filet blanc à 45 % sur les arêtes du dessus</td><td>Le biseau — c'est lui qui donne le « fini »</td></tr>
-    <tr><td>Losange blanc à 16 % sur la face du dessus</td><td>Reflet spéculaire : la surface paraît lisse</td></tr>
-    <tr><td>Ombre portée elliptique et floue au sol</td><td>Le colis se pose, il ne flotte pas</td></tr>
-    <tr><td>Aile en dégradé inverse, plus claire vers l'extérieur</td><td>Le mouvement va vers la droite, vers l'avant</td></tr>
-  </table>
+  <p class="sub" style="margin-top:18px">Signature d'accompagnement, quand le nom
+     seul ne suffit pas : <b>RivDinde — commander, livrer, suivre.</b></p>
+
+  <div class="note">
+    <b>Le fichier d'origine est opaque et pèse 1,98 Mo.</b> Il n'a pas de fond
+    transparent : le brun foncé fait partie de l'image. Ce n'est pas un défaut —
+    la marque s'installe sur fond sombre, et c'est ce que fait déjà l'écran
+    d'accueil — mais cela veut dire qu'il ne se pose pas sur une photo ni sur une
+    couleur vive sans son cadre arrondi. Les déclinaisons du § 3 règlent le poids.
+  </div>
 </section>
 
-<!-- ══════════════════ DÉCLINAISONS ══════════════════ -->
+<!-- ══════════════ 2 · DEUX OBJETS ══════════════ -->
 <section>
-  <h2>3 · Déclinaisons</h2>
-  <p class="chapeau">Le symbole seul sert d'icône d'application, de favicon et d'avatar.
-     Il reste lisible jusqu'à 16 pixels parce qu'il ne repose sur aucun détail fin.</p>
+  <h2>2 · Deux objets, jamais un seul</h2>
+  <p class="chapeau">C'est la règle de toute marque à mascotte, et elle n'est pas
+     négociable : <b>plus une image est détaillée, moins elle survit en petit</b>.
+     Regarde la dinde à 16 pixels ci-dessous, puis le monogramme à la même taille.</p>
 
   <div class="grille">
     <div class="case">
-      <svg class="lg" width="96" height="96" viewBox="0 0 100 96"><g transform="translate(0,2)">
-        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
-        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.1"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
-      </g></svg><span>96 px</span>
+      <img src="../../frontend-web/public/logo-rivdinde-192.webp" width="96" height="96" alt="" style="border-radius:14px">
+      <span>mascotte · 96 px</span>
     </div>
     <div class="case">
-      <svg class="lg" width="48" height="48" viewBox="0 0 100 96"><g transform="translate(0,2)">
-        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
-        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
-      </g></svg><span>48 px</span>
+      <img src="../../frontend-web/public/logo-rivdinde-192.webp" width="32" height="32" alt="" style="border-radius:6px">
+      <span>mascotte · 32 px</span>
     </div>
     <div class="case">
-      <svg class="lg" width="32" height="32" viewBox="0 0 100 96"><g transform="translate(0,2)">
-        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
-        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
-      </g></svg><span>32 px · favicon</span>
+      <img src="../../frontend-web/public/logo-rivdinde-192.webp" width="16" height="16" alt="" style="border-radius:3px">
+      <span>mascotte · 16 px<br><b style="color:#b91c1c">illisible</b></span>
     </div>
     <div class="case">
-      <svg class="lg" width="16" height="16" viewBox="0 0 100 96"><g transform="translate(0,2)">
-        <path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/>
-        <path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/>
-      </g></svg><span>16 px</span>
-    </div>
-    <div class="case" style="background:#0b1220;">
-      <svg class="lg" width="64" height="64" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#fff">
-        <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
-        <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
-      </g></svg><span style="color:#94a3b8">monochrome blanc</span>
+      <svg width="96" height="96" viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="f1" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#3d2016"/><stop offset="1" stop-color="#2a160f"/></linearGradient>
+          <linearGradient id="l1" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#f0a344"/><stop offset="1" stop-color="#d46f1d"/></linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="15" fill="url(#f1)"/>
+        <g fill="none" stroke="url(#l1)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 14 V47"/><path d="M21 14 H31 A10 10 0 0 1 31 36 H21"/><path d="M30 35 L42 47"/>
+        </g>
+      </svg>
+      <span>monogramme · 96 px</span>
     </div>
     <div class="case">
-      <svg class="lg" width="64" height="64" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#0b1220">
-        <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
-        <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
-      </g></svg><span>monochrome encre</span>
+      <svg width="32" height="32" viewBox="0 0 64 64">
+        <rect width="64" height="64" rx="15" fill="url(#f1)"/>
+        <g fill="none" stroke="url(#l1)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 14 V47"/><path d="M21 14 H31 A10 10 0 0 1 31 36 H21"/><path d="M30 35 L42 47"/>
+        </g>
+      </svg>
+      <span>monogramme · 32 px</span>
+    </div>
+    <div class="case">
+      <svg width="16" height="16" viewBox="0 0 64 64">
+        <rect width="64" height="64" rx="15" fill="url(#f1)"/>
+        <g fill="none" stroke="url(#l1)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 14 V47"/><path d="M21 14 H31 A10 10 0 0 1 31 36 H21"/><path d="M30 35 L42 47"/>
+        </g>
+      </svg>
+      <span>monogramme · 16 px<br><b style="color:#15803d">net</b></span>
     </div>
   </div>
 
-  <h3>Le symbole aux couleurs des rôles</h3>
-  <p class="sub">Même forme, teinte de l'espace où l'on se trouve : l'icône de l'onglet du
-     navigateur dit déjà à quel rôle on est connecté. Les cinq accents viennent de
-     <code>design-system.md</code> § 2 et ne changent pas.</p>
-  <div class="grille" style="margin-top:14px">
-    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#16a34a">
-      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
-      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
-    </g></svg><span>Client</span></div>
-    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#2563eb">
-      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
-      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
-    </g></svg><span>Vendeur</span></div>
-    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#ea580c">
-      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
-      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
-    </g></svg><span>Gestionnaire</span></div>
-    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#7c3aed">
-      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
-      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
-    </g></svg><span>Livreur</span></div>
-    <div class="case"><svg class="lg" width="52" height="52" viewBox="0 0 100 96"><g transform="translate(0,2)" fill="#b91c1c">
-      <path d="M50 18 L80 35 L50 52 L20 35 Z" opacity=".95"/><path d="M20 35 L50 52 L50 82 L20 65 Z" opacity=".62"/>
-      <path d="M80 35 L50 52 L50 82 L80 65 Z" opacity=".38"/><path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" opacity=".85"/>
-    </g></svg><span>Admin</span></div>
-  </div>
-
-  <h3>Le même logo avec les autres noms</h3>
-  <p class="sub">Pour que le choix du nom ne soit pas un pari : voici ce que donnerait
-     chacun. Le symbole ne change pas.</p>
-  <div class="grille" style="margin-top:14px; gap:18px">
-    <div class="case" style="min-width:200px">
-      <svg class="lg" width="180" height="52" viewBox="0 0 200 60">
-        <g transform="translate(0,4) scale(0.52)"><path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/><path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/></g>
-        <text x="58" y="40" font-family="Segoe UI,sans-serif" font-size="26" font-weight="600" letter-spacing="-.7" fill="#0b1220">kolis</text>
-      </svg><span>Kolis</span>
-    </div>
-    <div class="case" style="min-width:200px">
-      <svg class="lg" width="180" height="52" viewBox="0 0 200 60">
-        <g transform="translate(0,4) scale(0.52)"><path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/><path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/></g>
-        <text x="58" y="40" font-family="Segoe UI,sans-serif" font-size="26" font-weight="600" letter-spacing="-.7" fill="#0b1220">ravito</text>
-      </svg><span>Ravito</span>
-    </div>
-    <div class="case" style="min-width:200px">
-      <svg class="lg" width="180" height="52" viewBox="0 0 200 60">
-        <g transform="translate(0,4) scale(0.52)"><path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#fT)"/>
-        <path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#fL)"/><path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#fR)"/>
-        <path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#fA)"/></g>
-        <text x="58" y="40" font-family="Segoe UI,sans-serif" font-size="26" font-weight="600" letter-spacing="-.7" fill="#0b1220">élan</text>
-      </svg><span>Élan</span>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════ COULEURS ══════════════════ -->
-<section>
-  <h2>4 · Les couleurs de la marque</h2>
-  <p class="chapeau">Le turquoise n'est aucun des cinq accents de rôle : la marque reste
-     reconnaissable dans n'importe quel espace sans se confondre avec lui.</p>
-  <div class="nuance">
-    <div class="puce" style="background:#0b1220"><b>Encre</b>#0b1220<br>textes, fonds sombres</div>
-    <div class="puce" style="background:#0f766e"><b>Marque foncée</b>#0f766e<br>face droite, liens</div>
-    <div class="puce" style="background:#14b8a6"><b>Marque</b>#14b8a6<br>couleur principale</div>
-    <div class="puce claire" style="background:#5eead4"><b>Marque claire</b>#5eead4<br>aile, accents sur fond sombre</div>
-    <div class="puce claire" style="background:#f0fdfa"><b>Voile</b>#f0fdfa<br>fonds de blocs</div>
-  </div>
-  <p class="sub" style="margin-top:14px">Contraste vérifié : l'encre sur blanc et le blanc sur
-     encre dépassent largement le seuil AA. Le turquoise <code>#14b8a6</code> ne sert
-     <b>jamais</b> à écrire du texte fin sur fond blanc — uniquement en aplat, en trait
-     ou sur fond sombre.</p>
-</section>
-
-<!-- ══════════════════ RÈGLES ══════════════════ -->
-<section>
-  <h2>5 · Ce qu'on fait, ce qu'on ne fait pas</h2>
+  <h3>Qui sert à quoi</h3>
   <table>
-    <tr><th style="width:34%">Règle</th><th>Pourquoi</th></tr>
-    <tr><td><span class="oui">Zone de protection</span> égale à la moitié de la hauteur du symbole</td><td>Un logo collé à un bord ou à un texte perd son autorité</td></tr>
-    <tr><td><span class="oui">Taille minimale</span> : 16 px pour le symbole, 96 px de large pour le logo complet</td><td>En dessous, l'aile se referme sur le colis</td></tr>
-    <tr><td><span class="oui">Sur photo</span> : version monochrome blanche, sur une zone calme</td><td>Les dégradés se noient dans une image</td></tr>
-    <tr><td><span class="non">Jamais</span> déformer, incliner, ajouter une ombre portée en CSS</td><td>Le relief est déjà dans le dessin ; en rajouter le rend sale</td></tr>
-    <tr><td><span class="non">Jamais</span> recolorer l'aile séparément du colis</td><td>Ce sont deux morceaux d'un seul objet</td></tr>
-    <tr><td><span class="non">Jamais</span> écrire « COLIBRI » en capitales</td><td>Le mot-symbole est en bas de casse, c'est ce qui le rend doux</td></tr>
-    <tr><td><span class="non">Jamais</span> l'exporter en PNG pour l'intégrer</td><td>C'est du SVG : net partout, et modifiable</td></tr>
+    <tr><th style="width:22%">Objet</th><th>Où</th><th>Pourquoi</th></tr>
+    <tr>
+      <td><b>La mascotte</b></td>
+      <td>Écran d'accueil, page de connexion, écran de démarrage du mobile, en-tête du dépôt, e-mails</td>
+      <td>C'est elle qu'on retient. Au-dessus de 96 pixels, tous ses détails travaillent</td>
+    </tr>
+    <tr>
+      <td><b>Le monogramme</b></td>
+      <td>Onglet du navigateur, icône de l'application, navbar, avatars, listes</td>
+      <td>Trois traits, deux couleurs : il ne perd rien en rétrécissant, et il ne coûte aucun téléchargement</td>
+    </tr>
   </table>
 </section>
 
-<!-- ══════════════════ CODE ══════════════════ -->
+<!-- ══════════════ 3 · FICHIERS ══════════════ -->
 <section>
-  <h2>6 · Le symbole, à copier tel quel</h2>
-  <p class="chapeau">Ce bloc devient <code>web/src/composants/LogoColibri.vue</code> et
-     <code>web/public/favicon.svg</code>. Aucune image à charger, aucune requête réseau.</p>
-<pre>&lt;svg viewBox="0 0 100 96" xmlns="http://www.w3.org/2000/svg"&gt;
+  <h2>3 · Les fichiers, et ce qu'ils pèsent</h2>
+  <p class="chapeau">Le fichier d'origine faisait 1,98 Mo. Une page qui embarque
+     deux mégaoctets de logo met plusieurs secondes à s'afficher sur un téléphone :
+     c'est exactement le genre de détail qu'un recruteur remarque sans le nommer.</p>
+
+  <table>
+    <tr><th>Fichier</th><th>Taille</th><th>Poids</th><th>Usage</th></tr>
+    <tr><td><code>04-maquettes/marque/rivdinde-logo-source.png</code></td><td>1254 px</td><td>1,98 Mo</td><td><b>La source.</b> Ne jamais la servir sur le web — c'est d'elle qu'on régénère tout le reste</td></tr>
+    <tr><td><code>frontend-web/public/logo-rivdinde-512.webp</code></td><td>512 px</td><td><b>28 Ko</b></td><td>Écran d'accueil, grandes surfaces</td></tr>
+    <tr><td><code>…/logo-rivdinde-256.webp</code></td><td>256 px</td><td>9 Ko</td><td>Écrans intermédiaires</td></tr>
+    <tr><td><code>…/logo-rivdinde-192.webp</code></td><td>192 px</td><td>6 Ko</td><td>Petits affichages, téléphones</td></tr>
+    <tr><td><code>…/logo-rivdinde-512.png</code> et <code>-192.png</code></td><td>512 / 192</td><td>322 / 48 Ko</td><td>Repli pour ce qui ne lit pas le WebP : icône Android, aperçus de partage</td></tr>
+    <tr><td><code>frontend-web/public/favicon.svg</code></td><td>vectoriel</td><td>0,6 Ko</td><td>Onglet du navigateur — le monogramme</td></tr>
+  </table>
+
+  <p class="sub"><b>Soixante-dix fois plus léger</b>, sans différence visible :
+     le WebP compresse bien mieux le PNG pour ce type d'image. Le composant
+     <code>LogoRivDinde.vue</code> déclare les trois tailles en <code>srcset</code>,
+     et le navigateur prend celle qui correspond à son écran au lieu de charger la
+     plus grande pour la réduire.</p>
+
+  <h3>Régénérer les déclinaisons</h3>
+  <p class="sub">Si la source change, une seule commande depuis <code>backend/</code>
+     avec Pillow (déjà installé) suffit à tout refabriquer — le script est conservé
+     dans le dossier <code>marque/</code>.</p>
+</section>
+
+<!-- ══════════════ 4 · COULEURS ══════════════ -->
+<section>
+  <h2>4 · Les couleurs</h2>
+  <p class="chapeau">Elles ne sont pas choisies : elles sont <b>échantillonnées dans
+     le logo lui-même</b>. C'est ce qui garantit que l'interface et l'image
+     s'accordent au lieu de se supporter.</p>
+
+  <div class="nuance">
+    <div class="puce" style="background:#2a160f"><b>Encre</b>#2a160f<br>74 % de l'image</div>
+    <div class="puce" style="background:#592d19"><b>Peluche foncée</b>#592d19<br>ombres du R</div>
+    <div class="puce" style="background:#9e5329"><b>Peluche</b>#9e5329<br>le R en nounours</div>
+    <div class="puce" style="background:#d46f1d"><b>Marque foncée</b>#d46f1d<br>bordures, survols</div>
+    <div class="puce" style="background:#ea8c2a"><b>Marque</b>#ea8c2a<br>l'orange du mot</div>
+    <div class="puce claire" style="background:#f0a344"><b>Marque claire</b>#f0a344<br>sur fond sombre</div>
+  </div>
+
+  <div class="note">
+    <b>Une conséquence à ne pas rater</b> : l'accent du rôle <b>Gestionnaire</b>
+    était orange <code>#ea580c</code>, trop proche de l'orange de la marque. Deux
+    oranges voisins, l'un qui dit « la marque » et l'autre « tu es dans l'espace
+    gestionnaire », s'annulent. Le Gestionnaire passe au <b>sarcelle
+    <code>#0d9488</code></b> — libre, lisible sur les deux fonds, distinct des
+    quatre autres accents. Les maquettes et les contrats sont déjà à jour.
+  </div>
+
+  <p class="sub">Les cinq accents de rôle (client vert, vendeur bleu, gestionnaire
+     sarcelle, livreur violet, admin rouge) restent inchangés par ailleurs :
+     ils disent <i>où l'on se trouve</i>, la marque dit <i>chez qui l'on est</i>.
+     Voir <code>design-system.md</code> § 2.</p>
+</section>
+
+<!-- ══════════════ 5 · RÈGLES ══════════════ -->
+<section>
+  <h2>5 · Ce qu'on fait, ce qu'on ne fait pas</h2>
+  <table>
+    <tr><th style="width:36%">Règle</th><th>Pourquoi</th></tr>
+    <tr><td><span class="oui">Mascotte au-dessus de 96 px</span>, monogramme en dessous</td><td>C'est la seule règle qui compte vraiment</td></tr>
+    <tr><td><span class="oui">Coins arrondis</span> (18 px) sur la mascotte</td><td>Son fond est opaque : sans arrondi, elle fait « image collée »</td></tr>
+    <tr><td><span class="oui">Zone de protection</span> égale à la moitié de sa hauteur</td><td>Un logo collé à un bord perd son autorité</td></tr>
+    <tr><td><span class="oui">Servir le WebP</span>, garder le PNG en repli</td><td>28 Ko contre 322 Ko pour le même rendu</td></tr>
+    <tr><td><span class="non">Jamais</span> servir <code>rivdinde-logo-source.png</code> sur le web</td><td>Deux mégaoctets pour un logo</td></tr>
+    <tr><td><span class="non">Jamais</span> déformer, incliner, ajouter une ombre portée</td><td>Le relief est déjà dans l'image ; en rajouter la salit</td></tr>
+    <tr><td><span class="non">Jamais</span> poser la mascotte sur une photo ou un aplat vif</td><td>Son fond brun entre en conflit — utiliser le monogramme</td></tr>
+    <tr><td><span class="non">Jamais</span> recolorer la mascotte</td><td>C'est un rendu, pas un pictogramme. Le monogramme, lui, se teinte</td></tr>
+  </table>
+</section>
+
+<!-- ══════════════ 6 · CODE ══════════════ -->
+<section>
+  <h2>6 · Le monogramme, à copier tel quel</h2>
+  <p class="chapeau">C'est le contenu de <code>frontend-web/public/favicon.svg</code>,
+     et celui du composant <code>LogoRivDinde.vue</code> en variante
+     <code>symbole</code>. Aucune image à charger, aucune requête réseau.</p>
+<pre>&lt;svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"&gt;
   &lt;defs&gt;
-    &lt;linearGradient id="cT" x1="0" y1="0" x2="1" y2="1"&gt;
-      &lt;stop offset="0" stop-color="#7ff0dd"/&gt;&lt;stop offset="1" stop-color="#14b8a6"/&gt;
+    &lt;linearGradient id="fond" x1="0" y1="0" x2="0.6" y2="1"&gt;
+      &lt;stop offset="0" stop-color="#3d2016"/&gt;&lt;stop offset="1" stop-color="#2a160f"/&gt;
     &lt;/linearGradient&gt;
-    &lt;linearGradient id="cL" x1="0" y1="0" x2="0" y2="1"&gt;
-      &lt;stop offset="0" stop-color="#0f9b8e"/&gt;&lt;stop offset="1" stop-color="#0b5d55"/&gt;
-    &lt;/linearGradient&gt;
-    &lt;linearGradient id="cR" x1="0" y1="0" x2="0" y2="1"&gt;
-      &lt;stop offset="0" stop-color="#0d7d72"/&gt;&lt;stop offset="1" stop-color="#073d38"/&gt;
-    &lt;/linearGradient&gt;
-    &lt;linearGradient id="cA" x1="0" y1="1" x2="1" y2="0"&gt;
-      &lt;stop offset="0" stop-color="#2dd4bf"/&gt;&lt;stop offset="1" stop-color="#a7f3e4"/&gt;
+    &lt;linearGradient id="lettre" x1="0" y1="0" x2="0.3" y2="1"&gt;
+      &lt;stop offset="0" stop-color="#f0a344"/&gt;&lt;stop offset="1" stop-color="#d46f1d"/&gt;
     &lt;/linearGradient&gt;
   &lt;/defs&gt;
-  &lt;g transform="translate(0,2)"&gt;
-    &lt;path d="M50 18 L80 35 L50 52 L20 35 Z" fill="url(#cT)"/&gt;          &lt;!-- dessus --&gt;
-    &lt;path d="M20 35 L50 52 L50 82 L20 65 Z" fill="url(#cL)"/&gt;          &lt;!-- gauche --&gt;
-    &lt;path d="M80 35 L50 52 L50 82 L80 65 Z" fill="url(#cR)"/&gt;          &lt;!-- droite --&gt;
-    &lt;path d="M50 18 L80 35 L50 52 L20 35 Z" fill="none"
-          stroke="#fff" stroke-opacity=".45" stroke-width="1.1"/&gt;       &lt;!-- biseau --&gt;
-    &lt;path d="M35 26.5 L50 35 L35 43.5 L20 35 Z" fill="#fff" fill-opacity=".16"/&gt;
-    &lt;path d="M50 17 C76 1 97 7 95 25 C87 16 71 13 50 17 Z" fill="url(#cA)"/&gt; &lt;!-- aile --&gt;
-    &lt;path d="M54 12 C70 3 82 5 83 14 C75 10 65 10 54 12 Z" fill="#fff" fill-opacity=".55"/&gt;
+  &lt;rect width="64" height="64" rx="15" fill="url(#fond)"/&gt;
+  &lt;g fill="none" stroke="url(#lettre)" stroke-width="9.5"
+     stroke-linecap="round" stroke-linejoin="round"&gt;
+    &lt;path d="M21 14 V47"/&gt;                          &lt;!-- la hampe --&gt;
+    &lt;path d="M21 14 H31 A10 10 0 0 1 31 36 H21"/&gt;    &lt;!-- la boucle --&gt;
+    &lt;path d="M30 35 L42 47"/&gt;                        &lt;!-- la jambe --&gt;
   &lt;/g&gt;
 &lt;/svg&gt;</pre>
-  <p class="sub">Pour la version monochrome, on supprime les dégradés et on applique une
-     seule couleur avec trois opacités : <code>.95</code> dessus, <code>.62</code> gauche,
-     <code>.38</code> droite. C'est ce qui produit les variantes par rôle ci-dessus, sans
-     dessiner cinq fichiers.</p>
+  <p class="sub">Le « R » n'est pas une police : ce sont trois traits épais aux
+     extrémités arrondies. Il s'affiche donc à l'identique sur toutes les machines,
+     là où un <code>&lt;text&gt;</code> dépendrait des polices installées.</p>
+</section>
+
+<!-- ══════════════ 7 · ANNEXE ══════════════ -->
+<section>
+  <h2>7 · Annexe — la piste écartée</h2>
+  <details>
+    <summary>Colibri, ma proposition du bloc D — pour mémoire</summary>
+    <p style="margin-top:14px">Je proposais <b>Colibri</b> : les quatre premières
+       lettres écrivent <b>coli</b>s, l'oiseau est le plus rapide et le seul à
+       savoir faire du surplace — l'Express et le Standard dans un seul mot. Le
+       symbole était un colis isométrique d'où s'échappait une aile.</p>
+    <p><b>Deux arguments ont emporté la décision contre lui</b> : tu avais déjà
+       l'image de RivDinde en tête, et le nom porte ton prénom. Un logo qu'on a
+       voulu vaut mieux qu'un logo qu'on a accepté.</p>
+    <p><b>Ce que j'avais signalé et qui reste vrai</b> : en français, « dinde »
+       s'emploie comme insulte légère, et le nom sera lu avant d'être expliqué.
+       Tu l'as tranché en connaissance de cause — c'est écrit ici pour que la
+       question ne revienne pas.</p>
+    <p class="sub">La palette turquoise de Colibri a servi à quelque chose : elle
+       a libéré l'orange pour la marque, ce qui a entraîné le passage du
+       Gestionnaire au sarcelle (§ 4).</p>
+  </details>
 </section>
 
 </main>

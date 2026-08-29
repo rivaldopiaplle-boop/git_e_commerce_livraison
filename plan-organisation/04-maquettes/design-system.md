@@ -22,13 +22,39 @@ un coup d'œil dans quel espace on se trouve.
 |---|---|---|---|---|
 | Client | Vert | `#16a34a` | `#e8f8ee` | `#0f7a34` |
 | Vendeur | Bleu | `#2563eb` | `#eaf0ff` | `#1e40af` |
-| Gestionnaire | Orange | `#ea580c` | `#fff2e8` | `#b8450a` |
+| Gestionnaire | Sarcelle | `#0d9488` | `#e6f7f4` | `#0b6b62` |
 | Livreur | Violet | `#7c3aed` | `#f3edff` | `#5b21b6` |
 | Admin | Rouge | `#b91c1c` | `#fdebe9` | `#7f1414` |
 
 L'accent est utilisé pour : l'élément de navigation actif, le bouton principal,
 les badges de comptage, la barre de progression, les liens. **Jamais** pour un
 message de succès, d'alerte ou d'erreur.
+
+**Pourquoi le Gestionnaire n'est plus orange** : l'orange est devenu la couleur
+de la marque RivDinde (`#ea8c2a`, échantillonné dans le logo). Deux oranges
+proches à l'écran — l'un qui dit « la marque », l'autre qui dit « tu es dans
+l'espace gestionnaire » — se seraient annulés. Le sarcelle était libre, il est
+lisible sur fond clair comme sur fond sombre, et il ne ressemble à aucun des
+quatre autres accents.
+
+## 2 bis. Les couleurs de la marque
+
+Elles ne sont pas un sixième accent de rôle : elles habillent ce qui appartient
+au produit lui-même — logo, écran de connexion, page publique, e-mails.
+Échantillonnées directement dans le logo, dont elles garantissent l'accord.
+
+| Rôle | Valeur | Part du logo |
+|---|---|---|
+| Encre, fonds sombres | `#2a160f` | 74 % de l'image |
+| Marque | `#ea8c2a` | l'orange du mot « RivDinde » |
+| Marque foncée | `#d46f1d` | |
+| Marque claire | `#f0a344` | |
+| Peluche | `#9e5329` et `#592d19` | le brun du « R » |
+
+La marque a **deux objets, jamais un seul** : la mascotte pour les grandes
+surfaces, et le **monogramme « R »** en SVG pour l'onglet du navigateur, l'icône
+de l'application et la navbar. Détail et règles :
+[identite-visuelle.html](identite-visuelle.html).
 
 ## 3. Couleurs de sens — identiques pour tous les rôles
 
@@ -167,6 +193,27 @@ Le tableau de la section 8 reste valable : ces bibliothèques fournissent la
 mécanique, nos composants fournissent le sens métier. `ListeDonnees` enveloppe le
 tableau de PrimeVue, il ne le remplace pas — et le jour où l'on change de
 bibliothèque, un seul fichier bouge.
+
+### Ce qui est en place aujourd'hui, et ce qui attend
+
+| | État | Où |
+|---|---|---|
+| **Tailwind CSS 4** | En place | Jetons de marque déclarés dans `@theme`, classes `.champ`, `.bouton-marque`, `.carte-sombre` dans `src/style.css` |
+| **Lucide** | En place | `@lucide/vue` — une icône par entrée de navigation, par champ, par état |
+| **PrimeVue** | Installé, **pas encore activé** | Son thème pèse ~200 Ko et aucun écran de la tranche 1 n'utilise ses composants. Branché à la tranche 2, au premier tableau triable à boutons-icônes |
+
+Ce dernier point est une règle de méthode, pas une hésitation : **une
+dépendance s'active quand elle sert**. Charger 200 Ko pour afficher un
+formulaire de connexion coûterait plus cher que tout ce que le thème apporte.
+
+### Les jetons de couleur, en pratique
+
+Les couleurs de marque vivent dans `@theme` et deviennent des classes
+(`bg-encre`, `text-marque`, `border-peluche`). Les cinq accents de rôle, eux,
+sont **dynamiques** : ils sont injectés en variable CSS (`--accent`) par
+`CoquilleApp.vue` à partir de `src/roles.ts`, qui décrit pour chaque rôle son
+libellé d'espace, son accent et sa navigation. Un rôle = une entrée dans ce
+fichier, et rien d'autre à toucher.
 
 ---
 

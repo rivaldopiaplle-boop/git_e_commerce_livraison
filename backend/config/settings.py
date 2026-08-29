@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────
-#  Colibri — configuration Django
+#  RivDinde — configuration Django
 #
 #  Un seul fichier de configuration, pilote par des variables
 #  d'environnement (voir .env.example). Pas de settings/dev.py et
@@ -8,6 +8,7 @@
 # ─────────────────────────────────────────────────────────────────────────
 import os
 import secrets
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -66,9 +67,24 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt",
     "corsheaders",
+    # Une app par zone du modele de donnees. Le decoupage suit le MCD, pas la
+    # technique : on trouve un modele la ou on le cherche.
     "coeur",
+    "comptes",
+    "catalogue",
+    "commandes",
+    "paiements",
+    "livraisons",
+    "engagement",
 ]
+
+# L'authentification passe par notre propre modele : e-mail unique comme
+# identifiant, role et statut de compte portes par l'utilisateur lui-meme.
+# Changer cette valeur apres la premiere migration est tres couteux — c'est
+# pour cela qu'elle est posee des la tranche 1.
+AUTH_USER_MODEL = "comptes.Utilisateur"
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -105,13 +121,30 @@ TEMPLATES = [
 
 DATABASES = {
     "default": dj_database_url.parse(
-        env("DATABASE_URL", "postgresql://colibri:colibri@localhost:5433/colibri"),
+        env("DATABASE_URL", "postgresql://rivdinde:rivdinde@localhost:5433/rivdinde"),
         conn_max_age=600,
         conn_health_checks=True,
     )
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ── Mots de passe ────────────────────────────────────────────────────────
+#
+# Sans cette liste, Django accepte « 1234 ». Ce n'est pas un reglage de
+# confort : c'est la seule chose qui separe un compte d'un compte ouvert.
+# Un test le verifie (comptes/tests/test_inscription_et_validation.py).
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
 
 # ── API ──────────────────────────────────────────────────────────────────
@@ -121,6 +154,22 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "EXCEPTION_HANDLER": "coeur.erreurs.gestionnaire_erreurs",
+}
+
+# Jetons JWT. Duree courte pour l'acces, longue pour le rafraichissement :
+# un jeton vole ne sert que quelques minutes, et l'utilisateur ne se
+# reconnecte pas toutes les heures.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "id_utilisateur",
 }
 
 CORS_ALLOWED_ORIGINS = env_liste(
@@ -168,7 +217,7 @@ else:
     # Aucun SMTP configure : les courriels s'affichent dans la console.
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-DEFAULT_FROM_EMAIL = env("MAIL_EXPEDITEUR", "Colibri <ne-pas-repondre@colibri.local>")
+DEFAULT_FROM_EMAIL = env("MAIL_EXPEDITEUR", "RivDinde <ne-pas-repondre@rivdinde.local>")
 
 
 # ── Securite en ligne ────────────────────────────────────────────────────

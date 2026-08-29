@@ -265,7 +265,7 @@ commission encaissée. **Tranche [Q-08](questions-ouvertes.md) fermée**.
 coûte que des écrans. Et une plateforme où l'on ne voit jamais d'argent ne
 ressemble pas à une plateforme.
 
-### D-30 — Le produit s'appelle **Colibri** *(proposé, en attente d'un mot de toi)*
+### D-30 — ~~Le produit s'appelle Colibri~~ → **le produit s'appelle RivDinde**
 Les quatre premières lettres écrivent **coli**s ; l'oiseau est à la fois le plus
 rapide et le seul qui sache faire du surplace — l'Express et le Standard dans un
 seul mot français, qui se prononce et s'écrit sans hésiter.
@@ -278,3 +278,100 @@ portfolio.
 **Ce qui attend ta validation** : le nom n'est appliqué qu'à l'identité visuelle
 et au README. La propagation au reste du dossier et au code est une seule
 opération, faite le jour où tu dis oui — ou avec un autre nom, à coût identique.
+
+**Bloc F — tranché : c'est RivDinde**, et tu as fourni le logo toi-même : une
+dinde en rendu 3D perchée sur un « R » en peluche, exactement ce que tu décrivais
+au bloc E-3 et que le dessin vectoriel ne pouvait pas rendre.
+
+Ce que ça implique, et qui est fait :
+- La marque a **deux objets** : la mascotte pour les grandes surfaces, et un
+  **monogramme « R »** en SVG pour l'onglet du navigateur et l'icône de
+  l'application — une dinde détaillée devient une tache à 16 pixels.
+- Le logo fourni pesait **1,98 Mo sans transparence** : inutilisable tel quel.
+  Il est décliné en 512, 256 et 192 pixels au format WebP — **28 Ko** pour la
+  version affichée, soixante-dix fois plus léger, sans perte visible.
+- La palette de la marque est **échantillonnée dans le logo lui-même** :
+  `#2a160f` (le fond, 74 % de l'image), `#ea8c2a` et `#d46f1d` (l'orange du
+  mot), `#9e5329` et `#592d19` (le brun de la peluche).
+- Le nom est propagé partout : code, conteneurs, base de données, intégration
+  continue, documents. 59 occurrences.
+- La source haute définition est rangée dans
+  `04-maquettes/marque/rivdinde-logo-source.png` : c'est d'elle qu'on
+  régénérera toute déclinaison future.
+
+**Pourquoi pas Colibri, pour mémoire** : je le recommandais parce qu'il cache
+« colis » et qu'il ne prête pas à sourire. Tu as choisi un nom qui porte ton
+prénom et dont tu avais déjà l'image en tête — c'est un argument que je n'avais
+pas, et c'est ta décision.
+
+### D-31 — Le compte administrateur est créé par `seed_admin`, appelé au démarrage
+La commande `python manage.py seed_admin` applique la décision
+[D-01](#d-01--le-premier-admin-est-créé-hors-du-web) : elle crée le compte
+fondateur en base, hors de toute interface web. Elle est **idempotente**, et
+**ne touche jamais au mot de passe d'un compte existant** — sans quoi chaque
+`demarrer.py` changerait le mot de passe de l'admin.
+Sans `ADMIN_MOT_DE_PASSE` et en développement, elle engendre un mot de passe fort
+et l'affiche **une seule fois** ; hors développement, elle refuse de démarrer
+plutôt que d'écrire un mot de passe dans les journaux de l'hébergeur.
+**Pourquoi cette décision existe** : au bloc E-5, `/admin/` demandait des
+identifiants que personne ne possédait. `demarrer.py` appelle désormais la
+commande à chaque lancement, pour que le cas ne se reproduise jamais.
+
+### D-32 — Le Django Admin est un outil de développement, pas l'interface du produit
+`/admin/` est le back-office engendré par Django, activé en deux lignes et
+**écrit par personne**. Il sert à inspecter et corriger des données pendant le
+développement, à dépanner en exploitation, et à montrer le modèle en trente
+secondes en entretien.
+**Ce qu'il n'est pas** : l'interface du produit. Les écrans des cinq rôles sont
+ceux de l'application Vue et de l'application Ionic, décrits dans
+[contrat-web.md](../03-contrats/contrat-web.md) et
+[contrat-mobile.md](../03-contrats/contrat-mobile.md), avec la sidebar, le
+panneau droit et les cinq onglets qu'imposent les règles d'or 6 à 8.
+**Pourquoi ce n'est pas une entorse à la règle d'or n°5** : c'est l'inverse.
+Un back-office technique gratuit et sécurisé qui apparaît en deux lignes, s'en
+priver pour coder des écrans que personne ne verra serait réinventer la roue.
+**En production** : conservé, réservé aux comptes `is_superuser`, jamais lié
+depuis le produit. Explication complète dans
+[de-nestjs-react-a-django-vue.md](../05-execution/de-nestjs-react-a-django-vue.md) § 5.
+
+### D-33 — La page d'accueil est le catalogue, et elle est publique
+Trois niveaux d'accès, portés par chaque route : **public** (catalogue, fiche
+produit, page « rejoindre »), **auth** (connexion, inscription) et **privé**
+(les espaces de travail). Après connexion, un **client revient sur la vitrine**
+— c'est là qu'il commande ; les autres rôles entrent dans leur espace.
+**Pourquoi cette décision existe** : j'avais mis l'accueil derrière la
+connexion, ce qui contredisait frontalement [D-03](#d-03--le-catalogue-est-consultable-sans-compte).
+Tu l'as relevé au bloc G-4 : *« le visiteur qui devient client, est-ce qu'il a
+cette page ? […] la première page est fausse »*. Un futur client, un futur
+vendeur et un futur livreur arrivent tous sur la même page publique, regardent,
+puis décident de s'inscrire. Aucune plateforme marchande ne fait autrement.
+**Ce que ça a entraîné** : une enveloppe publique (en-tête, bandeau
+« Livrer à … », recherche, pied de page), une page **Rejoindre** qui explique à
+un futur vendeur ou livreur ce qu'il gagne et ce qu'on lui demande avant de lui
+présenter un formulaire, et **seize tests** qui verrouillent les règles d'accès.
+
+### D-34 — Le panier existe avant le compte, et il suit le visiteur
+Un visiteur sans compte remplit son panier : il est identifie par une clé qu'il
+engendre lui-même et garde dans son navigateur. **À la connexion, le serveur
+fusionne ce panier avec celui du compte.** Application directe de
+[D-03](#d-03--le-catalogue-est-consultable-sans-compte) — sans cette fusion, un
+visiteur qui remplit son panier puis s'inscrit le retrouve vide, et il ne
+revient pas.
+**Ce que le panier montre déjà** : le prix **courant** et non celui capturé à
+l'ajout, avec un avertissement si le prix a changé (R-05) ; le nombre de
+boutiques, parce qu'un panier multi-boutique donnera plusieurs commandes
+([D-10](#d-10--un-panier-produit-n-commandes-commandesplitter)) et qu'il vaut
+mieux le dire au panier qu'à la surprise du paiement ; et un refus net quand le
+stock ne suit pas.
+
+### D-35 — Les compteurs de facettes se calculent sur le résultat filtré
+Les nombres affichés à côté de chaque catégorie et de chaque boutique décrivent
+**ce qui est réellement visible**, après le filtrage géographique et la
+recherche. Ils sont calculés par le serveur et renvoyés dans `meta.facettes`.
+**Pourquoi** : un visiteur parisien voyait « Plats 4 » alors qu'aucun plat ne lui
+était livrable — les boutiques Express lyonnaises étant hors de son rayon
+([D-09](#d-09--catalogue-express-filtré-par-rayon-géographique)). Un compteur qui
+ment est pire que pas de compteur.
+**Effet de bord voulu** : les catégories sont regroupées en **univers**
+(Restauration, High-tech) grâce à la réflexivité déjà prévue au modèle. Sept
+catégories à plat ne se lisent pas ; deux univers, oui.

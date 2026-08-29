@@ -17,8 +17,32 @@ bloc C (voir la liste en bas de page). Le développement peut commencer.
 
 ## Importantes — à trancher avant les écrans concernés
 
-**Aucune.** Les deux dernières ont été tranchées au bloc D : tu suis les
-recommandations (retours de produits hors périmètre, argent visible par rôle).
+**Aucune.**
+
+<details>
+<summary>Q-13 — Colibri ou RivDinde ? — <b>tranchée au bloc F : RivDinde</b></summary>
+
+### Q-13 — Colibri ou RivDinde ?
+Les deux sont dessinés côte à côte dans
+[identite-visuelle.html](../04-maquettes/identite-visuelle.html) : **Colibri**
+(sections 1 à 6) et **RivDinde** (section 7, ta demande du bloc E-3).
+
+| | Colibri | RivDinde |
+|---|---|---|
+| Ce que le nom dit | Cache « colis », évoque vitesse et précision | Porte ton prénom, unique, mémorable |
+| Risque | Nom de marque répandu en France | « Dinde » s'emploie comme insulte légère en français |
+| Le symbole à 16 px | Net — trois faces, une aile | Devient une tache : il faudra un second symbole simplifié |
+| Ce qu'il reste à faire | Rien | Un vrai rendu 3D si tu veux le réalisme demandé (générateur d'images, Blender ou illustrateur) |
+
+**Ma recommandation** : Colibri pour le nom, parce qu'il sera lu par un recruteur
+avant d'être expliqué. Mais c'est ta décision, et RivDinde a pour lui une chose
+que Colibri n'aura jamais : il est à toi. Une voie intermédiaire existe —
+garder **RivDinde** comme nom et la dinde comme mascotte de la page d'accueil,
+avec un symbole simple pour l'onglet et l'icône de l'application.
+**Réponse au bloc F** : **RivDinde**, avec un logo fourni par toi. Voir
+[D-30 révisée](journal-decisions.md).
+
+</details>
 
 ---
 
