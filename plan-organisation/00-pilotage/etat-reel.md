@@ -33,7 +33,12 @@
 | **D-33** accueil = catalogue public | route `/` publique | 16 tests |
 | **D-34** panier avant le compte | clé de session, fusion | 10 tests |
 | **D-35** facettes sur le résultat filtré | `meta.facettes` | manuel |
-| **D-36** CMS sur le contenu, règles d'or sur la structure | une seule coquille | 2 tests |
+| **D-36** | CMS sur le contenu, regles d'or sur la structure | une seule coquille | 2 tests |
+| **D-38** | une seule coquille | catalogue et espaces partagent la meme | 2 tests |
+| **D-39** | panneau droit stable | replie en bande, jamais surgissant | manuel |
+| **D-40** | un support par role | bandeau mobile cote livreur | manuel |
+| **D-41** | la maquette fait foi | sidebar claire, navbar 56 px, filtres dans le contenu | manuel |
+| **D-42** | session non collante en developpement | on enchaine les comptes librement | manuel |
 
 **93 tests** : 73 backend, 20 front.
 
@@ -57,7 +62,7 @@ carte avec survol, galerie, badges d'état.
 | Vendeur | Catalogue, fiche produit à trois onglets, photos, stock, commandes reçues | **fait** |
 | Gestionnaire | Stock et commandes à préparer (mêmes écrans, droits réduits) | **fait** |
 | Admin | Validations des vendeurs et livreurs | **fait** |
-| Livreur | — | **mobile uniquement** ([H-9](#)) |
+| Livreur | — | **mobile uniquement** ([D-40](journal-decisions.md)) |
 
 **34 routes d'API**, **14 écrans web**.
 
