@@ -2,9 +2,14 @@
 
 /* ─────────────────────────────────────────────────────────────────────────
    Les jetons viennent de plan-organisation/04-maquettes/maquettes.html.
-   La maquette fait foi : c'est elle qui a ete validee, et elle decrit une
-   interface claire — sidebar #fbfbfd, navbar de 56 px, contenu sur fond
-   #f4f5f8. Ce qu'on emprunte aux CMS se limite a l'affichage d'un produit.
+   La maquette fait foi (D-41) : elle decrit une interface CLAIRE — sidebar
+   #fbfbfd, navbar de 56 px, contenu sur fond #f4f5f8. Ce qu'on emprunte aux
+   CMS marchands se limite a l'affichage d'un produit et aux animations.
+
+   Regle absolue de ce fichier : **toute couleur utilisee dans un ecran est
+   definie ici**. Une classe utilitaire qui pointe vers un jeton inexistant ne
+   produit aucun style — c'est ainsi que l'ecran de connexion s'est retrouve
+   en blanc sur blanc. Le test `jetons.test.ts` verifie desormais cette regle.
    ───────────────────────────────────────────────────────────────────────── */
 @theme {
   --color-encre: #0f1420;
@@ -18,12 +23,24 @@
   /* La marque, echantillonnee dans le logo — pour l'ecran de connexion et
      tout ce qui parle de la plateforme elle-meme. */
   --color-marque: #ea8c2a;
-  --color-marque-fonce: #d46f1d;
+  --color-marque-fonce: #b8650f;
   --color-marque-clair: #f0a344;
-  --color-encre-marque: #2a160f;
-  --color-marque-2: #3d2016;
-  --color-marque-3: #4a2718;
-  --color-sable: #b49a8c;
+  --color-marque-voile: #fdf3e8;
+
+  /* Les couleurs de sens. Elles ne changent JAMAIS avec le role : un rouge
+     d'erreur qui devient bleu chez l'admin n'est plus une erreur (regle d'or
+     n°8). Reprises telles quelles des badges de la maquette. */
+  --color-succes: #116b34;
+  --color-succes-voile: #e2f7ea;
+  --color-attente: #93590a;
+  --color-attente-voile: #fff1d6;
+  --color-cours: #2f3f9e;
+  --color-cours-voile: #e8ecfa;
+  --color-alerte: #9c2116;
+  --color-alerte-voile: #fbe4e2;
+  --color-avis: #b5610a;
+  --color-avis-voile: #fff6ea;
+  --color-avis-trait: #ffe2b3;
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
@@ -36,6 +53,11 @@
 @keyframes apparition {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes voile {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @layer base {
@@ -66,7 +88,7 @@
     @apply overflow-hidden rounded-lg border border-trait bg-papier;
   }
   .carte-titre {
-    @apply flex items-center justify-between border-b border-trait-doux px-4 py-3
+    @apply flex items-center justify-between gap-3 border-b border-trait-doux px-4 py-3
            text-[12.5px] font-bold;
   }
   .ligne {
@@ -75,29 +97,57 @@
   }
 
   .badge {
-    @apply rounded-full px-2.5 py-[3px] text-[10.5px] font-bold whitespace-nowrap;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-[3px] text-[10.5px] font-bold
+           whitespace-nowrap;
   }
-  .badge-attente { @apply bg-[#fff1d6] text-[#93590a]; }
-  .badge-ok { @apply bg-[#e2f7ea] text-[#116b34]; }
-  .badge-cours { @apply bg-[#e8ecfa] text-[#2f3f9e]; }
-  .badge-erreur { @apply bg-[#fbe4e2] text-[#9c2116]; }
+  .badge-attente { @apply bg-attente-voile text-attente; }
+  .badge-ok { @apply bg-succes-voile text-succes; }
+  .badge-cours { @apply bg-cours-voile text-cours; }
+  .badge-erreur { @apply bg-alerte-voile text-alerte; }
+  .badge-neutre { @apply bg-atelier text-encre-douce; }
 
   .kpi {
     @apply rounded-lg border border-trait-doux bg-atelier px-4 py-3.5;
   }
   .kpi-nombre { @apply text-[21px] font-extrabold; }
   .kpi-libelle { @apply mt-0.5 text-[11px] font-semibold text-encre-douce; }
+  .kpi-alerte { @apply border-avis-trait bg-avis-voile; }
+  .kpi-alerte .kpi-nombre { @apply text-avis; }
 
-  /* Le bouton-icone des listes : toujours une infobulle, toujours un libelle
-     accessible (regle d'or n°6). */
+  /* Le bouton-icone de la navbar : sans bordure, il se fond dans la barre. */
   .bouton-icone {
     @apply flex h-8 w-8 items-center justify-center rounded-lg text-encre-douce
            transition-colors duration-150 hover:bg-atelier hover:text-encre;
   }
 
+  /* Le bouton-icone DES LISTES, celui de la maquette : 28 px, encadre, il se
+     voit comme un bouton. Sans bordure, une rangee d'icones grises ressemble
+     a de la decoration et personne ne comprend qu'on peut cliquer. */
+  .bouton-ligne {
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border border-trait
+           bg-papier text-encre-douce transition-colors duration-150
+           hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]
+           disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-trait
+           disabled:hover:text-encre-douce;
+  }
+  .bouton-ligne-accent {
+    @apply border-transparent text-white hover:text-white;
+    background: var(--accent);
+  }
+  .bouton-ligne-danger {
+    @apply hover:border-alerte hover:text-alerte;
+  }
+
   .champ-clair {
     @apply w-full rounded-lg border border-trait bg-papier px-3.5 py-2.5 text-[13.5px]
-           text-encre transition-colors duration-150 focus:border-encre-douce focus:outline-none;
+           text-encre transition-colors duration-150 placeholder:text-encre-douce
+           focus:border-encre-douce focus:outline-none;
+  }
+  .champ-erreur {
+    @apply border-alerte bg-alerte-voile;
+  }
+  .etiquette {
+    @apply text-[11.5px] font-bold text-encre-douce;
   }
 
   .puce-filtre {
@@ -119,31 +169,35 @@
   .bouton-neutre {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border border-trait
            bg-papier px-4 py-2.5 text-[13px] font-semibold text-encre-douce
-           transition-colors duration-150 hover:bg-atelier hover:text-encre;
+           transition-colors duration-150 hover:bg-atelier hover:text-encre
+           disabled:opacity-50;
   }
-
-  /* ── Les ecrans publics, sur fond de marque ───────────────────────── */
-  .champ-marque {
-    @apply w-full rounded-xl border border-[#5a3826] bg-[#23130d] px-3.5 py-2.5 text-[15px]
-           text-[#f3e7dd] transition-colors duration-150 placeholder:text-[#7c6459]
-           focus:border-marque focus:outline-none;
-  }
-  .champ-erreur {
-    @apply border-red-800 bg-red-950/30;
-  }
-
+  /* Le bouton de la marque : l'orange du logo, reserve a ce qui parle de la
+     plateforme elle-meme — connexion, inscription. Ailleurs, c'est l'accent
+     du role qui commande (regle d'or n°8). */
   .bouton-marque {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-marque px-5 py-3
-           text-[15px] font-bold text-encre-marque transition-all duration-150
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-marque px-5 py-3
+           text-[14px] font-bold text-white transition-all duration-150
            hover:bg-marque-clair active:scale-[0.985] disabled:cursor-progress
            disabled:opacity-60;
   }
-  .bouton-discret {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-[#5a3826]
-           px-4 py-2.5 text-sm text-[#c9b4a6] transition-colors duration-150
-           hover:border-marque hover:text-marque-clair;
+
+  /* ── Les bandeaux d'information de la maquette (.notice) ──────────── */
+  .bandeau {
+    @apply flex items-start gap-2.5 rounded-lg border border-avis-trait bg-avis-voile
+           px-3.5 py-3 text-[12px] text-[#7a4a06];
   }
-  .carte-sombre {
-    @apply rounded-2xl border border-[#4a2718] bg-[#2a160f]/60;
+  .bandeau-info {
+    @apply border-[#cddaff] bg-[#eef3ff] text-[#26399e];
   }
+  .bandeau-erreur {
+    @apply border-alerte-voile bg-alerte-voile text-alerte;
+  }
+
+  /* ── L'etat vide, rendu obligatoire par la regle d'or n°2 ─────────── */
+  .vide {
+    @apply flex flex-col items-center px-5 py-11 text-center;
+  }
+  .vide-titre { @apply mt-3 text-[13.5px] font-bold text-encre; }
+  .vide-texte { @apply mx-auto mt-1 max-w-[46ch] text-[12px] text-encre-douce; }
 }

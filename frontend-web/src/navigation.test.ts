@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import App from './App.vue'
+import { ROLES } from './roles'
 import { routeur } from './routeur'
 
 describe('navigation reelle avec le vrai routeur', () => {
@@ -48,5 +49,46 @@ describe('navigation reelle avec le vrai routeur', () => {
     await routeur.push('/espace')
     await routeur.isReady()
     expect(routeur.currentRoute.value.name).toBe('connexion')
+  })
+})
+
+describe('la barre laterale de chaque role', () => {
+  // Une entree de menu qui ne mene nulle part est le defaut le plus visible
+  // qu'un ecran puisse avoir : on clique, il ne se passe rien, et on doute de
+  // tout le reste. Ce test compare la navigation de chaque role aux routes
+  // reellement declarees.
+  const nomsDeRoutes = new Set(
+    routeur.getRoutes().map((route) => route.name).filter(Boolean) as string[],
+  )
+
+  for (const [role, description] of Object.entries(ROLES)) {
+    it(`${role} : toutes ses entrees menent a une route existante`, () => {
+      const orphelines = description.navigation
+        .filter((entree) => entree.route && !nomsDeRoutes.has(entree.route))
+        .map((entree) => `${entree.libelle} → ${entree.route}`)
+      expect(orphelines).toEqual([])
+    })
+
+    it(`${role} : aucune entree muette sans explication`, () => {
+      // Une entree sans route est acceptable si elle est explicitement
+      // marquee interdite (grisee, comme le CA du gestionnaire) ou a venir.
+      const muettes = description.navigation
+        .filter((entree) => !entree.route && !entree.interdite && !entree.prochainement)
+        .map((entree) => entree.libelle)
+      expect(muettes).toEqual([])
+    })
+  }
+
+  it('chaque role a une couleur dominante distincte de celle des autres metiers', () => {
+    // Regle d'or n°8. Client et visiteur partagent la leur : un visiteur est
+    // un futur client.
+    const couleurs = new Map<string, string[]>()
+    for (const [role, description] of Object.entries(ROLES)) {
+      couleurs.set(description.accent, [...(couleurs.get(description.accent) ?? []), role])
+    }
+    for (const [, roles] of couleurs) {
+      const familles = new Set(roles.map((role) => role.split('_')[0]))
+      expect(familles.size).toBeLessThanOrEqual(2)
+    }
   })
 })

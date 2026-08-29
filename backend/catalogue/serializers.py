@@ -88,6 +88,33 @@ class ProduitDetailSerializer(_ProduitBase):
         ]
 
 
+class ProduitVendeurSerializer(_ProduitBase):
+    """La liste du vendeur, qui n'est pas celle du client.
+
+    Un vendeur a besoin de savoir ce que le catalogue public cache : le stock
+    exact, ce qui est reserve, son seuil d'alerte, et si le produit est encore
+    en vente. Lui servir la vignette du client l'empeche de remettre en vente
+    un produit qu'il a masque — il ne voit meme pas qu'il l'est.
+    """
+
+    stock_commandable = serializers.IntegerField(read_only=True)
+    est_en_rupture = serializers.BooleanField(read_only=True)
+    categorie = CategorieSerializer(read_only=True)
+    nombre_photos = serializers.SerializerMethodField()
+
+    def get_nombre_photos(self, produit):
+        return produit.photos.count()
+
+    class Meta:
+        model = Produit
+        fields = [
+            "id", "nom", "prix_centimes", "image", "boutique", "disponible",
+            "distance_km", "categorie", "est_visible", "stock_disponible",
+            "stock_reserve", "stock_commandable", "est_en_rupture", "seuil_alerte",
+            "poids_grammes", "nombre_photos", "date_ajout",
+        ]
+
+
 class ProduitEcritureSerializer(serializers.ModelSerializer):
     """Ce qu'un vendeur peut ecrire. Le vendeur lui-meme vient du jeton, jamais
     de la charge utile : sinon on publierait dans la boutique d'un autre."""

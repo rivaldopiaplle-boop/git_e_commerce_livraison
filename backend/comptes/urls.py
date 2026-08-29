@@ -5,7 +5,7 @@ Un contrat qui n'est pas respecte par le code n'est plus un contrat.
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from . import views
+from . import views, vues_espaces
 
 urlpatterns = [
     path("auth/inscription/client", views.inscription_client, name="inscription-client"),
@@ -24,4 +24,28 @@ urlpatterns = [
     path("admin/vendeurs/<int:identifiant>/valider", views.valider_vendeur, name="valider-vendeur"),
     path("admin/vendeurs/<int:identifiant>/rejeter", views.rejeter_vendeur, name="rejeter-vendeur"),
     path("admin/livreurs/<int:identifiant>/valider", views.valider_livreur, name="valider-livreur"),
+]
+
+# ── Les ecrans que la maquette prevoit, servis par vues_espaces.py ──────
+urlpatterns += [
+    # Client
+    path("moi/adresses", vues_espaces.mes_adresses, name="mes-adresses"),
+    path("moi/adresses/<int:identifiant>", vues_espaces.modifier_adresse, name="modifier-adresse"),
+    path("moi/notifications", vues_espaces.mes_notifications, name="mes-notifications"),
+    path("moi/notifications/lues", vues_espaces.marquer_notifications_lues, name="notifs-lues"),
+
+    # Vendeur
+    path("vendeurs/personnel", vues_espaces.mon_personnel, name="mon-personnel"),
+    path("vendeurs/statistiques", vues_espaces.statistiques_vendeur, name="statistiques-vendeur"),
+    path("vendeurs/avis", vues_espaces.avis_recus, name="avis-recus"),
+
+    # Admin
+    path("admin/utilisateurs", vues_espaces.utilisateurs, name="admin-utilisateurs"),
+    path("admin/utilisateurs/<int:identifiant>/suspendre", vues_espaces.suspendre,
+         name="admin-suspendre"),
+    path("admin/boutiques", vues_espaces.boutiques_admin, name="admin-boutiques"),
+    path("admin/livreurs", vues_espaces.livreurs_admin, name="admin-livreurs"),
+    path("admin/litiges", vues_espaces.litiges, name="admin-litiges"),
+    path("admin/journal", vues_espaces.journal_audit, name="admin-journal"),
+    path("admin/validations/resume", vues_espaces.resume_validations, name="admin-resume"),
 ]

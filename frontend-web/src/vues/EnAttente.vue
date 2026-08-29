@@ -17,19 +17,19 @@ const etapes = [
 </script>
 
 <template>
-  <main class="flex min-h-screen w-full items-center justify-center px-6 py-12">
-    <div class="carte-sombre w-full max-w-[520px] animate-[apparition_0.2s_ease-out] p-9">
+  <main class="flex min-h-screen w-full items-center justify-center bg-atelier px-6 py-12">
+    <div class="carte w-full max-w-[520px] animate-[apparition_0.2s_ease-out] p-9">
       <div class="flex items-center gap-4">
         <LogoRivDinde :taille="52" />
         <div>
-          <p class="text-[11px] tracking-wider text-marque uppercase">Compte en verification</p>
-          <h1 class="mt-0.5 text-[21px] font-semibold tracking-tight text-white">
+          <p class="text-[11px] font-bold tracking-wider text-marque-fonce uppercase">Compte en verification</p>
+          <h1 class="mt-0.5 text-[21px] font-semibold tracking-tight text-encre">
             Bonjour {{ session.utilisateur?.prenom }}
           </h1>
         </div>
       </div>
 
-      <p class="mt-6 text-[14.5px] leading-relaxed text-[#b49a8c]">
+      <p class="mt-6 text-[14.5px] leading-relaxed text-encre-douce">
         Votre espace s'ouvrira des qu'un administrateur aura verifie vos informations.
         C'est ce qui garantit a chaque client que les boutiques et les livreurs
         de la plateforme sont bien reels.
@@ -44,37 +44,37 @@ const etapes = [
               class="flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
               :class="
                 etape.fait
-                  ? 'border-marque bg-marque/15 text-marque-clair'
+                  ? 'border-marque bg-marque-voile text-marque-fonce'
                   : index === 1
-                    ? 'border-amber-700 bg-amber-900/20 text-amber-300'
-                    : 'border-[#4a2718] text-[#7c6459]'
+                    ? 'border-avis-trait bg-avis-voile text-avis'
+                    : 'border-trait text-encre-douce'
               "
             >
               <component :is="etape.icone" :size="17" />
             </span>
             <span
               v-if="index < etapes.length - 1"
-              class="my-1 w-px flex-1 bg-[#4a2718]"
+              class="my-1 w-px flex-1 bg-trait"
               aria-hidden="true"
             />
           </div>
           <div class="pb-6">
-            <b class="block text-[14.5px] font-semibold text-white">{{ etape.titre }}</b>
-            <span class="text-[13px] text-[#b49a8c]">{{ etape.texte }}</span>
+            <b class="block text-[14.5px] font-semibold text-encre">{{ etape.titre }}</b>
+            <span class="text-[13px] text-encre-douce">{{ etape.texte }}</span>
           </div>
         </li>
       </ol>
 
-      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-encre-3 pt-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-trait pt-6">
         <RouterLink
           to="/"
-          class="inline-flex items-center gap-2 text-[13px] text-[#b49a8c] transition-colors
-                 duration-150 hover:text-marque-clair"
+          class="inline-flex items-center gap-2 text-[13px] text-encre-douce transition-colors
+                 duration-150 hover:text-marque-fonce"
         >
           <ArrowLeft :size="15" />
           Parcourir le catalogue
         </RouterLink>
-        <button type="button" class="bouton-discret" @click="session.deconnecter()">
+        <button type="button" class="bouton-neutre !py-2" @click="session.deconnecter()">
           <LogOut :size="15" />
           Se deconnecter
         </button>

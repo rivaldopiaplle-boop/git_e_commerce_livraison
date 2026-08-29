@@ -497,3 +497,62 @@ son panneau droit c'est le panier, pourquoi ? »* — et la question suivante,
 *« tu es sûr que c'est ce qui se passe dans les vrais e-commerce ? »*, valait
 aussi pour la navigation : **un back-office ne renvoie pas au catalogue
 public**. Ces entrées ont été retirées des espaces vendeur et admin.
+
+### D-47 — Un test refuse les classes CSS qui ne mènent à rien
+
+Une classe utilitaire Tailwind qui pointe vers un jeton absent du thème ne
+produit **aucun style** : ni erreur, ni avertissement. Deux fois de suite, un
+renommage dans `style.css` a ainsi rendu un écran illisible — texte blanc sur
+fond blanc — sans qu'aucun test ne bronche.
+
+`frontend-web/src/jetons.test.ts` lit le thème, lit tous les écrans, et échoue
+sur toute couleur ou toute classe de composant qui n'existe pas. Un second test
+vérifie que **chaque entrée de barre latérale mène à une route déclarée**.
+
+**Ta formulation, bloc J-1** : *« tous ça sont en blanc et illisible ».*
+**Pourquoi** : la seule protection contre une erreur invisible est une
+vérification automatique ; l'œil ne repasse pas sur quarante écrans.
+
+### D-48 — Les écrans de connexion et d'inscription sont clairs, comme le reste
+
+Ils étaient écrits pour un fond sombre hérité d'une version précédente. La
+maquette est claire, et il n'y a **qu'une seule identité visuelle** : le fond
+`#f4f5f8`, l'encre `#0f1420`, et l'orange de la marque réservé aux boutons qui
+parlent de la plateforme elle-même.
+
+### D-49 — Le stock se corrige en quantité réelle, dans une popup
+
+La maquette décrit une popup « Ajustement de stock » avec **Nouvelle quantité**
+et un **motif** à choisir. C'est ainsi qu'on fait un inventaire : on compte ce
+qu'il y a sur l'étagère, on ne calcule pas de tête l'écart avec ce que l'écran
+affiche. Le serveur accepte les deux formes (`nouvelle_quantite` ou `quantite`)
+et déduit l'écart, qu'il trace.
+
+Corollaire : **« Mettre en rupture » est une action à part entière**, dans la
+liste du catalogue comme dans la popup. Déclarer un produit épuisé est le geste
+le plus fréquent d'un commerçant ; l'obliger à saisir « -26 » n'avait pas de
+sens.
+
+### D-50 — Le personnel ne reçoit pas le chiffre d'affaires, le serveur s'en assure
+
+[D-04](#d-04--vendeur--gestionnaire) l'interdisait déjà, mais le tableau de bord
+renvoyait `revenu_centimes` à tout le monde et l'interface le masquait. **Masquer
+n'est pas une permission.** Le champ ne quitte plus le serveur quand l'appelant
+est un gestionnaire, et un test le vérifie.
+
+Le même passage a corrigé l'inverse : le personnel recevait un **403 sur la
+liste des produits**, donc son écran de stock — le seul de son métier — ne
+s'ouvrait pas.
+
+### D-51 — Le jeu de données de démonstration couvre tous les états
+
+`seed_activite` crée des commandes dans **chacun de leurs statuts**, des
+livraisons dans chacun des leurs, des tournées de brouillon à terminée, des
+avis publiés et signalés, des litiges ouverts et résolus, des notifications lues
+et non lues.
+
+**Ta formulation, bloc J-7** : *« fais un vrai jeu de données très vaste avec
+toutes les possibilités et éventualités ».*
+**Pourquoi** : un écran confronté pour la première fois à un cas le jour de la
+démonstration est un écran qui casse. Et un tableau de bord qui n'affiche que
+des zéros ne se montre pas à un recruteur.

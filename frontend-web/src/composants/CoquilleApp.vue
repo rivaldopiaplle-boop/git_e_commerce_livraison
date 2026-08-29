@@ -8,10 +8,12 @@
 //   · sidebar et navbar ne defilent jamais, seul le contenu defile ;
 //   · une seule structure, du catalogue au tableau de bord.
 import {
-  Bell, ChevronsLeft, LogIn, LogOut, Search, ShoppingCart, UserRound,
+  Bell, ChevronsLeft, Lock, LogIn, LogOut, Search, ShoppingCart, UserRound,
 } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+import { espaces, type Notification } from '../api/espaces'
 
 import BandeauLivrerA from './BandeauLivrerA.vue'
 import LogoRivDinde from './LogoRivDinde.vue'
@@ -31,7 +33,42 @@ const routeur = useRouter()
 const sidebarRepliee = ref(false)
 const menuProfil = ref(false)
 
-const role = computed(() => descriptionDuRole(session.role))
+// La cloche existait sans jamais rien afficher. Elle se remplit a l'ouverture
+// du menu plutot qu'au chargement de chaque page : une notification n'est pas
+// une donnee critique, elle ne doit pas ralentir l'entree dans l'application.
+const menuNotifications = ref(false)
+const notifications = ref<Notification[]>([])
+const nonLues = ref(0)
+const notificationsChargees = ref(false)
+
+async function ouvrirNotifications() {
+  menuNotifications.value = !menuNotifications.value
+  if (!menuNotifications.value || !session.estConnecte) return
+  const donnees = await espaces.notifications.lire()
+  notifications.value = donnees.notifications
+  nonLues.value = donnees.non_lues
+  notificationsChargees.value = true
+  if (donnees.non_lues) {
+    await espaces.notifications.marquerLues()
+    nonLues.value = 0
+  }
+}
+
+watch(
+  () => session.estConnecte,
+  async (connecte) => {
+    if (!connecte) {
+      notifications.value = []
+      nonLues.value = 0
+      notificationsChargees.value = false
+      return
+    }
+    nonLues.value = (await espaces.notifications.lire()).non_lues
+  },
+  { immediate: true },
+)
+
+const role = computed(() => descriptionDuRole(session.role, session.sousRole))
 const surLeCatalogue = computed(() => route.name === 'vitrine')
 
 const initiale = computed(() => session.utilisateur?.prenom?.[0]?.toUpperCase() ?? '?')
@@ -84,14 +121,21 @@ watch(
           :key="entree.libelle"
           :to="entree.route ? { name: entree.route } : undefined"
           :type="entree.route ? undefined : 'button'"
-          :title="entree.libelle"
+          :disabled="entree.interdite || entree.prochainement"
+          :title="
+            entree.interdite
+              ? entree.libelle + ' — reserve au proprietaire de la boutique'
+              : entree.prochainement
+                ? entree.libelle + ' — bientot'
+                : entree.libelle
+          "
           class="flex w-full items-center gap-3 rounded-[9px] px-3 py-2.5 text-left text-[13px]
                  font-semibold whitespace-nowrap transition-colors duration-150"
           :class="
             index === entreeActive
               ? 'text-[color:var(--accent)]'
-              : entree.prochainement
-                ? 'text-encre-douce/40'
+              : entree.interdite || entree.prochainement
+                ? 'cursor-not-allowed text-encre-douce/40'
                 : 'text-encre-douce hover:text-encre'
           "
           :style="
@@ -102,6 +146,7 @@ watch(
         >
           <component :is="entree.icone" :size="17" class="shrink-0" />
           <span v-if="!sidebarRepliee" class="truncate">{{ entree.libelle }}</span>
+          <Lock v-if="entree.interdite && !sidebarRepliee" :size="12" class="ml-auto shrink-0" />
         </component>
       </nav>
 
@@ -171,9 +216,65 @@ watch(
             />
           </button>
 
-          <button type="button" class="bouton-icone" title="Notifications">
-            <Bell :size="17" />
-          </button>
+          <div v-if="session.estConnecte" class="relative">
+            <button
+              type="button"
+              class="bouton-icone relative"
+              title="Notifications"
+              @click="ouvrirNotifications"
+            >
+              <Bell :size="17" />
+              <span
+                v-if="nonLues"
+                class="absolute top-1 right-1 h-[7px] w-[7px] rounded-full border-[1.5px]
+                       border-white"
+                :style="{ background: role.accent }"
+              />
+            </button>
+
+            <Transition
+              enter-active-class="transition duration-150"
+              enter-from-class="opacity-0 -translate-y-1"
+              leave-active-class="transition duration-100"
+              leave-to-class="opacity-0"
+            >
+              <div
+                v-if="menuNotifications"
+                class="absolute top-full right-0 z-50 mt-2 w-[340px] overflow-hidden rounded-lg
+                       border border-trait bg-papier shadow-lg"
+              >
+                <p class="border-b border-trait-doux px-4 py-2.5 text-[12.5px] font-bold">
+                  Notifications
+                </p>
+                <div v-if="!notifications.length" class="vide !py-8">
+                  <Bell :size="24" class="text-trait" />
+                  <b class="vide-titre">Rien de nouveau</b>
+                  <p class="vide-texte">
+                    Les changements de statut de vos commandes s afficheront ici.
+                  </p>
+                </div>
+                <div v-else class="max-h-[320px] overflow-auto">
+                  <RouterLink
+                    v-for="notification in notifications"
+                    :key="notification.id"
+                    :to="notification.lien || '/'"
+                    class="ligne !text-[12px] hover:bg-atelier"
+                    @click="menuNotifications = false"
+                  >
+                    <span
+                      class="mt-1 h-[7px] w-[7px] shrink-0 rounded-full"
+                      :style="{ background: notification.lue ? 'var(--color-trait)'
+                                                             : role.accent }"
+                    />
+                    <span class="min-w-0 flex-1">
+                      <b class="block truncate">{{ notification.titre }}</b>
+                      <span class="text-encre-douce">{{ notification.contenu }}</span>
+                    </span>
+                  </RouterLink>
+                </div>
+              </div>
+            </Transition>
+          </div>
 
           <template v-if="session.estConnecte">
             <!-- Un menu profil, pas un bouton de deconnexion nu : c'est la ou

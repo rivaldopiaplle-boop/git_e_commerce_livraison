@@ -350,3 +350,47 @@ le transport, pas le front.
 |---|---|---|
 | GET | `/sante` | État de l'API et de la base, sans authentification |
 | GET | `/version` | Numéro de version et empreinte du commit déployé |
+
+---
+
+## Ajouté au bloc J — les espaces de chaque rôle
+
+Chaque entrée de barre latérale de la maquette a désormais sa route. Le rôle
+indiqué est **vérifié par le serveur** : un appel avec un autre rôle reçoit 403,
+pas une page masquée (scénario 14.1).
+
+| Méthode | Chemin | Rôle | Ce qu'il renvoie |
+|---|---|---|---|
+| `GET` | `/moi/adresses` | client | son carnet, l'adresse principale en tête |
+| `POST` | `/moi/adresses` | client | ajoute une adresse ; la première devient principale |
+| `PATCH` | `/moi/adresses/{id}` | client | modifie, ou désigne comme principale |
+| `DELETE` | `/moi/adresses/{id}` | client | retire du carnet — l'adresse survit pour les commandes passées (D-13) |
+| `GET` | `/moi/notifications` | tous | les 30 dernières, et le nombre de non lues |
+| `POST` | `/moi/notifications/lues` | tous | marque tout comme lu |
+| `GET` | `/vendeurs/personnel` | vendeur | ses gestionnaires, et ce à quoi ils n'ont pas accès |
+| `GET` | `/vendeurs/statistiques` | **vendeur seul** | CA, commission, panier moyen, 30 jours, meilleures ventes, avis |
+| `GET` | `/vendeurs/avis` | vendeur | les avis qui visent sa boutique ou ses produits |
+| `GET` | `/entrepots/colis` | gestionnaire entrepôt | les colis reçus, groupés par boutique déposante |
+| `GET` | `/entrepots/tournees` | gestionnaire entrepôt | les tournées et leurs arrêts ordonnés |
+| `GET` | `/entrepots/tableau-de-bord` | gestionnaire entrepôt | colis, tournées, livreurs rattachés |
+| `GET` | `/livreurs/mes-courses` | livreur | **ses** courses, sa tournée en cours, ses gains |
+| `GET` | `/livreurs/tableau-de-bord` | livreur | en cours, livrées, échouées, gains |
+| `GET` | `/admin/utilisateurs` | admin | tous les comptes, filtrables par rôle et statut |
+| `POST` | `/admin/utilisateurs/{id}/suspendre` | admin | bascule actif ↔ suspendu ; jamais de suppression |
+| `GET` | `/admin/boutiques` | admin | toutes les boutiques, y compris refusées |
+| `GET` | `/admin/livreurs` | admin | tous les livreurs et leur disponibilité |
+| `GET` | `/admin/litiges` | admin | ouverts d'abord, avec la commande et son montant |
+| `GET` | `/admin/journal` | admin | les 150 derniers changements de statut |
+| `GET` | `/admin/validations/resume` | admin | le compte de dossiers par état |
+
+### Deux corrections sur des routes existantes
+
+- **`GET /vendeurs/produits`** est désormais ouverte au **personnel** du vendeur.
+  Elle lui était refusée (403), ce qui empêchait son écran de stock de s'ouvrir.
+  `POST` reste réservé au vendeur : publier est une décision commerciale (D-04).
+  La charge utile expose maintenant `est_visible`, `stock_disponible`,
+  `stock_reserve`, `stock_commandable`, `est_en_rupture` et `seuil_alerte` —
+  sans quoi un produit masqué ne peut pas être remis en vente.
+- **`PATCH /produits/{id}/stock`** accepte `nouvelle_quantite` en plus de
+  `quantite`, et déduit l'écart (D-49). `GET /vendeurs/tableau-de-bord`
+  n'inclut plus `revenu_centimes` quand l'appelant est un gestionnaire (D-50).

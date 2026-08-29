@@ -7,6 +7,7 @@ structurellement impossible une commande Express longue distance.
 """
 from django.db import models
 from django.db.models import Count, Q
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -34,6 +35,7 @@ from .serializers import (
     ProduitDetailSerializer,
     ProduitEcritureSerializer,
     ProduitListeSerializer,
+    ProduitVendeurSerializer,
 )
 from .services import (
     RegleMetier,
@@ -252,11 +254,25 @@ def liste_boutiques(requete):
     ).data})
 
 
+def _boutique_de(utilisateur):
+    """La boutique a laquelle cet utilisateur est rattache, vendeur ou staff.
+
+    Le gestionnaire staff d'un vendeur travaille sur le catalogue de SON
+    employeur. Lui refuser la liste des produits rendait son ecran de stock
+    inutilisable : il recevait un 403 sur le seul ecran de son metier.
+    """
+    profil = getattr(utilisateur, "profil_vendeur", None)
+    if profil is not None:
+        return profil
+    gestionnaire = getattr(utilisateur, "profil_gestionnaire", None)
+    return getattr(gestionnaire, "vendeur", None)
+
+
 @api_view(["GET", "POST"])
-@permission_classes([EstVendeur])
+@permission_classes([EstVendeurOuSonPersonnel])
 def mes_produits(requete):
-    """Le catalogue du vendeur : le sien, y compris ce qui est masque."""
-    profil = getattr(requete.user, "profil_vendeur", None)
+    """Le catalogue de la boutique : le sien, y compris ce qui est masque."""
+    profil = _boutique_de(requete.user)
     if profil is None:
         return Response(
             {"erreur": {"code": "profil_absent", "message": "Aucune boutique rattachee.",
@@ -265,6 +281,13 @@ def mes_produits(requete):
         )
 
     if requete.method == "POST":
+        # Publier est une decision commerciale : elle reste au vendeur (D-04).
+        if getattr(requete.user, "profil_vendeur", None) is None:
+            return Response(
+                {"erreur": {"code": "non_autorise",
+                            "message": "Seul le vendeur publie un produit.", "details": {}}},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if profil.statut_validation != StatutValidation.VALIDE:
             return Response(
                 {"erreur": {"code": "non_autorise",
@@ -280,8 +303,13 @@ def mes_produits(requete):
             status=status.HTTP_201_CREATED,
         )
 
-    produits = Produit.objects.filter(vendeur=profil).select_related("vendeur", "categorie")
-    return Response({"data": ProduitListeSerializer(
+    produits = (
+        Produit.objects.filter(vendeur=profil)
+        .select_related("vendeur", "vendeur__adresse", "categorie", "categorie__parente")
+        .prefetch_related("photos")
+        .order_by("nom")
+    )
+    return Response({"data": ProduitVendeurSerializer(
         produits, many=True, context={"request": requete}
     ).data})
 
@@ -421,12 +449,22 @@ def modifier_stock(requete, identifiant):
     if produit is None:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+    # Deux facons de dire la meme chose, et la maquette impose la seconde :
+    # soit un ecart (« +5 », « -2 »), soit la quantite reelle constatee. Un
+    # inventaire se fait en comptant ce qu'il y a sur l'etagere, pas en
+    # calculant de tete la difference avec ce que l'ecran affiche.
+    donnees = requete.data
     try:
+        if donnees.get("nouvelle_quantite") not in (None, ""):
+            ecart = int(donnees["nouvelle_quantite"]) - produit.stock_disponible
+        else:
+            ecart = int(donnees.get("quantite", 0))
+
         mouvement = ajuster_stock(
             produit,
-            quantite=int(requete.data.get("quantite", 0)),
-            type_mouvement=requete.data.get("type", TypeMouvement.AJUSTEMENT),
-            motif=str(requete.data.get("motif", "")),
+            quantite=ecart,
+            type_mouvement=donnees.get("type", TypeMouvement.AJUSTEMENT),
+            motif=str(donnees.get("motif", "")),
             auteur=requete.user,
         )
     except (RegleMetier, ValueError, TypeError) as refus:
@@ -484,8 +522,8 @@ def stock_bas(requete):
     produits = Produit.objects.filter(
         vendeur_id=identifiant_vendeur,
         stock_disponible__lte=models.F("seuil_alerte"),
-    ).select_related("vendeur")
-    return Response({"data": ProduitListeSerializer(
+    ).select_related("vendeur", "categorie").prefetch_related("photos")
+    return Response({"data": ProduitVendeurSerializer(
         produits, many=True, context={"request": requete}
     ).data})
 
@@ -552,15 +590,37 @@ def tableau_de_bord_vendeur(requete):
     )
     stock_bas = produits.filter(stock_disponible__lte=models.F("seuil_alerte"), est_visible=True)
 
-    return Response({"data": {
+    donnees = {
         "a_preparer": a_preparer.count(),
+        "en_preparation": sous_commandes.filter(
+            statut_preparation=StatutPreparation.EN_PREPARATION
+        ).count(),
+        "pretes": sous_commandes.filter(
+            statut_preparation__in=[StatutPreparation.PRETE, StatutPreparation.EXPEDIEE]
+        ).count(),
         "produits_en_ligne": produits.filter(est_visible=True).count(),
+        "produits_masques": produits.filter(est_visible=False).count(),
         "stock_bas": stock_bas.count(),
-        "ruptures": produits.filter(stock_disponible=0, est_visible=True).count(),
-        "revenu_centimes": sous_commandes.aggregate(
-            total=Sum("montant_vendeur_centimes")
-        )["total"] or 0,
-        "produits_stock_bas": ProduitListeSerializer(
-            stock_bas[:5], many=True, context={"request": requete}
+        # Le stock reserve par un paiement en cours n'est plus vendable : une
+        # rupture, c'est stock_disponible - stock_reserve <= 0 (D-15).
+        "ruptures": produits.filter(
+            est_visible=True, stock_disponible__lte=models.F("stock_reserve")
+        ).count(),
+        "produits_stock_bas": ProduitVendeurSerializer(
+            stock_bas.select_related("categorie").prefetch_related("photos")[:5],
+            many=True, context={"request": requete},
         ).data,
-    }})
+    }
+
+    # Le chiffre d'affaires n'est PAS envoye au personnel (D-04). Le masquer
+    # dans l'interface ne serait pas une permission : il ne doit pas quitter
+    # le serveur.
+    if profil is not None:
+        donnees["revenu_centimes"] = sous_commandes.aggregate(
+            total=Sum("montant_vendeur_centimes")
+        )["total"] or 0
+        donnees["commandes_du_jour"] = sous_commandes.filter(
+            commande__date_commande__date=timezone.localdate()
+        ).count()
+
+    return Response({"data": donnees})

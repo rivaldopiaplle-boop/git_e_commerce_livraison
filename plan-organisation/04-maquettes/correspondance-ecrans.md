@@ -47,8 +47,8 @@ base neuve.
 | Confirmation | `/commande/confirmation` | `VueConfirmation` | `GET /commandes` | 1 | à faire |
 | Mes commandes | `/mes-commandes` | `VueMesCommandes` | `GET /commandes` | 1 | **fait** |
 | Détail commande | `/mes-commandes/:id` | `VueCommande` | `GET /commandes/{id}`, `GET .../historique`, `GET /livraisons/{id}/suivi` | 1 | à faire |
-| Adresses | `/compte/adresses` | `VueAdresses` | `GET/POST/PATCH /moi/adresses` | 1 | à faire |
-| Notifications | `/compte/notifications` | `VueNotifications` | `GET /notifications` | 1 | à faire |
+| Adresses | `/mes-adresses` | `Adresses.vue` | `GET/POST/PATCH/DELETE /moi/adresses` | 1 | **fait** |
+| Notifications | cloche de la navbar + panneau droit | `CoquilleApp` / `PanneauActivite` | `GET /moi/notifications` | 1 | **fait** |
 
 ## Vendeur — accent bleu
 
@@ -58,30 +58,30 @@ base neuve.
 | Commandes entrantes | `/vendeur/commandes` | `VueVendeurCommandes` | `GET /commandes`, `PATCH /sous-commandes/{id}/statut` | 1 | **fait** |
 | Catalogue | `/vendeur/catalogue` | `VueVendeurCatalogue` | `GET/POST/PATCH /produits` | 1 | **fait** |
 | Stock | `/vendeur/stock` | `VueVendeurStock` | `PATCH /produits/{id}/stock` | 1 | **fait** |
-| Personnel | `/vendeur/personnel` | `VueVendeurPersonnel` | `POST /vendeurs/gestionnaires` | 1 | à faire |
+| Personnel | `/espace/personnel` | `Personnel.vue` | `GET /vendeurs/personnel`, `POST /vendeurs/gestionnaires` | 1 | **fait** |
 | Paramètres boutique | `/vendeur/parametres` | `VueVendeurParametres` | `PATCH /boutiques/{id}` | 1 | à faire |
-| Avis reçus | `/vendeur/avis` | `VueVendeurAvis` | `GET /avis?vendeur=` | 2 | à faire |
+| Avis reçus | dans `/espace/statistiques` | `Statistiques.vue` | `GET /vendeurs/statistiques`, `GET /vendeurs/avis` | 2 | **fait** |
 
-## Gestionnaire — accent orange
+## Gestionnaire — accent sarcelle `#0d9488`
 
 | Maquette | Route | Vue | Endpoints | Palier | État |
 |---|---|---|---|---|---|
 | Commandes à préparer (staff vendeur) | `/gestion/commandes` | `VueGestionCommandes` | `GET /commandes`, `PATCH /sous-commandes/{id}/statut` | 1 | à faire |
 | Stock (staff vendeur) | `/gestion/stock` | `VueGestionStock` | `PATCH /produits/{id}/stock` | 1 | **fait** |
-| Colis reçus (staff entrepôt) | `/gestion/colis` | `VueEntrepotColis` | `GET /entrepots/{id}/colis` | 1 | à faire |
-| Tournées à préparer | `/gestion/tournees` | `VueEntrepotTournees` | `POST /entrepots/{id}/tournees`, `PATCH /tournees/{id}/arrets`, `POST /tournees/{id}/affecter` | 1 | à faire |
+| Colis reçus (staff entrepôt) | `/espace/colis` | `Colis.vue` | `GET /entrepots/colis` | 1 | **fait** (lecture) |
+| Tournées à préparer | `/espace/tournees` | `Tournees.vue` | `GET /entrepots/tournees` — la création et l'affectation viennent avec la tranche livraison | 1 | **fait** (lecture) |
 
 ## Admin — accent rouge
 
 | Maquette | Route | Vue | Endpoints | Palier | État |
 |---|---|---|---|---|---|
-| Tableau de bord | `/admin` | `VueAdminAccueil` | `GET /admin/tableau-de-bord` | 1 | à faire |
+| Tableau de bord | `/espace` | `Accueil.vue` | `GET /admin/tableau-de-bord` | 1 | **fait** |
 | Validations | `/admin/validations` | `VueAdminValidations` | `GET /admin/validations`, `POST .../valider`, `.../rejeter` | 1 | **fait** |
-| Utilisateurs | `/admin/utilisateurs` | `VueAdminUtilisateurs` | `GET /admin/utilisateurs`, `POST .../suspendre` | 1 | à faire |
+| Utilisateurs | `/espace/utilisateurs` | `Utilisateurs.vue` | `GET /admin/utilisateurs`, `POST .../suspendre` | 1 | **fait** |
 | Vue commande complète | `/admin/commandes/:id` | `VueAdminCommande` | `GET /commandes/{id}` et tout son historique | 1 | à faire |
 | Entrepôts | `/admin/entrepots` | `VueAdminEntrepots` | `POST /admin/entrepots`, `.../gestionnaires` | 1 | à faire |
-| Litiges | `/admin/litiges` | `VueAdminLitiges` | `GET /admin/litiges`, `POST .../resoudre` | 2 | à faire |
-| Journal d'audit | `/admin/audit` | `VueAdminAudit` | `GET /admin/audit` | 1 | à faire |
+| Litiges | `/espace/litiges` | `Litiges.vue` | `GET /admin/litiges` — l'arbitrage suppose un paiement à rembourser | 2 | **fait** (lecture) |
+| Journal d'audit | `/espace/journal` | `Journal.vue` | `GET /admin/journal` | 1 | **fait** |
 
 ## Mobile client — accent vert
 
@@ -119,3 +119,22 @@ base neuve.
   fournie par Stripe.
 - Les **cartes et itinéraires** du livreur, qui dépendent du fournisseur de
   cartographie retenu.
+
+
+---
+
+## Ajouté au bloc J
+
+Deux écrans que le tableau ci-dessus n'avait pas prévus, parce qu'ils naissent
+d'une relecture plutôt que d'une maquette :
+
+| Écran | Route | Vue | Endpoints | État |
+|---|---|---|---|---|
+| Boutiques et livreurs (admin) | `/espace/boutiques` | `Boutiques.vue` | `GET /admin/boutiques`, `GET /admin/livreurs` | **fait** |
+| Suivi et gains (livreur, web) | `/espace/courses` | `MesCourses.vue` | `GET /livreurs/mes-courses` | **fait** (lecture) |
+
+Le second mérite une explication. [D-40](../00-pilotage/journal-decisions.md)
+range le livreur du côté mobile, et c'est juste : accepter une course et
+confirmer une livraison se font une main sur le guidon. Mais « mobile
+uniquement » ne veut pas dire « écran web vide » — il lui reste le suivi et les
+gains, que D-40 lui assigne explicitement.

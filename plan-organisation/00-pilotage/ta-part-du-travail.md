@@ -8,14 +8,20 @@
 
 ---
 
-# ⬛ À FAIRE MAINTENANT — mis à jour le 29 août
+# ⬛ À FAIRE MAINTENANT — mis à jour le 30 août
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
-| **1** | **`python demarrer.py`, Ctrl+Maj+R.** L'écran de connexion est lisible : j'avais renommé une classe CSS sans corriger ses usages, les champs n'avaient plus aucun style | 2 min | — |
-| **2** | **Regarde les tableaux de bord** de Karim, de l'admin et de Léa : chacun a désormais ses propres indicateurs | 3 min | — |
+| **1** | **`python demarrer.py`**, puis Ctrl+Maj+R dans le navigateur. Le jeu de données est déjà en place : 20 comptes, 5 boutiques, 15 commandes dans tous leurs états, des tournées, des litiges | 3 min | § J-7 plus bas |
+| **2** | **Ouvre `/connexion` et `/inscription`.** Elles étaient blanc sur blanc — deux jetons de couleur avaient disparu du thème. Tout est passé en clair | 2 min | § J-1 |
+| **3** | **Connecte-toi en `rachid@exemple.fr`** (entrepôt) puis **`julien@exemple.fr`** (livreur) : ces deux espaces n'existaient pas | 4 min | § J-4, J-6 |
+| **4** | **Chez Karim, ouvre « Mon catalogue »** : les boutons font enfin leur travail, dont « déclarer une rupture » et « remettre en vente » | 3 min | § J-3 |
+| **5** | **Puis « Stock » → bouton de ligne** : l'ajustement est passé en popup, avec la quantité réelle et un motif à choisir. L'historique est dans son propre onglet | 3 min | § J-3 |
 
-**Rien d'autre.** Le reste est de mon côté, et je n'attends aucune information de toi.
+Mot de passe commun : **`Demonstration!2026`**.
+
+**Aucune information ne m'est nécessaire de ta part.** Je continue sur le
+paiement, puis la livraison, comme tu l'as validé en J-10.
 
 ---
 
@@ -23,39 +29,43 @@
 
 | | Ton constat | Ce qui a été fait |
 |---|---|---|
-| **I-7** | « Être alerté quand ce produit revient » ne marche pas | Le bouton appelle maintenant une vraie route. Vérifié sur « Clavier mécanique » |
-| **I-7** | On ne voit pas les écritures sur `/connexion` | **Ma faute** : j'avais renommé `.champ` en `.champ-marque` sans corriger les usages. Les champs n'avaient plus de style — texte blanc sur fond blanc |
-| **I-7** | « Se déconnecter » ne fait rien, « Parcourir le catalogue » renvoie à la connexion | La déconnexion ramène au catalogue. Rester dans un espace de travail après s'être déconnecté n'avait aucun sens |
-| **I-7** | Pourquoi un panier chez le vendeur ? | Tu as raison, et aucun vrai site ne fait ça. Le panneau droit dépend du rôle : **panier** pour qui achète, **activité** pour qui travaille ([D-46](journal-decisions.md)) |
-| **I-7** | Un back-office qui renvoie au catalogue public | Retiré des espaces vendeur et admin |
-| **I-7** | « Tableau de bord : le contenu est hors sujet » | Refait **par rôle** : le vendeur voit ce qu'il doit préparer et ce qui manque, l'admin ce qui attend une décision, le client ses commandes en cours. Plus une carte d'identité |
-| **I-7** | « Stock renvoie sur mon catalogue » | **Vrai écran de stock** : liste, onglet « à réapprovisionner », ajustement avec motif et historique déplié sous la ligne |
-| **I-7** | « On est obligé de traiter toutes les commandes à la fois » | Onglets : à préparer, en préparation, prêtes, terminées |
-| **I-8** | Les boutons de la maquette manquent | Onglets soulignés, rangée de KPI, cartes à en-tête, lignes, badges, boutons-icônes : le vocabulaire de la maquette est écrit une fois et sert partout |
-| **I-10** | « Profil est mieux que se déconnecter » | Menu profil dans la navbar, avec la déconnexion dedans |
-| **I-10** | L'espace gestionnaire et vendeur sont identiques | Séparés : le gestionnaire prépare et compte, sans tableau de bord commercial ni catalogue — ce ne sont pas ses décisions ([D-04](journal-decisions.md)) |
+| **J-1** | « Créer un compte, Des boutiques deux rythmes, RivDinde… tout ça est en blanc et illisible » | **Ma faute, et la deuxième fois.** `PanneauMarque.vue` utilisait `bg-encre-2` et `border-encre-3`, deux jetons que j'avais supprimés du thème : l'aside n'avait plus de fond, et son texte blanc devenait invisible. Les écrans publics sont repassés en clair, comme le reste. **Et j'ai écrit le test qui rend l'erreur impossible** : il lit le thème, lit tous les écrans, et refuse toute classe qui ne mène à rien ([D-47](journal-decisions.md)) |
+| **J-2** | « 530,80 € Total dépensé : ça sert à quoi ça ? » | À rien. Personne n'ouvre une application de livraison pour se faire rappeler ce qu'il a dépensé, et le chiffre ne déclenche aucune action. Retiré, remplacé par ce qui arrive et par son carnet d'adresses |
+| **J-3** | « Les symboles/boutons sont très laids et ne font pas leur rôle » | Repris de la maquette : boutons-icônes **encadrés** de 28 px. Et surtout ils agissent : « voir » n'ouvre plus la fiche publique d'un produit masqué (page vide), « masquer » a enfin son inverse — **remettre en vente** —, et **« déclarer une rupture »** existe |
+| **J-3** | « L'affichage de l'ajustement de stock n'est pas bon, soit les boutons, soit une popup » | **Popup**, comme la maquette la décrit : « Nouvelle quantité » et un motif à choisir. On compte ce qu'il y a sur l'étagère, on ne calcule pas de tête l'écart ([D-49](journal-decisions.md)) |
+| **J-3** | « L'historique peut être mis à un meilleur endroit » | Sorti de sous la ligne : il a son propre onglet, en tableau, tous produits confondus |
+| **J-3** | « Pizza napolitaine : j'ai fait une rupture de stock mais rien n'apparaît côté client » | **Tu n'avais pas fait de rupture.** Le mouvement enregistré est `RETOUR -2 → 26` : l'écran ne proposait qu'un écart, pas une mise à zéro, et il t'a laissé croire le contraire. Le stock de la pizza était toujours à 26. C'est corrigé au point précédent |
+| **J-4** | « Espace livreur » | Il n'existait pas. Il montre maintenant ses courses, sa tournée du jour avec ses arrêts ordonnés, et ses gains. L'action reste sur le mobile ([D-40](journal-decisions.md)) : accepter une course une main sur le guidon ne se fait pas au clavier |
+| **J-6** | « Il manque des sidebar, navbar, dashboard, onglets de tous les rôles venant de la maquette » | Reprises **entrée par entrée** de la maquette. 10 écrans créés : carnet d'adresses, personnel, statistiques, colis reçus, tournées, mes courses, boutiques, utilisateurs, litiges, journal d'audit. **Un test vérifie que chaque entrée de menu mène à une route réelle** |
+| **J-7** | « Fais un vrai jeu de données très vaste » | 20 comptes, 5 boutiques dans 3 états, 2 entrepôts, 25 produits, **15 commandes — une par statut**, 14 livraisons dont une échouée après deux tentatives, 4 tournées de brouillon à terminée, 7 avis, 2 litiges. Plus les cas limites : produit retiré, stock bas, rupture, client parisien qu'aucune boutique Express ne livre |
+| **J-9** | « Utilise la maquette et le plan, merde » | J'ai relu `maquettes.html`, `regles-d-or.md`, `roles-et-parcours.md`, `correspondance-ecrans.md` et le journal avant d'écrire une ligne. Le relevé décision par décision est dans [etat-reel.md](etat-reel.md) |
 
 ---
 
-## Tes arbitrages du bloc I-6, consignés
+## Trois défauts que tu n'avais pas vus, et que la relecture a sortis
 
-- **Agent IA** : recommandations d'abord, assistant de support ensuite, modèle
-  appelé par API ([D-43](journal-decisions.md)).
-- **Tournées** : optimisées dès le MVP, par plus proche voisin — une tournée non
-  ordonnée n'est pas une tournée ([D-44](journal-decisions.md)).
-- **Promotions** : créées par le vendeur **et** par l'admin ([D-45](journal-decisions.md)).
+1. **Le gestionnaire recevait un 403 sur la liste des produits.** Son écran de
+   stock — le seul de son métier — ne s'ouvrait pas du tout.
+2. **Le gestionnaire recevait ton chiffre d'affaires** dans la réponse du
+   serveur. L'interface le masquait ; masquer n'est pas une permission. Le champ
+   ne quitte plus le serveur ([D-50](journal-decisions.md)).
+3. **`stock_reserve` traînait à 3, 7 et 1** sur trois produits sans qu'aucun
+   paiement soit en cours : « Bol de ramen », « Sac à dos » et « Tarte du jour »
+   apparaissaient en rupture sans raison. Remis à zéro, et le peuplement le
+   répare désormais tout seul.
 
-**Il ne reste plus aucune question ouverte.**
+Et **six photos ne montraient pas le bon produit** — une salade pour une
+baguette, un tissu gris pour une huile d'olive, un petit-déjeuner anglais pour
+du café en grains. Remplacées, revérifiées à l'œil sur planche-contact.
 
 ---
 
-## I-5 : Stripe CLI, tu n'en as pas besoin
+## Ce qui vient ensuite, dans l'ordre que tu as validé en J-10
 
-`stripe: command not found` est normal, l'outil n'est pas installé. **Et il ne
-sert à rien tant que le code de paiement n'existe pas.** Je te dirai quand
-l'installer — et il sera peut-être inutile : je peux écrire et tester tout le
-paiement avec le simulateur ([D-18](journal-decisions.md)).
-
+1. **Le paiement** — écrivable en entier avec le simulateur, sans tes clés Stripe.
+2. **La livraison et les tournées** — faire *avancer* ce que les écrans lisent déjà.
+3. **Le paquet `partage/` et l'application mobile.**
+4. **Le déploiement.**
 
 ---
 

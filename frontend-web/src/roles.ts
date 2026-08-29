@@ -1,14 +1,21 @@
 // Ce que chaque role voit, de quelle couleur, et sur quel support.
 //
-// Deux regles apprises a mes depens :
+// La barre laterale suit **entree par entree** celle de la maquette
+// (`04-maquettes/maquettes.html`), et les couleurs viennent de la regle d'or
+// n°8 : une couleur dominante par role, jamais sur les couleurs de sens.
+//
+// Trois regles apprises a mes depens :
 //   · un espace de travail ne renvoie PAS au catalogue public. Aucun
-//     back-office marchand ne le fait : ce sont deux mondes, et melanger les
-//     deux donne l'impression d'un site amateur ;
-//   · le gestionnaire n'est pas un vendeur au rabais. Il prepare, il compte,
-//     il ne voit ni les prix ni le chiffre d'affaires (D-04).
+//     back-office marchand ne le fait ;
+//   · le gestionnaire n'est pas un vendeur au rabais : il prepare, il compte,
+//     il ne voit ni les prix ni le chiffre d'affaires (D-04) ;
+//   · « gestionnaire » recouvre deux metiers, et il faut le dire dans le menu :
+//     le staff d'un vendeur prepare des commandes, celui d'un entrepot charge
+//     des tournees (D-05).
 import {
-  Bell, Bike, Boxes, ClipboardList, FileClock, LayoutDashboard, MapPin, Package,
-  Receipt, ScrollText, ShieldCheck, ShoppingBag, Store, Truck, Users, Warehouse,
+  BarChart3, Bike, Boxes, ClipboardList, LayoutDashboard, MapPin, Package,
+  Receipt, Route, ScrollText, ShieldCheck, ShoppingBag, Star, Store, Truck,
+  Users, Wallet, Warehouse,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -18,11 +25,13 @@ export type EntreeNavigation = {
   libelle: string
   icone: Component
   route?: string
+  /** Grisee dans la maquette : l'entree existe, l'acces est refuse. */
+  interdite?: boolean
   prochainement?: boolean
 }
 
 /** Un visiteur sans compte est un futur client : il en porte les couleurs. */
-export type RoleAffiche = Role | 'VISITEUR'
+export type RoleAffiche = Role | 'VISITEUR' | 'GESTIONNAIRE_ENTREPOT'
 
 type DescriptionRole = {
   espace: string
@@ -30,7 +39,7 @@ type DescriptionRole = {
   accentDoux: string
   /** Ou ce role travaille reellement (D-40). */
   plateforme: 'web' | 'mobile' | 'web+mobile'
-  /** Le panneau droit : le panier n'a de sens que pour qui achete. */
+  /** Le panneau droit : le panier n'a de sens que pour qui achete (D-46). */
   panneau: 'panier' | 'activite'
   navigation: EntreeNavigation[]
 }
@@ -58,8 +67,8 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Catalogue', icone: ShoppingBag, route: 'vitrine' },
       { libelle: 'Boutiques', icone: Store, route: 'boutiques' },
       { libelle: 'Mes commandes', icone: Receipt, route: 'mes-commandes' },
+      { libelle: 'Mes adresses', icone: MapPin, route: 'mes-adresses' },
       { libelle: 'Mon compte', icone: LayoutDashboard, route: 'espace' },
-      { libelle: 'Mes adresses', icone: MapPin, prochainement: true },
     ],
   },
   VENDEUR: {
@@ -73,21 +82,37 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Commandes recues', icone: ClipboardList, route: 'vendeur-commandes' },
       { libelle: 'Mon catalogue', icone: Package, route: 'vendeur-catalogue' },
       { libelle: 'Stock', icone: Boxes, route: 'vendeur-stock' },
-      { libelle: 'Mon personnel', icone: Users, prochainement: true },
+      { libelle: 'Mon personnel', icone: Users, route: 'vendeur-personnel' },
+      { libelle: 'Statistiques', icone: BarChart3, route: 'vendeur-statistiques' },
     ],
   },
+  // Staff d'un vendeur — Nadia. Elle prepare et elle compte.
   GESTIONNAIRE: {
-    espace: 'Espace gestion',
+    espace: 'Preparation',
     accent: '#0d9488',
     accentDoux: '#e6f7f4',
     plateforme: 'web',
     panneau: 'activite',
-    // Le gestionnaire prepare et compte. Ni tableau de bord commercial, ni
-    // catalogue : ce ne sont pas ses decisions (D-04).
     navigation: [
       { libelle: 'A preparer', icone: ClipboardList, route: 'vendeur-commandes' },
       { libelle: 'Stock', icone: Boxes, route: 'vendeur-stock' },
-      { libelle: 'Reception entrepot', icone: Warehouse, prochainement: true },
+      { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
+      // Grisee, exactement comme dans la maquette : l'entree existe pour que
+      // l'employe sache que la donnee existe et qu'elle ne lui est pas due.
+      { libelle: 'Chiffre d affaires', icone: Wallet, interdite: true },
+    ],
+  },
+  // Staff d'un entrepot — Samir. Il recoit des colis et monte des tournees.
+  GESTIONNAIRE_ENTREPOT: {
+    espace: 'Entrepot',
+    accent: '#0d9488',
+    accentDoux: '#e6f7f4',
+    plateforme: 'web',
+    panneau: 'activite',
+    navigation: [
+      { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
+      { libelle: 'Colis recus', icone: Warehouse, route: 'entrepot-colis' },
+      { libelle: 'Tournees', icone: Route, route: 'entrepot-tournees' },
     ],
   },
   LIVREUR: {
@@ -97,10 +122,10 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     plateforme: 'mobile',
     panneau: 'activite',
     navigation: [
-      { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
-      { libelle: 'Ma course', icone: Bike, prochainement: true },
-      { libelle: 'Ma tournee', icone: Truck, prochainement: true },
-      { libelle: 'Historique', icone: FileClock, prochainement: true },
+      { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
+      { libelle: 'Mes courses', icone: Bike, route: 'livreur-courses' },
+      { libelle: 'Ma tournee', icone: Truck, route: 'livreur-courses' },
+      { libelle: 'Mes gains', icone: Wallet, route: 'livreur-courses' },
     ],
   },
   ADMIN: {
@@ -112,13 +137,18 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     navigation: [
       { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Validations', icone: ShieldCheck, route: 'admin-validations' },
-      { libelle: 'Utilisateurs', icone: Users, prochainement: true },
-      { libelle: 'Litiges', icone: Bell, prochainement: true },
-      { libelle: "Journal d'audit", icone: ScrollText, prochainement: true },
+      { libelle: 'Boutiques', icone: Store, route: 'admin-boutiques' },
+      { libelle: 'Utilisateurs', icone: Users, route: 'admin-utilisateurs' },
+      { libelle: 'Litiges', icone: Star, route: 'admin-litiges' },
+      { libelle: "Journal d'audit", icone: ScrollText, route: 'admin-journal' },
     ],
   },
 }
 
-export function descriptionDuRole(role: Role | null) {
+/** Le role d'affichage : il tient compte du sous-type du gestionnaire. */
+export function descriptionDuRole(role: Role | null, sousRole?: string | null) {
+  if (role === 'GESTIONNAIRE' && sousRole === 'STAFF_ENTREPOT') {
+    return ROLES.GESTIONNAIRE_ENTREPOT
+  }
   return ROLES[(role ?? 'VISITEUR') as RoleAffiche] ?? ROLES.VISITEUR
 }

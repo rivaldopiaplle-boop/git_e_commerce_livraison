@@ -85,7 +85,9 @@ def ajuster_stock(produit, quantite, type_mouvement, motif, auteur):
     erreur de saisie.
     """
     if quantite == 0:
-        raise RegleMetier("La quantite ne peut pas etre nulle.")
+        raise RegleMetier(
+            f"Le stock est deja a {produit.stock_disponible} : il n'y a rien a corriger."
+        )
     if type_mouvement == TypeMouvement.AJUSTEMENT and not motif.strip():
         raise RegleMetier("Un ajustement manuel exige un motif.")
 

@@ -79,15 +79,15 @@ async function valider() {
 </script>
 
 <template>
-  <div class="flex min-h-screen w-full">
+  <div class="flex min-h-screen w-full bg-atelier">
     <PanneauMarque />
 
     <main class="flex flex-1 items-center justify-center px-6 py-12">
       <form class="w-full max-w-[440px] animate-[apparition_0.2s_ease-out]" @submit.prevent="valider">
         <RouterLink
           to="/"
-          class="mb-6 inline-flex items-center gap-2 text-[13px] text-[#b49a8c]
-                 transition-colors duration-150 hover:text-marque-clair"
+          class="mb-6 inline-flex items-center gap-2 text-[13px] text-encre-douce
+                 transition-colors duration-150 hover:text-marque-fonce"
         >
           <ArrowLeft :size="15" />
           Retour au catalogue
@@ -97,12 +97,12 @@ async function valider() {
           <LogoRivDinde :taille="52" />
         </div>
 
-        <h2 class="text-[26px] font-semibold tracking-tight text-white">Creer un compte</h2>
-        <p class="mt-1 mb-6 text-[14px] text-[#b49a8c]">Choisissez d'abord votre role.</p>
+        <h2 class="text-[26px] font-semibold tracking-tight text-encre">Creer un compte</h2>
+        <p class="mt-1 mb-6 text-[14px] text-encre-douce">Choisissez d'abord votre role.</p>
 
         <!-- Onglets : le choix du role change le formulaire, il doit donc etre
              visible en premier et non cache dans une liste deroulante. -->
-        <div class="mb-5 flex gap-1 rounded-2xl bg-[#23130d] p-1.5">
+        <div class="mb-5 flex gap-1 rounded-xl border border-trait bg-papier p-1.5">
           <button
             v-for="choix in PROFILS"
             :key="choix.cle"
@@ -112,7 +112,7 @@ async function valider() {
             :class="
               profil === choix.cle
                 ? 'bg-marque font-bold text-encre'
-                : 'text-[#b49a8c] hover:bg-white/5'
+                : 'text-encre-douce hover:bg-atelier'
             "
             @click="profil = choix.cle"
           >
@@ -123,8 +123,7 @@ async function valider() {
 
         <p
           v-if="avertissement"
-          class="mb-5 rounded-xl border border-amber-900/60 bg-amber-950/25 px-3.5 py-3
-                 text-[13px] text-amber-200"
+          class="bandeau mb-5"
         >
           {{ avertissement }}
         </p>
@@ -164,8 +163,8 @@ async function valider() {
               requis
             />
             <label class="flex flex-col gap-1.5">
-              <span class="text-[13px] font-medium text-[#c9b4a6]">Type d'activite</span>
-              <select v-model="champs.type_activite" class="champ-marque">
+              <span class="text-[13px] font-medium text-encre-douce">Type d'activite</span>
+              <select v-model="champs.type_activite" class="champ-clair">
                 <option value="EXPRESS">Express — restauration, livraison immediate</option>
                 <option value="STANDARD">Standard — colis, passage par entrepot</option>
               </select>
@@ -174,15 +173,15 @@ async function valider() {
 
           <template v-if="profil === 'livreur'">
             <label class="flex flex-col gap-1.5">
-              <span class="text-[13px] font-medium text-[#c9b4a6]">Mode de livraison</span>
-              <select v-model="champs.mode_livraison" class="champ-marque">
+              <span class="text-[13px] font-medium text-encre-douce">Mode de livraison</span>
+              <select v-model="champs.mode_livraison" class="champ-clair">
                 <option value="EXPRESS">Express — une course a la fois</option>
                 <option value="STANDARD">Standard — tournees depuis un entrepot</option>
               </select>
             </label>
             <label class="flex flex-col gap-1.5">
-              <span class="text-[13px] font-medium text-[#c9b4a6]">Vehicule</span>
-              <select v-model="champs.vehicule" class="champ-marque">
+              <span class="text-[13px] font-medium text-encre-douce">Vehicule</span>
+              <select v-model="champs.vehicule" class="champ-clair">
                 <option value="VELO">Velo</option>
                 <option value="SCOOTER">Scooter</option>
                 <option value="VOITURE">Voiture</option>
@@ -194,8 +193,7 @@ async function valider() {
 
         <p
           v-if="erreur"
-          class="mt-4 rounded-xl border border-red-900/70 bg-red-950/40 px-3.5 py-3
-                 text-[13px] text-red-200"
+          class="bandeau bandeau-erreur mt-4"
           role="alert"
         >
           {{ erreur }}
@@ -206,9 +204,9 @@ async function valider() {
           {{ session.chargement ? 'Creation…' : 'Creer mon compte' }}
         </button>
 
-        <p class="mt-5 text-center text-[13.5px] text-[#b49a8c]">
+        <p class="mt-5 text-center text-[13.5px] text-encre-douce">
           Deja inscrit ?
-          <RouterLink to="/connexion" class="text-marque-clair hover:underline">
+          <RouterLink to="/connexion" class="text-marque-fonce hover:underline">
             Se connecter
           </RouterLink>
         </p>

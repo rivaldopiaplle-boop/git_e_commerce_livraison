@@ -115,6 +115,66 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./vues/admin/Validations.vue'),
     meta: { acces: 'prive' },
   },
+  {
+    path: '/mes-adresses',
+    name: 'mes-adresses',
+    component: () => import('./vues/client/Adresses.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/personnel',
+    name: 'vendeur-personnel',
+    component: () => import('./vues/vendeur/Personnel.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/statistiques',
+    name: 'vendeur-statistiques',
+    component: () => import('./vues/vendeur/Statistiques.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/colis',
+    name: 'entrepot-colis',
+    component: () => import('./vues/gestion/Colis.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/tournees',
+    name: 'entrepot-tournees',
+    component: () => import('./vues/gestion/Tournees.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/courses',
+    name: 'livreur-courses',
+    component: () => import('./vues/livreur/MesCourses.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/boutiques',
+    name: 'admin-boutiques',
+    component: () => import('./vues/admin/Boutiques.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/utilisateurs',
+    name: 'admin-utilisateurs',
+    component: () => import('./vues/admin/Utilisateurs.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/litiges',
+    name: 'admin-litiges',
+    component: () => import('./vues/admin/Litiges.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/journal',
+    name: 'admin-journal',
+    component: () => import('./vues/admin/Journal.vue'),
+    meta: { acces: 'prive' },
+  },
   { path: '/:reste(.*)*', redirect: '/' },
 ]
 

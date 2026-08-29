@@ -20,14 +20,14 @@ const valeur = defineModel<string>({ required: true })
 
 <template>
   <label class="flex flex-col gap-1.5">
-    <span class="text-[13px] font-medium text-[#c9b4a6]">{{ label }}</span>
+    <span class="text-[13px] font-semibold text-encre-douce">{{ label }}</span>
 
     <span class="relative flex items-center">
       <component
         :is="icone"
         v-if="icone"
         :size="17"
-        class="pointer-events-none absolute left-3.5 text-[#8a6d5c]"
+        class="pointer-events-none absolute left-3.5 text-encre-douce"
       />
       <input
         v-model="valeur"
@@ -35,12 +35,12 @@ const valeur = defineModel<string>({ required: true })
         :required="requis"
         :minlength="minlength"
         :autocomplete="autocomplete"
-        class="champ-marque"
+        class="champ-clair"
         :class="[icone ? 'pl-10' : '', erreur ? 'champ-erreur' : '']"
       />
     </span>
 
-    <span v-if="erreur" class="text-[12px] text-red-300">{{ erreur }}</span>
-    <span v-else-if="aide" class="text-[11.5px] text-[#8a6d5c]">{{ aide }}</span>
+    <span v-if="erreur" class="text-[12px] font-semibold text-alerte">{{ erreur }}</span>
+    <span v-else-if="aide" class="text-[11.5px] text-encre-douce">{{ aide }}</span>
   </label>
 </template>

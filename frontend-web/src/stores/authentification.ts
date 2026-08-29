@@ -45,6 +45,15 @@ export const useAuthentification = defineStore('authentification', () => {
     () => utilisateur.value?.statut_compte === 'EN_ATTENTE_VALIDATION',
   )
 
+  // Un gestionnaire n'est pas un gestionnaire : le staff d'un vendeur prepare
+  // des commandes, celui d'un entrepot charge des tournees. Ils n'ont ni les
+  // memes ecrans ni les memes droits (D-05), et seul le profil le dit.
+  const sousRole = computed(() => {
+    if (utilisateur.value?.role !== 'GESTIONNAIRE') return null
+    return (profil.value?.type_gestionnaire as string | undefined) ?? null
+  })
+  const estStaffEntrepot = computed(() => sousRole.value === 'STAFF_ENTREPOT')
+
   function memoriser(identite: Identite) {
     utilisateur.value = identite.utilisateur
     profil.value = identite.profil
@@ -113,7 +122,7 @@ export const useAuthentification = defineStore('authentification', () => {
 
   return {
     utilisateur, profil, chargement,
-    estConnecte, role, enAttenteDeValidation,
+    estConnecte, role, enAttenteDeValidation, sousRole, estStaffEntrepot,
     connecter, inscrire, deconnecter, restaurer,
   }
 })

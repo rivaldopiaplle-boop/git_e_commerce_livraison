@@ -81,6 +81,36 @@ class Command(BaseCommand):
                 "seuil_gratuite_centimes": 5000,
             },
         )
+        zone_nord, _ = ZoneLivraison.objects.get_or_create(
+            nom="Lyon Nord",
+            defaults={
+                "codes_postaux": "69004,69005,69009,69300,69660",
+                "entrepot": entrepot,
+                "frais_base_centimes": 590,
+                "seuil_gratuite_centimes": 6000,
+            },
+        )
+
+        # Un second entrepot, dans une autre region : c'est la seule facon de
+        # montrer qu'une tournee appartient a un entrepot et pas a la
+        # plateforme entiere.
+        adresse_entrepot_sud, _ = Adresse.objects.get_or_create(
+            rue="45 chemin des Docks", code_postal="13015", ville="Marseille",
+            defaults={"libelle": "Entrepot Sud", "latitude": 43.3520, "longitude": 5.3480},
+        )
+        entrepot_sud, _ = Entrepot.objects.get_or_create(
+            nom="Entrepot Marseille-Nord",
+            defaults={"adresse": adresse_entrepot_sud, "capacite": 3000},
+        )
+        ZoneLivraison.objects.get_or_create(
+            nom="Marseille et littoral",
+            defaults={
+                "codes_postaux": "13001,13002,13008,13015",
+                "entrepot": entrepot_sud,
+                "frais_base_centimes": 690,
+                "seuil_gratuite_centimes": 7000,
+            },
+        )
 
         # ── Lea, cliente ─────────────────────────────────────────────────
         compte_lea, neuf = utilisateur("lea@exemple.fr", "Lea", "Martin", Role.CLIENT)
@@ -167,9 +197,122 @@ class Command(BaseCommand):
             defaults={"type_gestionnaire": TypeGestionnaire.STAFF_ENTREPOT, "entrepot": entrepot},
         )
 
+        # -- D'autres clients, ailleurs -----------------------------------
+        # Un seul client a Lyon ne prouve rien. Marc habite Paris : aucune
+        # boutique Express ne le livre, et c'est justement ce que le filtrage
+        # par rayon (D-09) doit rendre visible. Ines est a Marseille.
+        def client(email, prenom, nom, rue, cp, ville, lat, lon, zone_client=None,
+                   instructions=""):
+            compte, _ = utilisateur(email, prenom, nom, Role.CLIENT)
+            profil, _ = Client.objects.get_or_create(utilisateur=compte)
+            adresse, _ = Adresse.objects.get_or_create(
+                rue=rue, code_postal=cp, ville=ville,
+                defaults={"libelle": "Domicile", "latitude": lat, "longitude": lon,
+                          "zone": zone_client, "instructions_livraison": instructions},
+            )
+            profil.adresses.through.objects.get_or_create(
+                client=profil, adresse=adresse, defaults={"est_principale": True}
+            )
+            return profil, adresse
+
+        client("marc@exemple.fr", "Marc", "Dubois", "17 rue de Charonne", "75011", "Paris",
+               48.8540, 2.3790, None, "Interphone au nom de Dubois.")
+        client("ines.client@exemple.fr", "Ines", "Nadir", "3 rue de la Republique", "13001",
+               "Marseille", 43.2965, 5.3760, None)
+        client("theo@exemple.fr", "Theo", "Girard", "22 rue Sebastien Gryphe", "69007", "Lyon",
+               45.7480, 4.8400, zone, "Laisser chez le gardien si absent.")
+        client("awa@exemple.fr", "Awa", "Diop", "6 rue Duquesne", "69006", "Lyon",
+               45.7690, 4.8480, zone)
+
+        # Une deuxieme adresse pour Lea : un carnet d'adresses qui n'en
+        # contient qu'une ne se demontre pas.
+        adresse_bureau, _ = Adresse.objects.get_or_create(
+            rue="52 rue de la Republique", code_postal="69002", ville="Lyon",
+            defaults={"libelle": "Bureau", "latitude": 45.7620, "longitude": 4.8360,
+                      "zone": zone, "instructions_livraison": "Accueil du 2e etage."},
+        )
+        client_lea.adresses.through.objects.get_or_create(
+            client=client_lea, adresse=adresse_bureau, defaults={"est_principale": False}
+        )
+
+        # -- Deux boutiques de plus, et deux cas limites -------------------
+        def boutique(email, prenom, nom, nom_boutique, service, rue, cp, ville, lat, lon,
+                     statut=StatutValidation.VALIDE, description="", rayon=6,
+                     statut_compte=StatutCompte.ACTIF):
+            compte, _ = utilisateur(email, prenom, nom, Role.VENDEUR, statut_compte)
+            adresse, _ = Adresse.objects.get_or_create(
+                rue=rue, code_postal=cp, ville=ville,
+                defaults={"libelle": nom_boutique, "latitude": lat, "longitude": lon},
+            )
+            profil, _ = Vendeur.objects.get_or_create(
+                utilisateur=compte,
+                defaults={"nom_boutique": nom_boutique, "type_activite": service,
+                          "adresse": adresse, "rayon_livraison_km": rayon,
+                          "statut_validation": statut, "description": description},
+            )
+            return profil
+
+        boutique("yasmine@exemple.fr", "Yasmine", "Bouali", "Le Fournil d a cote",
+                 TypeService.EXPRESS, "9 rue Paul Bert", "69003", "Lyon", 45.7605, 4.8530,
+                 description="Pains au levain et viennoiseries, cuits toute la journee.",
+                 rayon=4)
+        boutique("olivier@exemple.fr", "Olivier", "Perrin", "Maison Perrin",
+                 TypeService.STANDARD, "14 quai Saint-Antoine", "69002", "Lyon", 45.7635, 4.8290,
+                 description="Epicerie fine, expediee sous quarante-huit heures.")
+
+        # Une boutique Express trop loin de Lyon : elle prouve que le rayon
+        # ecarte reellement au lieu de trier.
+        boutique("nour@exemple.fr", "Nour", "Bensaid", "Marseille Grill",
+                 TypeService.EXPRESS, "18 rue Sainte", "13001", "Marseille", 43.2930, 5.3730,
+                 description="Grillades a emporter, livrees dans le centre.", rayon=5)
+
+        # Un dossier refuse : l'ecran de validation doit montrer aussi ce
+        # qu'on a refuse, sinon on ne sait jamais ce qu'un dossier est devenu.
+        boutique("hugo@exemple.fr", "Hugo", "Lemaitre", "Hugo Deals",
+                 TypeService.STANDARD, "3 rue du Doyenne", "69005", "Lyon", 45.7620, 4.8270,
+                 statut=StatutValidation.REJETE,
+                 description="Dossier incomplet : SIRET non verifiable.",
+                 statut_compte=StatutCompte.EN_ATTENTE)
+
+        # -- Du personnel, des deux cotes ---------------------------------
+        vendeur_sophie = Vendeur.objects.filter(nom_boutique="TechSophie").first()
+        if vendeur_sophie:
+            compte_lucas, _ = utilisateur("lucas@exemple.fr", "Lucas", "Fabre", Role.GESTIONNAIRE)
+            Gestionnaire.objects.get_or_create(
+                utilisateur=compte_lucas,
+                defaults={"type_gestionnaire": TypeGestionnaire.STAFF_VENDEUR,
+                          "vendeur": vendeur_sophie},
+            )
+
+        compte_samir, _ = utilisateur("samir@exemple.fr", "Samir", "Kaci", Role.GESTIONNAIRE)
+        Gestionnaire.objects.get_or_create(
+            utilisateur=compte_samir,
+            defaults={"type_gestionnaire": TypeGestionnaire.STAFF_ENTREPOT,
+                      "entrepot": entrepot_sud},
+        )
+
+        # -- Des livreurs, dont un qui attend sa validation ---------------
+        compte_sonia, _ = utilisateur("sonia@exemple.fr", "Sonia", "Marchand", Role.LIVREUR)
+        Livreur.objects.get_or_create(
+            utilisateur=compte_sonia,
+            defaults={"mode_livraison": TypeService.EXPRESS, "vehicule": "SCOOTER",
+                      "statut_validation": StatutValidation.VALIDE},
+        )
+        compte_bruno, _ = utilisateur(
+            "bruno@exemple.fr", "Bruno", "Vidal", Role.LIVREUR, StatutCompte.EN_ATTENTE
+        )
+        Livreur.objects.get_or_create(
+            utilisateur=compte_bruno,
+            defaults={"mode_livraison": TypeService.STANDARD, "vehicule": "CAMIONNETTE",
+                      "entrepot": entrepot_sud},
+        )
+
         # Le catalogue vient juste apres les boutiques : une vitrine sans
         # produit ne prouve rien et ne se montre pas.
         call_command("seed_catalogue")
+        # Puis la vie de la plateforme : des commandes dans tous leurs etats,
+        # des livraisons, des tournees, des avis, des litiges.
+        call_command("seed_activite")
 
         self.stdout.write("")
         if cree:
@@ -181,14 +324,26 @@ class Command(BaseCommand):
         self.stdout.write(f"  Mot de passe commun : {self.style.WARNING(MOT_DE_PASSE_DEMO)}")
         self.stdout.write("")
         for email, qui in [
-            ("lea@exemple.fr", "cliente"),
-            ("karim@exemple.fr", "vendeur Express, valide"),
-            ("sophie@exemple.fr", "vendeuse Standard, validee"),
+            ("lea@exemple.fr", "cliente, Lyon, deux adresses, commandes en cours"),
+            ("marc@exemple.fr", "client, PARIS - aucune boutique Express ne le livre"),
+            ("theo@exemple.fr", "client, Lyon, une commande annulee et un litige"),
+            ("awa@exemple.fr", "cliente, Lyon, commandes livrees et avis deposes"),
+            ("ines.client@exemple.fr", "cliente, Marseille"),
+            ("karim@exemple.fr", "vendeur Express valide - Chez Karim"),
+            ("sophie@exemple.fr", "vendeuse Standard validee - TechSophie"),
+            ("yasmine@exemple.fr", "vendeuse Express validee - Le Fournil d a cote"),
+            ("olivier@exemple.fr", "vendeur Standard valide - Maison Perrin"),
+            ("nour@exemple.fr", "vendeur Express a Marseille - hors rayon depuis Lyon"),
             ("ines@exemple.fr", "vendeuse EN ATTENTE de validation"),
+            ("hugo@exemple.fr", "vendeur REFUSE"),
             ("nadia@exemple.fr", "gestionnaire, personnel de Karim"),
-            ("rachid@exemple.fr", "gestionnaire d'entrepot"),
-            ("amine@exemple.fr", "livreur Express"),
-            ("julien@exemple.fr", "livreur Standard"),
+            ("lucas@exemple.fr", "gestionnaire, personnel de Sophie"),
+            ("rachid@exemple.fr", "gestionnaire, entrepot Lyon-Est"),
+            ("samir@exemple.fr", "gestionnaire, entrepot Marseille-Nord"),
+            ("amine@exemple.fr", "livreur Express (velo)"),
+            ("sonia@exemple.fr", "livreuse Express (scooter)"),
+            ("julien@exemple.fr", "livreur Standard, tournees"),
+            ("bruno@exemple.fr", "livreur EN ATTENTE de validation"),
         ]:
-            self.stdout.write(f"  {email:<22} {qui}")
+            self.stdout.write(f"  {email:<24} {qui}")
         self.stdout.write("")

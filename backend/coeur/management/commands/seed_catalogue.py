@@ -36,10 +36,13 @@ UNIVERS = {
     "Plats": "Restauration",
     "Entrees": "Restauration",
     "Desserts": "Restauration",
+    "Boulangerie": "Restauration",
     "Audio": "High-tech",
     "Informatique": "High-tech",
     "Telephonie": "High-tech",
     "Accessoires": "High-tech",
+    "Epicerie": "Maison",
+    "Boissons": "Maison",
 }
 
 LARGEUR = 900
@@ -105,7 +108,62 @@ CATALOGUE = [
     ("TechSophie", "Informatique", "Clavier mecanique",
      "Switches silencieux, retroeclairage, sans fil.",
      8900, 0, ("flickr", "keyboard,gaming", 2)),
+
+    # -- Le Fournil d a cote -- Express, boulangerie ---------------------
+    ("Le Fournil d a cote", "Boulangerie", "Pain au levain",
+     "Farine de meule bio, fermentation lente de dix-huit heures.",
+     450, 24, ("flickr", "sourdough,bread,loaf", 5)),
+    ("Le Fournil d a cote", "Boulangerie", "Croissant au beurre",
+     "Beurre de Charentes, feuilletage a la main, cuit toutes les deux heures.",
+     130, 60, ("flickr", "croissant", 22)),
+    ("Le Fournil d a cote", "Boulangerie", "Baguette tradition",
+     "Cuite quatre fois par jour, sans additif.",
+     120, 3, ("flickr", "baguette", 11)),
+    ("Le Fournil d a cote", "Desserts", "Flan patissier",
+     "Vanille de Madagascar, cuit dans sa pate.",
+     380, 8, ("flickr", "portuguesetart", 83)),
+
+    # -- Maison Perrin -- Standard, epicerie fine ------------------------
+    ("Maison Perrin", "Epicerie", "Huile d olive premiere pression",
+     "Recolte a froid, bouteille de 50 cl, exploitation familiale.",
+     1490, 40, ("flickr", "extravirgin", 103)),
+    ("Maison Perrin", "Epicerie", "Miel de montagne",
+     "Recolte d altitude, pot de 500 g, non chauffe.",
+     990, 18, ("flickr", "honey,jar", 3)),
+    ("Maison Perrin", "Boissons", "Cafe en grains, torrefaction artisanale",
+     "Arabica d Ethiopie, torrefie a Lyon, sachet de 1 kg.",
+     2290, 26, ("flickr", "coffeebeans", 42)),
+    ("Maison Perrin", "Epicerie", "Coffret d epices",
+     "Douze epices entieres en fioles, avec leur carnet de recettes.",
+     3490, 2, ("flickr", "spicejar", 114)),
+
+    # -- Marseille Grill -- Express, hors rayon depuis Lyon --------------
+    ("Marseille Grill", "Plats", "Brochettes marinees",
+     "Agneau marine vingt-quatre heures, servi avec sa semoule.",
+     1590, 20, ("flickr", "kebab,skewer,grill", 4)),
+    ("Marseille Grill", "Entrees", "Assiette de mezze",
+     "Six entrees a partager, preparees le matin.",
+     1190, 15, ("flickr", "mezze,hummus,appetizer", 3)),
 ]
+
+# Des cas que le catalogue doit savoir montrer, et qu'un jeu de donnees
+# uniforme cache : un produit retire de la vente, un stock sous le seuil,
+# un article lourd, un article sans photo. Chacun existe ici pour qu'un
+# ecran soit confronte a lui au moins une fois.
+#   nom du produit -> champs a forcer apres creation
+PARTICULARITES = {
+    # Retire de la vente par son vendeur : visible dans son back-office,
+    # absent du catalogue public (D-13, suppression logique).
+    "Lunettes de soleil polarisees": {"est_visible": False},
+    # Sous le seuil d alerte, sans etre en rupture : le cas que le tableau
+    # de bord doit remonter en jaune et non en rouge.
+    "Baguette tradition": {"seuil_alerte": 10},
+    "Coffret d epices": {"seuil_alerte": 5},
+    "Ordinateur portable 14 pouces": {"seuil_alerte": 8, "poids_grammes": 2400},
+    # En rupture franche : bouton gele et alerte de retour (D-06).
+    "Clavier mecanique": {"stock_disponible": 0},
+    "Tarte du jour": {"stock_disponible": 0},
+}
 
 
 class Command(BaseCommand):
@@ -167,6 +225,12 @@ class Command(BaseCommand):
                 seuil_alerte=5,
                 poids_grammes=400 if vendeur.type_activite == "EXPRESS" else 1200,
             )
+
+            particularites = PARTICULARITES.get(nom)
+            if particularites:
+                for champ, valeur in particularites.items():
+                    setattr(produit, champ, valeur)
+                produit.save(update_fields=list(particularites))
 
             chemin = self.obtenir_image(nom, photo)
             produit.image_principale_url = chemin
