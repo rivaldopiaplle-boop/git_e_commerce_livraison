@@ -5,14 +5,30 @@
 // n'a pas a connaitre la machine a etats, il affiche ce qu'on lui donne. C'est
 // ce qui garantit qu'un vendeur ne saute jamais une etape.
 import { Bike, ClipboardList, Package } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { commandes, type SousCommande } from '../../api/commandes'
+import Onglets from '../../composants/Onglets.vue'
 import Squelette from '../../composants/Squelette.vue'
 
 const liste = ref<SousCommande[]>([])
 const chargement = ref(true)
 const erreur = ref('')
+const onglet = ref('a_faire')
+
+// On ne traite pas tout d'un bloc : la file se range par etape, comme dans
+// n'importe quelle cuisine ou n'importe quel atelier.
+const ETAPES: Record<string, string[]> = {
+  a_faire: ['A_PREPARER'],
+  en_cours: ['EN_PREPARATION'],
+  pretes: ['PRETE'],
+  terminees: ['EXPEDIEE', 'ANNULEE'],
+}
+
+const parEtape = (cle: string) =>
+  liste.value.filter((sous) => ETAPES[cle].includes(sous.statut_preparation))
+
+const visibles = computed(() => parEtape(onglet.value))
 
 const LIBELLES: Record<string, string> = {
   EN_PREPARATION: 'Commencer la preparation',
@@ -52,6 +68,17 @@ const euros = (centimes: number) =>
       {{ erreur }}
     </p>
 
+    <Onglets
+      v-if="!chargement && liste.length"
+      v-model="onglet"
+      :onglets="[
+        { cle: 'a_faire', libelle: 'A preparer', compteur: parEtape('a_faire').length },
+        { cle: 'en_cours', libelle: 'En preparation', compteur: parEtape('en_cours').length },
+        { cle: 'pretes', libelle: 'Pretes', compteur: parEtape('pretes').length },
+        { cle: 'terminees', libelle: 'Terminees', compteur: parEtape('terminees').length },
+      ]"
+    />
+
     <div v-if="chargement" class="flex flex-col gap-3">
       <Squelette v-for="n in 3" :key="n" hauteur="130px" />
     </div>
@@ -70,9 +97,19 @@ const euros = (centimes: number) =>
       </p>
     </div>
 
+    <div
+      v-else-if="!visibles.length"
+      class="carte p-10 text-center"
+    >
+      <b class="text-[14px]">Rien a cette etape</b>
+      <p class="mt-1 text-[13px] text-encre-douce">
+        Les commandes apparaissent d abord dans « A preparer ».
+      </p>
+    </div>
+
     <div v-else class="flex flex-col gap-4">
       <article
-        v-for="sous in liste"
+        v-for="sous in visibles"
         :key="sous.id"
         class="rounded-2xl border border-slate-200 bg-white p-5"
       >

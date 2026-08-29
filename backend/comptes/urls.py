@@ -19,6 +19,7 @@ urlpatterns = [
     path("vendeurs/gestionnaires", views.creer_gestionnaire, name="creer-gestionnaire"),
 
     path("admin/tableau-de-bord", views.tableau_de_bord_admin, name="tableau-de-bord-admin"),
+    path("moi/tableau-de-bord", views.tableau_de_bord_client, name="tableau-client"),
     path("admin/validations", views.validations_en_attente, name="validations"),
     path("admin/vendeurs/<int:identifiant>/valider", views.valider_vendeur, name="valider-vendeur"),
     path("admin/vendeurs/<int:identifiant>/rejeter", views.rejeter_vendeur, name="rejeter-vendeur"),

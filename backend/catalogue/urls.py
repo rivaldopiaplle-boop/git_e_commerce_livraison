@@ -11,6 +11,9 @@ urlpatterns = [
     path("vendeurs/produits", views.mes_produits, name="mes-produits"),
     path("vendeurs/produits/<int:identifiant>", views.modifier_produit, name="modifier-produit"),
     path("vendeurs/stock-bas", views.stock_bas, name="stock-bas"),
+    path("vendeurs/tableau-de-bord", views.tableau_de_bord_vendeur, name="tableau-vendeur"),
+    path("produits/<int:identifiant>/alerte-dispo", views.alerte_disponibilite,
+         name="alerte-dispo"),
 
     # Photos — contrat-medias.md § 6
     path("produits/<int:identifiant>/photos", views.televerser_photos, name="televerser-photos"),

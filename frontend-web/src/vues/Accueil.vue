@@ -1,8 +1,13 @@
 <script setup lang="ts">
-// Le tableau de bord de chaque role. A la tranche 1, il montre ce qui existe
-// deja — l'identite, l'etat du systeme — et annonce ce qui vient. C'est un
-// etat vide assume, pas une page oubliee.
-import { Activity, ArrowRight, CircleCheck, CircleX, Server, UserRound } from '@lucide/vue'
+// Le tableau de bord, par role.
+//
+// Ce n'est pas une carte d'identite : c'est le travail du jour. Un vendeur
+// veut savoir ce qu'il doit preparer et ce qui manque en stock ; un admin, ce
+// qui attend une decision ; un client, ou en sont ses commandes.
+import {
+  AlertTriangle, ArrowRight, Boxes, ClipboardList, Package, Receipt, ShieldCheck,
+  ShoppingBag, Store, TrendingUp, Truck, Users,
+} from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 import { api } from '../api/client'
@@ -13,134 +18,212 @@ import { useAuthentification } from '../stores/authentification'
 const session = useAuthentification()
 const role = computed(() => descriptionDuRole(session.role))
 
-type Sante = { statut: string; version: string; base_de_donnees: string; environnement: string }
-const sante = ref<Sante | null>(null)
+type Indicateurs = Record<string, number | unknown[]>
+const donnees = ref<Indicateurs>({})
 const chargement = ref(true)
 
+const CHEMINS: Record<string, string> = {
+  VENDEUR: '/vendeurs/tableau-de-bord',
+  GESTIONNAIRE: '/vendeurs/tableau-de-bord',
+  ADMIN: '/admin/tableau-de-bord',
+  CLIENT: '/moi/tableau-de-bord',
+}
+
 onMounted(async () => {
+  const chemin = CHEMINS[session.role ?? '']
+  if (!chemin) {
+    chargement.value = false
+    return
+  }
   try {
-    sante.value = await api.get<Sante>('/sante')
-  } catch {
-    sante.value = null
+    donnees.value = await api.get<Indicateurs>(chemin)
   } finally {
     chargement.value = false
   }
 })
 
-const aVenir = computed(() => role.value.navigation.filter((entree) => entree.prochainement))
+const euros = (centimes: number) =>
+  (centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+
+const nombre = (cle: string) => Number(donnees.value[cle] ?? 0)
+
+// Chaque role a ses propres indicateurs : afficher les memes pour tout le
+// monde reviendrait a n'en afficher pour personne.
+const INDICATEURS: Record<string, { cle: string; libelle: string; alerte?: boolean }[]> = {
+  VENDEUR: [
+    { cle: 'a_preparer', libelle: 'Commandes a preparer' },
+    { cle: 'produits_en_ligne', libelle: 'Produits en ligne' },
+    { cle: 'stock_bas', libelle: 'Sous le seuil d alerte', alerte: true },
+    { cle: 'ruptures', libelle: 'En rupture', alerte: true },
+  ],
+  GESTIONNAIRE: [
+    { cle: 'a_preparer', libelle: 'Commandes a preparer' },
+    { cle: 'stock_bas', libelle: 'Sous le seuil d alerte', alerte: true },
+    { cle: 'ruptures', libelle: 'En rupture', alerte: true },
+  ],
+  ADMIN: [
+    { cle: 'a_valider', libelle: 'En attente de validation', alerte: true },
+    { cle: 'boutiques_actives', libelle: 'Boutiques actives' },
+    { cle: 'commandes_en_cours', libelle: 'Commandes en cours' },
+    { cle: 'utilisateurs', libelle: 'Comptes' },
+  ],
+  CLIENT: [
+    { cle: 'en_cours', libelle: 'Commandes en cours' },
+    { cle: 'livrees', libelle: 'Commandes livrees' },
+    { cle: 'commandes', libelle: 'Commandes au total' },
+  ],
+}
+
+const indicateurs = computed(() => INDICATEURS[session.role ?? ''] ?? [])
+
+type ProduitBref = { id: number; nom: string }
+const stockBas = computed<ProduitBref[]>(() =>
+  Array.isArray(donnees.value.produits_stock_bas)
+    ? (donnees.value.produits_stock_bas as ProduitBref[])
+    : [],
+)
+
+// Ce qui attend une action : la seule chose qu'un tableau de bord doit
+// vraiment mettre en avant.
+const ACTIONS: Record<string, { libelle: string; route: string; icone: unknown; cle?: string }[]> = {
+  VENDEUR: [
+    { libelle: 'Traiter les commandes', route: 'vendeur-commandes', icone: ClipboardList,
+      cle: 'a_preparer' },
+    { libelle: 'Reapprovisionner', route: 'vendeur-stock', icone: Boxes, cle: 'stock_bas' },
+    { libelle: 'Ajouter un produit', route: 'vendeur-nouveau', icone: Package },
+  ],
+  GESTIONNAIRE: [
+    { libelle: 'Commandes a preparer', route: 'vendeur-commandes', icone: ClipboardList,
+      cle: 'a_preparer' },
+    { libelle: 'Ajuster le stock', route: 'vendeur-stock', icone: Boxes, cle: 'stock_bas' },
+  ],
+  ADMIN: [
+    { libelle: 'Valider les comptes', route: 'admin-validations', icone: ShieldCheck,
+      cle: 'a_valider' },
+  ],
+  CLIENT: [
+    { libelle: 'Suivre mes commandes', route: 'mes-commandes', icone: Receipt, cle: 'en_cours' },
+    { libelle: 'Parcourir le catalogue', route: 'vitrine', icone: ShoppingBag },
+  ],
+  LIVREUR: [],
+}
+const actions = computed(() => ACTIONS[session.role ?? ''] ?? [])
+
+const ICONES: Record<string, unknown> = {
+  VENDEUR: Store, GESTIONNAIRE: Boxes, ADMIN: Users, CLIENT: ShoppingBag, LIVREUR: Truck,
+}
 </script>
 
 <template>
   <div class="mx-auto max-w-[1100px] animate-[apparition_0.2s_ease-out]">
-    <!-- Tuiles de synthese : la forme qu'auront les vrais indicateurs des que
-         les commandes existeront. -->
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <article class="rounded-2xl border border-slate-200 bg-white p-5">
-        <div class="flex items-center gap-3">
-          <span
-            class="flex h-10 w-10 items-center justify-center rounded-xl"
-            :style="{ background: role.accentDoux, color: role.accent }"
-          >
-            <UserRound :size="19" />
-          </span>
-          <div class="min-w-0">
-            <p class="text-[11px] tracking-wider text-slate-500 uppercase">Compte</p>
-            <b class="block truncate text-[15px]">
-              {{ session.utilisateur?.prenom }} {{ session.utilisateur?.nom }}
-            </b>
-          </div>
-        </div>
-        <dl class="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[13px]">
-          <dt class="text-slate-500">Adresse</dt>
-          <dd class="truncate font-medium">{{ session.utilisateur?.email }}</dd>
-          <dt class="text-slate-500">Role</dt>
-          <dd class="font-medium">{{ session.utilisateur?.role }}</dd>
-          <dt class="text-slate-500">Statut</dt>
-          <dd>
-            <span
-              class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5
-                     text-[12px] font-semibold text-emerald-700"
-            >
-              <CircleCheck :size="13" /> {{ session.utilisateur?.statut_compte }}
-            </span>
-          </dd>
-        </dl>
-      </article>
-
-      <article class="rounded-2xl border border-slate-200 bg-white p-5">
-        <div class="flex items-center gap-3">
-          <span
-            class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600"
-          >
-            <Server :size="19" />
-          </span>
-          <div>
-            <p class="text-[11px] tracking-wider text-slate-500 uppercase">Systeme</p>
-            <b class="text-[15px]">Etat de l'API</b>
-          </div>
-        </div>
-
-        <div class="mt-4 flex flex-col gap-2 text-[13px]">
-          <template v-if="chargement">
-            <Squelette hauteur="0.9rem" largeur="70%" />
-            <Squelette hauteur="0.9rem" largeur="45%" />
-          </template>
-          <template v-else-if="sante">
-            <span class="inline-flex items-center gap-2 font-medium text-emerald-700">
-              <CircleCheck :size="15" /> API {{ sante.statut }}
-            </span>
-            <span class="text-slate-500">
-              version {{ sante.version }} · base {{ sante.base_de_donnees }} ·
-              {{ sante.environnement }}
-            </span>
-          </template>
-          <span v-else class="inline-flex items-center gap-2 font-medium text-red-600">
-            <CircleX :size="15" /> API injoignable
-          </span>
-        </div>
-      </article>
-
-      <article class="rounded-2xl border border-slate-200 bg-white p-5">
-        <div class="flex items-center gap-3">
-          <span
-            class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600"
-          >
-            <Activity :size="19" />
-          </span>
-          <div>
-            <p class="text-[11px] tracking-wider text-slate-500 uppercase">Avancement</p>
-            <b class="text-[15px]">Tranche 1 sur 11</b>
-          </div>
-        </div>
-        <div class="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-          <div
-            class="h-full rounded-full transition-[width] duration-500"
-            :style="{ width: '18%', background: role.accent }"
-          />
-        </div>
-        <p class="mt-3 text-[12.5px] text-slate-500">
-          Comptes, roles et droits. Chaque tranche est verifiee avant d'ouvrir la suivante.
-        </p>
-      </article>
+    <!-- Les indicateurs, dans la rangee de KPI de la maquette -->
+    <div v-if="chargement" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Squelette v-for="n in 4" :key="n" hauteur="72px" />
     </div>
 
-    <!-- Etat vide pense : on annonce ce qui arrive plutot que de laisser une
-         page blanche qui ressemble a un bogue (scenario 0). -->
-    <article class="mt-5 rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="text-[12px] font-bold tracking-[0.08em] uppercase" :style="{ color: role.accent }">
-        Ce qui arrive dans cet espace
-      </h2>
-      <ul class="mt-4 grid gap-2 sm:grid-cols-2">
-        <li
-          v-for="entree in aVenir"
-          :key="entree.libelle"
-          class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3"
+    <div
+      v-else-if="indicateurs.length"
+      class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
+      <div
+        v-for="indicateur in indicateurs"
+        :key="indicateur.cle"
+        class="kpi"
+        :class="indicateur.alerte && nombre(indicateur.cle) ? 'border-[#ffe2b3] bg-[#fff6ea]' : ''"
+      >
+        <div class="kpi-nombre" :class="indicateur.alerte && nombre(indicateur.cle) ? 'text-[#b5610a]' : ''">
+          {{ nombre(indicateur.cle) }}
+        </div>
+        <div class="kpi-libelle">{{ indicateur.libelle }}</div>
+      </div>
+
+      <div v-if="session.role === 'VENDEUR'" class="kpi">
+        <div class="kpi-nombre">{{ euros(nombre('revenu_centimes')) }}</div>
+        <div class="kpi-libelle">Encaisse, commission deduite</div>
+      </div>
+      <div v-if="session.role === 'CLIENT'" class="kpi">
+        <div class="kpi-nombre">{{ euros(nombre('total_depense_centimes')) }}</div>
+        <div class="kpi-libelle">Total depense</div>
+      </div>
+    </div>
+
+    <!-- Ce qui attend une action -->
+    <div v-if="actions.length" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <RouterLink
+        v-for="action in actions"
+        :key="action.libelle"
+        :to="{ name: action.route }"
+        class="carte flex items-center gap-3 p-4 transition-shadow hover:shadow-md"
+      >
+        <span
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+          :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
         >
-          <component :is="entree.icone" :size="17" class="shrink-0 text-slate-400" />
-          <span class="text-[13.5px] font-medium">{{ entree.libelle }}</span>
-          <ArrowRight :size="15" class="ml-auto text-slate-300" />
-        </li>
-      </ul>
-    </article>
+          <component :is="action.icone" :size="19" />
+        </span>
+        <span class="min-w-0 flex-1">
+          <b class="block text-[13.5px]">{{ action.libelle }}</b>
+          <span v-if="action.cle" class="text-[12px] text-encre-douce">
+            {{ nombre(action.cle) }} en attente
+          </span>
+        </span>
+        <ArrowRight :size="16" class="text-encre-douce" />
+      </RouterLink>
+    </div>
+
+    <!-- Le stock bas, en toutes lettres : c'est ce qui coute une vente -->
+    <section
+      v-if="stockBas.length"
+      class="carte mt-4"
+    >
+      <h3 class="carte-titre">
+        <span class="flex items-center gap-2">
+          <AlertTriangle :size="15" class="text-[#b5610a]" />
+          Produits a reapprovisionner
+        </span>
+        <RouterLink :to="{ name: 'vendeur-stock' }" class="mini text-[11px] font-semibold
+                                                            text-encre-douce hover:text-encre">
+          Tout voir
+        </RouterLink>
+      </h3>
+      <div
+        v-for="produit in stockBas"
+        :key="produit.id"
+        class="ligne"
+      >
+        <span class="flex-1 font-bold">{{ produit.nom }}</span>
+        <span class="badge badge-attente">a reapprovisionner</span>
+      </div>
+    </section>
+
+    <!-- Le livreur n'a pas d'espace web : on le dit, on ne bricole pas -->
+    <section v-if="session.role === 'LIVREUR'" class="carte mt-4 p-8 text-center">
+      <span
+        class="mx-auto flex h-14 w-14 items-center justify-center rounded-lg"
+        :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
+      >
+        <component :is="ICONES.LIVREUR" :size="24" />
+      </span>
+      <b class="mt-4 block text-[15px]">Vos courses sont sur l application mobile</b>
+      <p class="mx-auto mt-1.5 max-w-[52ch] text-[13px] text-encre-douce">
+        Accepter une course, suivre une tournee, confirmer une livraison : tout cela se
+        fait une main sur le guidon, pas devant un ecran d ordinateur. Cet espace web
+        servira au suivi et aux gains.
+      </p>
+    </section>
+
+    <section v-if="session.role === 'CLIENT'" class="carte mt-4">
+      <h3 class="carte-titre">
+        <span class="flex items-center gap-2"><TrendingUp :size="15" /> Mon compte</span>
+      </h3>
+      <div class="ligne">
+        <span class="flex-1 text-encre-douce">Nom</span>
+        <b>{{ session.utilisateur?.prenom }} {{ session.utilisateur?.nom }}</b>
+      </div>
+      <div class="ligne">
+        <span class="flex-1 text-encre-douce">Adresse e-mail</span>
+        <b>{{ session.utilisateur?.email }}</b>
+      </div>
+    </section>
   </div>
 </template>

@@ -39,6 +39,10 @@
 | **D-40** | un support par role | bandeau mobile cote livreur | manuel |
 | **D-41** | la maquette fait foi | sidebar claire, navbar 56 px, filtres dans le contenu | manuel |
 | **D-42** | session non collante en developpement | on enchaine les comptes librement | manuel |
+| **D-43** | agent IA planifie | rien en base, prevu derriere une interface | — |
+| **D-44** | tournees optimisees des le MVP | a ecrire avec la livraison | — |
+| **D-45** | promotions vendeur et plateforme | `PROMOTION.vendeur` facultatif | migration |
+| **D-46** | panneau droit selon le role | panier pour qui achete, activite sinon | manuel |
 
 **93 tests** : 73 backend, 20 front.
 
@@ -62,9 +66,14 @@ carte avec survol, galerie, badges d'état.
 | Vendeur | Catalogue, fiche produit à trois onglets, photos, stock, commandes reçues | **fait** |
 | Gestionnaire | Stock et commandes à préparer (mêmes écrans, droits réduits) | **fait** |
 | Admin | Validations des vendeurs et livreurs | **fait** |
-| Livreur | — | **mobile uniquement** ([D-40](journal-decisions.md)) |
+| Livreur | Tableau de bord qui renvoie à l'application | **mobile uniquement** ([D-40](journal-decisions.md)) |
 
-**34 routes d'API**, **14 écrans web**.
+**38 routes d'API**, **17 écrans web**.
+
+Ajoutés au bloc I : l'alerte de retour en stock (D-06 enfin fonctionnelle), un
+**écran de stock** autonome — il renvoyait au catalogue —, un **profil**, et un
+tableau de bord **par rôle** avec ses propres indicateurs. Les commandes reçues
+se rangent en onglets : à préparer, en préparation, prêtes, terminées.
 
 ---
 

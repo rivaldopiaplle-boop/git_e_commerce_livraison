@@ -92,6 +92,18 @@ const routes: RouteRecordRaw[] = [
     meta: { acces: 'prive' },
   },
   {
+    path: '/espace/profil',
+    name: 'profil',
+    component: () => import('./vues/Profil.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/espace/stock',
+    name: 'vendeur-stock',
+    component: () => import('./vues/vendeur/Stock.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
     path: '/espace/commandes',
     name: 'vendeur-commandes',
     component: () => import('./vues/vendeur/CommandesRecues.vue'),

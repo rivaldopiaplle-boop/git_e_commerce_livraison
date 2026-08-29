@@ -128,6 +128,10 @@
            text-[#f3e7dd] transition-colors duration-150 placeholder:text-[#7c6459]
            focus:border-marque focus:outline-none;
   }
+  .champ-erreur {
+    @apply border-red-800 bg-red-950/30;
+  }
+
   .bouton-marque {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-marque px-5 py-3
            text-[15px] font-bold text-encre-marque transition-all duration-150

@@ -12,54 +12,49 @@
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
-| **1** | **`python demarrer.py`, Ctrl+Maj+R.** L'interface est repassée au modèle de la maquette : sidebar claire, navbar de 56 px, filtres au-dessus de la grille. Dis-moi si c'est ce que tu attendais | 5 min | — |
-| **2** | **Ne crée pas de webhook Stripe** pour l'instant — voir l'encadré ci-dessous. Ce n'est pas toi qui bloques, c'est normal | 0 min | — |
+| **1** | **`python demarrer.py`, Ctrl+Maj+R.** L'écran de connexion est lisible : j'avais renommé une classe CSS sans corriger ses usages, les champs n'avaient plus aucun style | 2 min | — |
+| **2** | **Regarde les tableaux de bord** de Karim, de l'admin et de Léa : chacun a désormais ses propres indicateurs | 3 min | — |
 
-**Rien d'autre.** Tout le reste est de mon côté.
-
----
-
-## ⚠ Stripe : l'URL de webhook, et pourquoi tu es bloqué
-
-Stripe refuse `http://localhost:8000` parce qu'il doit pouvoir **t'appeler
-depuis Internet** — et ta machine n'est pas joignable de l'extérieur. Ce n'est
-pas une erreur de ta part.
-
-**Ne remplis pas ce champ maintenant.** Deux moments, deux solutions :
-
-- **En développement** : `stripe listen --forward-to localhost:8000/api/v1/webhooks/stripe`.
-  L'outil Stripe CLI ouvre un tunnel et **affiche lui-même le secret de
-  signature** à coller dans `STRIPE_WEBHOOK_SECRET`. Aucune URL publique.
-- **En production** : l'URL sera celle de Render, et c'est à ce moment-là que
-  le champ du tableau de bord se remplit.
-
-Je te dirai quand installer Stripe CLI — quand le code de paiement sera là, pas
-avant.
+**Rien d'autre.** Le reste est de mon côté, et je n'attends aucune information de toi.
 
 ---
 
-## Ce que tu m'as reproché, et ce que j'en ai fait
+## Ce que tu as signalé, et ce qui a changé
 
-| | Ton constat | Ce qui a changé |
+| | Ton constat | Ce qui a été fait |
 |---|---|---|
-| **I-1** | Mettre à jour les deux fichiers de suivi à chaque fois | Enregistré comme règle permanente. `etat-reel.md` et ce fichier sont désormais mis à jour à chaque livraison |
-| **I-2** | « Enlève tout ce qui concerne le CMS » | La maquette redevient **la référence** : sidebar claire `#fbfbfd`, navbar de 56 px avec recherche en pastille, panneau droit de 300 px, cartes/lignes/badges/onglets. Il ne reste des CMS que **l'affichage d'un produit** — carte et galerie |
-| **I-2** | « Le filtre sur la sidebar, la pire idée » | Sorti de la sidebar, remis **au-dessus de la grille**, comme dans la maquette |
-| **I-2** | « La sidebar et la navbar ne sont pas fixes » | Elles ne défilent plus : seul le contenu défile |
-| **I-2** | Reconnaître un vendeur/client déjà inscrit | **Volontairement non fait**, comme tu l'as dit : en développement on doit pouvoir enchaîner plusieurs comptes. À reprendre au déploiement |
-| **I-3** | La CI GitHub est verte | Noté — c'était la dernière chose que je ne pouvais pas vérifier |
+| **I-7** | « Être alerté quand ce produit revient » ne marche pas | Le bouton appelle maintenant une vraie route. Vérifié sur « Clavier mécanique » |
+| **I-7** | On ne voit pas les écritures sur `/connexion` | **Ma faute** : j'avais renommé `.champ` en `.champ-marque` sans corriger les usages. Les champs n'avaient plus de style — texte blanc sur fond blanc |
+| **I-7** | « Se déconnecter » ne fait rien, « Parcourir le catalogue » renvoie à la connexion | La déconnexion ramène au catalogue. Rester dans un espace de travail après s'être déconnecté n'avait aucun sens |
+| **I-7** | Pourquoi un panier chez le vendeur ? | Tu as raison, et aucun vrai site ne fait ça. Le panneau droit dépend du rôle : **panier** pour qui achète, **activité** pour qui travaille ([D-46](journal-decisions.md)) |
+| **I-7** | Un back-office qui renvoie au catalogue public | Retiré des espaces vendeur et admin |
+| **I-7** | « Tableau de bord : le contenu est hors sujet » | Refait **par rôle** : le vendeur voit ce qu'il doit préparer et ce qui manque, l'admin ce qui attend une décision, le client ses commandes en cours. Plus une carte d'identité |
+| **I-7** | « Stock renvoie sur mon catalogue » | **Vrai écran de stock** : liste, onglet « à réapprovisionner », ajustement avec motif et historique déplié sous la ligne |
+| **I-7** | « On est obligé de traiter toutes les commandes à la fois » | Onglets : à préparer, en préparation, prêtes, terminées |
+| **I-8** | Les boutons de la maquette manquent | Onglets soulignés, rangée de KPI, cartes à en-tête, lignes, badges, boutons-icônes : le vocabulaire de la maquette est écrit une fois et sert partout |
+| **I-10** | « Profil est mieux que se déconnecter » | Menu profil dans la navbar, avec la déconnexion dedans |
+| **I-10** | L'espace gestionnaire et vendeur sont identiques | Séparés : le gestionnaire prépare et compte, sans tableau de bord commercial ni catalogue — ce ne sont pas ses décisions ([D-04](journal-decisions.md)) |
 
 ---
 
-## Ce qui vient ensuite, et ce n'est pas bloqué
+## Tes arbitrages du bloc I-6, consignés
 
-Le **paiement** est le prochain morceau : la commande se crée déjà et réserve le
-stock, il reste à débiter et à répartir entre les vendeurs. Je peux l'écrire
-entièrement avec le simulateur ([D-18](journal-decisions.md)) sans toucher à tes
-clés, puis brancher le vrai Stripe. Ensuite viennent la livraison et les
-tournées, qui naissent d'une commande payée.
+- **Agent IA** : recommandations d'abord, assistant de support ensuite, modèle
+  appelé par API ([D-43](journal-decisions.md)).
+- **Tournées** : optimisées dès le MVP, par plus proche voisin — une tournée non
+  ordonnée n'est pas une tournée ([D-44](journal-decisions.md)).
+- **Promotions** : créées par le vendeur **et** par l'admin ([D-45](journal-decisions.md)).
 
-Le relevé complet de ce qui existe est dans [etat-reel.md](etat-reel.md).
+**Il ne reste plus aucune question ouverte.**
+
+---
+
+## I-5 : Stripe CLI, tu n'en as pas besoin
+
+`stripe: command not found` est normal, l'outil n'est pas installé. **Et il ne
+sert à rien tant que le code de paiement n'existe pas.** Je te dirai quand
+l'installer — et il sera peut-être inutile : je peux écrire et tester tout le
+paiement avec le simulateur ([D-18](journal-decisions.md)).
 
 
 ---

@@ -35,7 +35,7 @@ const valeur = defineModel<string>({ required: true })
         :required="requis"
         :minlength="minlength"
         :autocomplete="autocomplete"
-        class="champ"
+        class="champ-marque"
         :class="[icone ? 'pl-10' : '', erreur ? 'champ-erreur' : '']"
       />
     </span>

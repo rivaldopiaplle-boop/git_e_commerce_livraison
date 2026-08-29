@@ -7,6 +7,7 @@ import { computed, ref } from 'vue'
 
 import { api, poserJeton } from '../api/client'
 import { poserJetonVendeur } from '../api/vendeur'
+import { routeur } from '../routeur'
 
 export type Role = 'CLIENT' | 'VENDEUR' | 'GESTIONNAIRE' | 'LIVREUR' | 'ADMIN'
 
@@ -104,6 +105,10 @@ export const useAuthentification = defineStore('authentification', () => {
     poserJeton(null)
     poserJetonVendeur(null)
     localStorage.removeItem(CLE_STOCKAGE)
+
+    // Rester dans un espace de travail apres s'etre deconnecte n'a aucun
+    // sens : on retourne au catalogue, comme sur toute plateforme.
+    routeur.push({ name: 'vitrine' })
   }
 
   return {

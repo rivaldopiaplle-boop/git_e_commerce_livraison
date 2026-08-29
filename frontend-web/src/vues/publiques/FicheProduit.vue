@@ -8,14 +8,36 @@ import { ArrowLeft, Bike, Bell, Clock, MapPin, Package, ShieldCheck, ShoppingCar
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { api, EchecApi } from '../../api/client'
 import { catalogue, type ProduitDetail } from '../../api/catalogue'
 import Squelette from '../../composants/Squelette.vue'
 import { usePanier } from '../../stores/panier'
+import { useAuthentification } from '../../stores/authentification'
 import { usePosition } from '../../stores/position'
 
 const route = useRoute()
 const position = usePosition()
 const panier = usePanier()
+const session = useAuthentification()
+
+const alerteInscrite = ref(false)
+const alerteMessage = ref('')
+
+async function demanderAlerte() {
+  alerteMessage.value = ''
+  if (!session.estConnecte) {
+    alerteMessage.value = "Creez un compte pour etre prevenu : il nous faut une adresse ou vous ecrire."
+    return
+  }
+  try {
+    await api.post(`/produits/${route.params.id}/alerte-dispo`)
+    alerteInscrite.value = true
+    alerteMessage.value = 'Nous vous previendrons des que ce produit revient.'
+  } catch (echec) {
+    alerteMessage.value =
+      echec instanceof EchecApi ? echec.erreur.message : "L inscription a echoue."
+  }
+}
 
 const produit = ref<ProduitDetail | null>(null)
 const chargement = ref(true)
@@ -160,10 +182,18 @@ const photos = computed(() =>
               <ShoppingCart :size="17" />
               Indisponible
             </button>
-            <button type="button" class="bouton-neutre w-full">
+            <button
+              type="button"
+              class="bouton-neutre w-full"
+              :disabled="alerteInscrite"
+              @click="demanderAlerte"
+            >
               <Bell :size="15" />
-              Etre alerte quand ce produit revient
+              {{ alerteInscrite ? 'Vous serez prevenu' : 'Etre alerte quand ce produit revient' }}
             </button>
+            <p v-if="alerteMessage" class="text-center text-[12px] text-encre-douce">
+              {{ alerteMessage }}
+            </p>
           </template>
 
           <p class="text-center text-[12px] text-encre-douce">

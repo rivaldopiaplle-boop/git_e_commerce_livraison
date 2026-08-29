@@ -453,3 +453,47 @@ Un vendeur ou un client déjà inscrit ne sera reconnu d'une visite à l'autre
 qu'au déploiement. **En développement, on doit pouvoir enchaîner plusieurs
 comptes** pour tester les cinq rôles — c'est ta remarque du bloc I-2, et elle
 est juste : une session collante rendrait la démonstration pénible.
+
+### D-43 — Agent IA : recommandations d'abord, assistant de support ensuite
+Tu as répondu au bloc I-6 : *« option A et B si les deux sont possibles à la
+fois, sinon B, et un modèle API »*. Les deux sont possibles — ils ne partagent
+rien — donc les deux, dans cet ordre :
+
+1. **Recommandations** « souvent achetés ensemble », alimentées par l'historique
+   de commandes. C'est le plus visible en démonstration et le moins risqué.
+2. **Assistant de support** : répondre aux questions fréquentes — où est ma
+   commande, comment annuler — avant escalade vers un humain.
+
+**Modèle appelé par API**, comme tu l'as tranché. Conséquence à assumer : une
+clé, un coût à l'appel, et une dépendance réseau. L'appel passe donc par une
+interface avec simulateur ([D-18](#d-18--les-services-externes-payants-sont-derrière-une-interface-avec-un-simulateur)),
+pour que la démonstration tienne sans compte actif.
+**Ferme [Q-09](questions-ouvertes.md).**
+
+### D-44 — Les tournées sont optimisées dès le MVP
+Tu as écrit : *« c'est pour le MVP, sinon le livreur Standard fonctionne
+comment ? »* La remarque est juste — une tournée non ordonnée n'est pas une
+tournée, c'est une liste.
+
+Au MVP : ordonnancement par **plus proche voisin** depuis l'entrepôt, calculé en
+local avec la formule de haversine déjà écrite ([D-25](#d-25--géocodage-gratuit--nominatim-distances-calculées-en-local)).
+Simple, sans dépendance, et déjà très supérieur à un ordre d'arrivée.
+Le solveur de tournées de véhicules (OR-Tools) reste en palier 2 : il apporte
+quelques pour cent sur des tournées de trente arrêts, pas sur des tournées de
+cinq. **Ferme [Q-10](questions-ouvertes.md).**
+
+### D-45 — Les promotions sont créées par le vendeur ET par l'admin
+Ta réponse au bloc I-6 : *« les deux »*. Le modèle le prévoyait déjà —
+`PROMOTION.vendeur` est facultatif, vide signifiant « promotion plateforme ».
+Un vendeur ne crée que des promotions sur sa boutique ; un admin en crée pour
+toute la plateforme. **Ferme [Q-11](questions-ouvertes.md).**
+
+### D-46 — Le panneau droit dépend du rôle
+Le panier n'a de sens que pour qui achète. Un vendeur, un gestionnaire ou un
+admin voient à la même place, avec le même comportement rétractable, un
+**panneau d'activité** : changements de statut, alertes, notifications.
+**Ta remarque, bloc I-7** : *« Espace vendeur, livreur, gestionnaire, admin :
+son panneau droit c'est le panier, pourquoi ? »* — et la question suivante,
+*« tu es sûr que c'est ce qui se passe dans les vrais e-commerce ? »*, valait
+aussi pour la navigation : **un back-office ne renvoie pas au catalogue
+public**. Ces entrées ont été retirées des espaces vendeur et admin.

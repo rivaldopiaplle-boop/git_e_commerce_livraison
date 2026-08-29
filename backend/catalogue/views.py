@@ -5,11 +5,12 @@ produits d'un vendeur EXPRESS hors de son rayon de livraison ne sont pas
 renvoyes du tout. Ce n'est pas un tri, c'est une absence — c'est ce qui rend
 structurellement impossible une commande Express longue distance.
 """
+from django.db import models
 from django.db.models import Count, Q
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from coeur.geographie import distance_km
@@ -17,7 +18,14 @@ from coeur.stockage import FichierRefuse, enregistrer_photo, supprimer_photo
 from comptes.models import StatutValidation, TypeService, Vendeur
 from comptes.permissions import EstVendeur, EstVendeurOuSonPersonnel
 
-from .models import Categorie, PhotoProduit, Produit, TypeMouvement
+from .models import (
+    AlerteDisponibilite,
+    Categorie,
+    PhotoProduit,
+    Produit,
+    StatutAlerte,
+    TypeMouvement,
+)
 from .serializers import (
     BoutiqueSerializer,
     CategorieSerializer,
@@ -475,14 +483,84 @@ def stock_bas(requete):
 
     produits = Produit.objects.filter(
         vendeur_id=identifiant_vendeur,
-        stock_disponible__lte=models_F_seuil(),
+        stock_disponible__lte=models.F("seuil_alerte"),
     ).select_related("vendeur")
     return Response({"data": ProduitListeSerializer(
         produits, many=True, context={"request": requete}
     ).data})
 
 
-def models_F_seuil():
-    from django.db.models import F
+# ═══════════════════════════════════════════════════════════════════════════
+#  Alerte de retour en stock — decision D-06
+# ═══════════════════════════════════════════════════════════════════════════
 
-    return F("seuil_alerte")
+@api_view(["POST", "DELETE"])
+@permission_classes([IsAuthenticated])
+def alerte_disponibilite(requete, identifiant):
+    """« Etre alerte quand ce produit revient ».
+
+    Le produit reste au catalogue en rupture, bouton gele, double de cette
+    alerte : le masquer ferait perdre le client au lieu de le faire patienter.
+    """
+    produit = _visibles().filter(pk=identifiant).first()
+    if produit is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if requete.method == "DELETE":
+        AlerteDisponibilite.objects.filter(
+            produit=produit, utilisateur=requete.user, statut=StatutAlerte.EN_ATTENTE
+        ).update(statut=StatutAlerte.ANNULEE)
+        return Response({"data": {"inscrit": False}})
+
+    if produit.stock_commandable > 0:
+        return Response(
+            {"erreur": {"code": "deja_disponible",
+                        "message": "Ce produit est de nouveau disponible.", "details": {}}},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    AlerteDisponibilite.objects.get_or_create(
+        produit=produit, utilisateur=requete.user, statut=StatutAlerte.EN_ATTENTE
+    )
+    return Response({"data": {"inscrit": True}}, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes([EstVendeurOuSonPersonnel])
+def tableau_de_bord_vendeur(requete):
+    """Ce que le vendeur doit voir en arrivant : ce qui l'attend, ce qui manque.
+
+    Un tableau de bord qui affiche l'identite de son proprietaire ne sert a
+    rien — il doit afficher le travail du jour.
+    """
+    from django.db.models import Sum
+
+    from commandes.models import SousCommande, StatutPreparation
+
+    utilisateur = requete.user
+    profil = getattr(utilisateur, "profil_vendeur", None)
+    identifiant = profil.id if profil else getattr(
+        getattr(utilisateur, "profil_gestionnaire", None), "vendeur_id", None
+    )
+    if identifiant is None:
+        return Response({"data": {}})
+
+    produits = Produit.objects.filter(vendeur_id=identifiant)
+    sous_commandes = SousCommande.objects.filter(vendeur_id=identifiant)
+    a_preparer = sous_commandes.filter(
+        statut_preparation__in=[StatutPreparation.A_PREPARER, StatutPreparation.EN_PREPARATION]
+    )
+    stock_bas = produits.filter(stock_disponible__lte=models.F("seuil_alerte"), est_visible=True)
+
+    return Response({"data": {
+        "a_preparer": a_preparer.count(),
+        "produits_en_ligne": produits.filter(est_visible=True).count(),
+        "stock_bas": stock_bas.count(),
+        "ruptures": produits.filter(stock_disponible=0, est_visible=True).count(),
+        "revenu_centimes": sous_commandes.aggregate(
+            total=Sum("montant_vendeur_centimes")
+        )["total"] or 0,
+        "produits_stock_bas": ProduitListeSerializer(
+            stock_bas[:5], many=True, context={"request": requete}
+        ).data,
+    }})

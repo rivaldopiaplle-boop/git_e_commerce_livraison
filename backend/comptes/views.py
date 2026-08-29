@@ -215,14 +215,52 @@ def valider_livreur(requete, identifiant):
 @api_view(["GET"])
 @permission_classes([EstAdmin])
 def tableau_de_bord_admin(requete):
+    """Ce qui attend une decision, et l'etat de la plateforme."""
     from django.contrib.auth import get_user_model
 
+    from catalogue.models import Produit
+    from commandes.models import Commande, StatutCommande
+
     Utilisateur = get_user_model()
+    en_attente_v = Vendeur.objects.filter(statut_validation=StatutValidation.EN_ATTENTE).count()
+    en_attente_l = Livreur.objects.filter(statut_validation=StatutValidation.EN_ATTENTE).count()
+
     return Response({"data": {
+        "a_valider": en_attente_v + en_attente_l,
+        "vendeurs_en_attente": en_attente_v,
+        "livreurs_en_attente": en_attente_l,
         "utilisateurs": Utilisateur.objects.count(),
-        "vendeurs_en_attente": Vendeur.objects.filter(
-            statut_validation=StatutValidation.EN_ATTENTE).count(),
-        "livreurs_en_attente": Livreur.objects.filter(
-            statut_validation=StatutValidation.EN_ATTENTE).count(),
         "clients": Utilisateur.objects.filter(role=Role.CLIENT).count(),
+        "boutiques_actives": Vendeur.objects.filter(
+            statut_validation=StatutValidation.VALIDE).count(),
+        "produits_en_ligne": Produit.objects.filter(est_visible=True).count(),
+        "commandes": Commande.objects.count(),
+        "commandes_en_cours": Commande.objects.exclude(
+            statut_actuel__in=[StatutCommande.LIVREE, StatutCommande.ANNULEE]
+        ).count(),
+    }})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def tableau_de_bord_client(requete):
+    """Ce que le client suit : ses commandes en cours, ce qu'il a depense."""
+    from django.db.models import Sum
+
+    from commandes.models import Commande, StatutCommande
+
+    profil = getattr(requete.user, "profil_client", None)
+    if profil is None:
+        return Response({"data": {}})
+
+    commandes = Commande.objects.filter(client=profil)
+    return Response({"data": {
+        "commandes": commandes.count(),
+        "en_cours": commandes.exclude(
+            statut_actuel__in=[StatutCommande.LIVREE, StatutCommande.ANNULEE]
+        ).count(),
+        "livrees": commandes.filter(statut_actuel=StatutCommande.LIVREE).count(),
+        "total_depense_centimes": commandes.aggregate(
+            total=Sum("montant_total_centimes")
+        )["total"] or 0,
     }})

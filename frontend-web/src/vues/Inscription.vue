@@ -165,7 +165,7 @@ async function valider() {
             />
             <label class="flex flex-col gap-1.5">
               <span class="text-[13px] font-medium text-[#c9b4a6]">Type d'activite</span>
-              <select v-model="champs.type_activite" class="champ">
+              <select v-model="champs.type_activite" class="champ-marque">
                 <option value="EXPRESS">Express — restauration, livraison immediate</option>
                 <option value="STANDARD">Standard — colis, passage par entrepot</option>
               </select>
@@ -175,14 +175,14 @@ async function valider() {
           <template v-if="profil === 'livreur'">
             <label class="flex flex-col gap-1.5">
               <span class="text-[13px] font-medium text-[#c9b4a6]">Mode de livraison</span>
-              <select v-model="champs.mode_livraison" class="champ">
+              <select v-model="champs.mode_livraison" class="champ-marque">
                 <option value="EXPRESS">Express — une course a la fois</option>
                 <option value="STANDARD">Standard — tournees depuis un entrepot</option>
               </select>
             </label>
             <label class="flex flex-col gap-1.5">
               <span class="text-[13px] font-medium text-[#c9b4a6]">Vehicule</span>
-              <select v-model="champs.vehicule" class="champ">
+              <select v-model="champs.vehicule" class="champ-marque">
                 <option value="VELO">Velo</option>
                 <option value="SCOOTER">Scooter</option>
                 <option value="VOITURE">Voiture</option>

@@ -7,12 +7,15 @@
 //   · aucun filtre dans la sidebar : ils vivent dans le contenu ;
 //   · sidebar et navbar ne defilent jamais, seul le contenu defile ;
 //   · une seule structure, du catalogue au tableau de bord.
-import { Bell, ChevronsLeft, LogIn, LogOut, Search, ShoppingCart } from '@lucide/vue'
+import {
+  Bell, ChevronsLeft, LogIn, LogOut, Search, ShoppingCart, UserRound,
+} from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import BandeauLivrerA from './BandeauLivrerA.vue'
 import LogoRivDinde from './LogoRivDinde.vue'
+import PanneauActivite from './PanneauActivite.vue'
 import PanneauLateral from './PanneauLateral.vue'
 import { descriptionDuRole } from '../roles'
 import { useAuthentification } from '../stores/authentification'
@@ -26,6 +29,7 @@ const route = useRoute()
 const routeur = useRouter()
 
 const sidebarRepliee = ref(false)
+const menuProfil = ref(false)
 
 const role = computed(() => descriptionDuRole(session.role))
 const surLeCatalogue = computed(() => route.name === 'vitrine')
@@ -152,6 +156,7 @@ watch(
           </div>
 
           <button
+            v-if="role.panneau === 'panier'"
             type="button"
             class="bouton-icone relative lg:hidden"
             title="Mon panier"
@@ -171,26 +176,66 @@ watch(
           </button>
 
           <template v-if="session.estConnecte">
-            <div class="flex items-center gap-2.5">
-              <span
-                class="flex h-[30px] w-[30px] items-center justify-center rounded-full text-[12px]
-                       font-bold text-white"
-                :style="{ background: role.accent }"
-              >
-                {{ initiale }}
-              </span>
-              <div class="hidden leading-[1.25] sm:block">
-                <b class="block text-[12.5px]">{{ session.utilisateur?.prenom }}</b>
-                <span class="text-[10.5px] text-encre-douce">{{ role.espace }}</span>
-              </div>
+            <!-- Un menu profil, pas un bouton de deconnexion nu : c'est la ou
+                 tout le monde va chercher son compte. -->
+            <div class="relative">
               <button
                 type="button"
-                class="bouton-icone"
-                title="Se deconnecter"
-                @click="session.deconnecter()"
+                class="flex items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors
+                       hover:bg-atelier"
+                @click="menuProfil = !menuProfil"
               >
-                <LogOut :size="16" />
+                <span
+                  class="flex h-[30px] w-[30px] items-center justify-center rounded-full
+                         text-[12px] font-bold text-white"
+                  :style="{ background: role.accent }"
+                >
+                  {{ initiale }}
+                </span>
+                <span class="hidden leading-[1.25] sm:block">
+                  <b class="block text-left text-[12.5px]">{{ session.utilisateur?.prenom }}</b>
+                  <span class="text-[10.5px] text-encre-douce">{{ role.espace }}</span>
+                </span>
               </button>
+
+              <Transition
+                enter-active-class="transition duration-150"
+                enter-from-class="opacity-0 -translate-y-1"
+                leave-active-class="transition duration-100"
+                leave-to-class="opacity-0"
+              >
+                <div
+                  v-if="menuProfil"
+                  class="absolute top-full right-0 z-50 mt-2 w-56 rounded-lg border border-trait
+                         bg-papier p-1.5 shadow-lg"
+                >
+                  <div class="border-b border-trait-doux px-3 py-2.5">
+                    <b class="block text-[12.5px]">
+                      {{ session.utilisateur?.prenom }} {{ session.utilisateur?.nom }}
+                    </b>
+                    <span class="text-[11px] text-encre-douce">
+                      {{ session.utilisateur?.email }}
+                    </span>
+                  </div>
+                  <RouterLink
+                    :to="{ name: 'profil' }"
+                    class="mt-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-[12.5px]
+                           text-encre-douce transition-colors hover:bg-atelier hover:text-encre"
+                    @click="menuProfil = false"
+                  >
+                    <UserRound :size="15" /> Mon profil
+                  </RouterLink>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left
+                           text-[12.5px] text-encre-douce transition-colors hover:bg-[#fbe4e2]
+                           hover:text-[#9c2116]"
+                    @click="menuProfil = false; session.deconnecter()"
+                  >
+                    <LogOut :size="15" /> Se deconnecter
+                  </button>
+                </div>
+              </Transition>
             </div>
           </template>
 
@@ -225,6 +270,9 @@ watch(
     </div>
 
     <!-- ── Panneau droit, stable et retractable ─────────────────────── -->
-    <PanneauLateral />
+    <!-- Le panier pour qui achete, l'activite pour qui travaille : un vendeur
+         n'a pas de panier, et lui en afficher un ferait amateur. -->
+    <PanneauLateral v-if="role.panneau === 'panier'" />
+    <PanneauActivite v-else />
   </div>
 </template>

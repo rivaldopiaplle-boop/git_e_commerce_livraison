@@ -48,24 +48,7 @@ avec un symbole simple pour l'onglet et l'icône de l'application.
 
 ## Différables — on peut coder sans
 
-### Q-09 — Périmètre exact de l'agent IA
-Acté au bloc A : planifié dans les contrats, absent du modèle de données. Reste
-à choisir entre assistant de support, recommandations et détection de fraude —
-et à décider si c'est un modèle appelé par API (coût, clé, réseau) ou un
-classifieur simple entraîné en local, comme sur le projet banque.
-
-### Q-10 — Optimisation réelle des tournées
-Le regroupement fin (problème de tournées de véhicules) est en palier 2, avec un
-solveur existant. Le MVP attribue par zone et ordre d'arrivée.
-
-### Q-11 — Promotions : qui les crée, cumul, ciblage
-Le bloc A ne traite que « expiré » et « non cumulable ». Qui crée une promotion
-— le vendeur pour sa boutique, l'admin pour la plateforme, les deux ? — n'est
-pas tranché. Le modèle prévoit déjà les deux cas (`PROMOTION.vendeur` facultatif,
-vide = promotion plateforme).
-
-### Q-12 — Multi-langue et multi-devise
-Non traité. Recommandation : français et euro uniquement, assumé.
+**Aucune.** Les trois dernières ont été tranchées au bloc I-6.
 
 ---
 
@@ -81,6 +64,10 @@ Non traité. Recommandation : français et euro uniquement, assumé.
 | Q-06 | Après une tentative de livraison échouée | Deux tentatives puis retour — [D-23](journal-decisions.md) |
 | Q-07 | Retours de produits en bon état | Hors périmètre, assumé — [D-28](journal-decisions.md) *(bloc D)* |
 | Q-08 | Afficher l'argent par rôle | Oui — [D-29](journal-decisions.md) *(bloc D)* |
+| Q-09 | Périmètre de l'agent IA | Recommandations puis assistant, modèle par API — [D-43](journal-decisions.md) *(bloc I)* |
+| Q-10 | Optimisation des tournées | Plus proche voisin dès le MVP — [D-44](journal-decisions.md) *(bloc I)* |
+| Q-11 | Qui crée les promotions | Le vendeur et l'admin — [D-45](journal-decisions.md) *(bloc I)* |
+| Q-12 | Multi-langue et multi-devise | Français et euro, assumé |
 
 Trois sujets non posés en question mais tranchés au passage : les photos produit
 ([D-24](journal-decisions.md)), le géocodage ([D-25](journal-decisions.md)) et la

@@ -1,11 +1,14 @@
 // Ce que chaque role voit, de quelle couleur, et sur quel support.
 //
-// Les cinq accents viennent de plan-organisation/04-maquettes/design-system.md
-// § 2. Ils s'appliquent PARTOUT, catalogue public compris : c'est une regle
-// d'or, et les usages des CMS ne la remplacent pas (D-36 precisee au bloc H-6).
+// Deux regles apprises a mes depens :
+//   · un espace de travail ne renvoie PAS au catalogue public. Aucun
+//     back-office marchand ne le fait : ce sont deux mondes, et melanger les
+//     deux donne l'impression d'un site amateur ;
+//   · le gestionnaire n'est pas un vendeur au rabais. Il prepare, il compte,
+//     il ne voit ni les prix ni le chiffre d'affaires (D-04).
 import {
   Bell, Bike, Boxes, ClipboardList, FileClock, LayoutDashboard, MapPin, Package,
-  Receipt, ScrollText, Settings, ShieldCheck, ShoppingBag, Store, Truck, Users,
+  Receipt, ScrollText, ShieldCheck, ShoppingBag, Store, Truck, Users, Warehouse,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -25,15 +28,12 @@ type DescriptionRole = {
   espace: string
   accent: string
   accentDoux: string
-  /** Ou ce role travaille reellement (bloc H-9). */
+  /** Ou ce role travaille reellement (D-40). */
   plateforme: 'web' | 'mobile' | 'web+mobile'
+  /** Le panneau droit : le panier n'a de sens que pour qui achete. */
+  panneau: 'panier' | 'activite'
   navigation: EntreeNavigation[]
 }
-
-const CATALOGUE: EntreeNavigation[] = [
-  { libelle: 'Catalogue', icone: ShoppingBag, route: 'vitrine' },
-  { libelle: 'Boutiques', icone: Store, route: 'boutiques' },
-]
 
 export const ROLES: Record<RoleAffiche, DescriptionRole> = {
   VISITEUR: {
@@ -41,8 +41,10 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     accent: '#16a34a',
     accentDoux: '#e8f8ee',
     plateforme: 'web+mobile',
+    panneau: 'panier',
     navigation: [
-      ...CATALOGUE,
+      { libelle: 'Catalogue', icone: ShoppingBag, route: 'vitrine' },
+      { libelle: 'Boutiques', icone: Store, route: 'boutiques' },
       { libelle: 'Vendre ou livrer', icone: Users, route: 'rejoindre' },
     ],
   },
@@ -51,11 +53,13 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     accent: '#16a34a',
     accentDoux: '#e8f8ee',
     plateforme: 'web+mobile',
+    panneau: 'panier',
     navigation: [
-      ...CATALOGUE,
+      { libelle: 'Catalogue', icone: ShoppingBag, route: 'vitrine' },
+      { libelle: 'Boutiques', icone: Store, route: 'boutiques' },
       { libelle: 'Mes commandes', icone: Receipt, route: 'mes-commandes' },
+      { libelle: 'Mon compte', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Mes adresses', icone: MapPin, prochainement: true },
-      { libelle: 'Notifications', icone: Bell, prochainement: true },
     ],
   },
   VENDEUR: {
@@ -63,13 +67,13 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     accent: '#2563eb',
     accentDoux: '#eaf0ff',
     plateforme: 'web',
+    panneau: 'activite',
     navigation: [
       { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
-      { libelle: 'Mon catalogue', icone: Package, route: 'vendeur-catalogue' },
       { libelle: 'Commandes recues', icone: ClipboardList, route: 'vendeur-commandes' },
-      { libelle: 'Stock', icone: Boxes, route: 'vendeur-catalogue' },
-      { libelle: 'Personnel', icone: Users, prochainement: true },
-      { libelle: 'Le catalogue public', icone: ShoppingBag, route: 'vitrine' },
+      { libelle: 'Mon catalogue', icone: Package, route: 'vendeur-catalogue' },
+      { libelle: 'Stock', icone: Boxes, route: 'vendeur-stock' },
+      { libelle: 'Mon personnel', icone: Users, prochainement: true },
     ],
   },
   GESTIONNAIRE: {
@@ -77,19 +81,21 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     accent: '#0d9488',
     accentDoux: '#e6f7f4',
     plateforme: 'web',
+    panneau: 'activite',
+    // Le gestionnaire prepare et compte. Ni tableau de bord commercial, ni
+    // catalogue : ce ne sont pas ses decisions (D-04).
     navigation: [
-      { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'A preparer', icone: ClipboardList, route: 'vendeur-commandes' },
-      { libelle: 'Stock', icone: Boxes, route: 'vendeur-catalogue' },
+      { libelle: 'Stock', icone: Boxes, route: 'vendeur-stock' },
+      { libelle: 'Reception entrepot', icone: Warehouse, prochainement: true },
     ],
   },
   LIVREUR: {
     espace: 'Espace livreur',
     accent: '#7c3aed',
     accentDoux: '#f3edff',
-    // Le livreur travaille sur son telephone, une main sur le guidon : lui
-    // faire un espace web complet serait du travail perdu (bloc H-9).
     plateforme: 'mobile',
+    panneau: 'activite',
     navigation: [
       { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Ma course', icone: Bike, prochainement: true },
@@ -102,13 +108,13 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     accent: '#b91c1c',
     accentDoux: '#fdebe9',
     plateforme: 'web',
+    panneau: 'activite',
     navigation: [
       { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Validations', icone: ShieldCheck, route: 'admin-validations' },
       { libelle: 'Utilisateurs', icone: Users, prochainement: true },
+      { libelle: 'Litiges', icone: Bell, prochainement: true },
       { libelle: "Journal d'audit", icone: ScrollText, prochainement: true },
-      { libelle: 'Parametres', icone: Settings, prochainement: true },
-      { libelle: 'Le catalogue public', icone: ShoppingBag, route: 'vitrine' },
     ],
   },
 }
