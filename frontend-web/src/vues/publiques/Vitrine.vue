@@ -7,6 +7,7 @@
 import { ArrowRight, MapPin, Search, Store } from '@lucide/vue'
 import { computed, onMounted, watch } from 'vue'
 
+import BarreFiltres from '../../composants/BarreFiltres.vue'
 import CarteProduit from '../../composants/CarteProduit.vue'
 import Squelette from '../../composants/Squelette.vue'
 import { useCatalogue } from '../../stores/catalogue'
@@ -55,7 +56,7 @@ const titre = computed(() =>
           <a
             href="#grille"
             class="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px]
-                   font-semibold text-white transition-opacity hover:opacity-90"
+                   font-bold text-encre transition-opacity hover:opacity-90"
             :style="{ background: 'var(--accent)' }"
           >
             Voir le catalogue
@@ -88,12 +89,17 @@ const titre = computed(() =>
     <section id="grille" class="scroll-mt-24 pt-8">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 class="text-[17px] font-semibold tracking-tight">{{ titre }}</h3>
-          <p class="mt-0.5 text-[13px] text-slate-500">
+          <h3 class="text-[15px] font-bold">{{ titre }}</h3>
+          <p class="mt-0.5 text-[12.5px] text-encre-douce">
             {{ catalogue.produits.length }} produit{{ catalogue.produits.length > 1 ? 's' : '' }}
             <template v-if="position.connue"> · livrable a {{ position.libelle }}</template>
           </p>
         </div>
+      </div>
+
+      <!-- Les filtres, au-dessus de la grille et non dans la sidebar -->
+      <div class="mt-4">
+        <BarreFiltres />
       </div>
 
       <div v-if="catalogue.chargement" class="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

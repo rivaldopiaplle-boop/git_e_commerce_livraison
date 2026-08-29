@@ -12,10 +12,29 @@
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
-| **1** | **`python demarrer.py`, Ctrl+Maj+R**, et déroule le parcours complet : ajoute deux produits de boutiques différentes, ouvre le panier à droite, clique **Passer commande** | 5 min | § D |
-| **2** | **Connecte-toi avec Karim**, va dans **Commandes reçues** : tu vois ta part, ce que tu touches, et le bouton de l'étape suivante — un seul, jamais deux | 3 min | — |
-| **3** | **Connecte-toi en admin** (`admin@rivdinde.local`), va dans **Validations** : Inès attend depuis le début | 2 min | — |
-| **4** | **Dis-moi ce qui ne va pas.** C'est le moment : la structure est posée, la changer plus tard coûtera plus cher | 10 min | — |
+| **1** | **`python demarrer.py`, Ctrl+Maj+R.** L'interface est repassée au modèle de la maquette : sidebar claire, navbar de 56 px, filtres au-dessus de la grille. Dis-moi si c'est ce que tu attendais | 5 min | — |
+| **2** | **Ne crée pas de webhook Stripe** pour l'instant — voir l'encadré ci-dessous. Ce n'est pas toi qui bloques, c'est normal | 0 min | — |
+
+**Rien d'autre.** Tout le reste est de mon côté.
+
+---
+
+## ⚠ Stripe : l'URL de webhook, et pourquoi tu es bloqué
+
+Stripe refuse `http://localhost:8000` parce qu'il doit pouvoir **t'appeler
+depuis Internet** — et ta machine n'est pas joignable de l'extérieur. Ce n'est
+pas une erreur de ta part.
+
+**Ne remplis pas ce champ maintenant.** Deux moments, deux solutions :
+
+- **En développement** : `stripe listen --forward-to localhost:8000/api/v1/webhooks/stripe`.
+  L'outil Stripe CLI ouvre un tunnel et **affiche lui-même le secret de
+  signature** à coller dans `STRIPE_WEBHOOK_SECRET`. Aucune URL publique.
+- **En production** : l'URL sera celle de Render, et c'est à ce moment-là que
+  le champ du tableau de bord se remplit.
+
+Je te dirai quand installer Stripe CLI — quand le code de paiement sera là, pas
+avant.
 
 ---
 
@@ -23,47 +42,24 @@
 
 | | Ton constat | Ce qui a changé |
 |---|---|---|
-| **H-1/2/3** | Catalogue vide, connexion impossible | **Ma faute** : un en-tête non déclaré côté serveur bloquait le navigateur avant l'envoi. Corrigé, 5 tests le verrouillent |
-| **H-6** | « Le catalogue et l'espace client sont trop différents » | **Une seule coquille** pour tout le site — sidebar, navbar, panneau droit, accent de couleur. J'avais élargi la règle du CMS à tort : elle vaut pour le contenu et les animations, pas pour la structure ([D-38](journal-decisions.md)) |
-| **H-7** | Le panier apparaît et disparaît | Panneau **stable**, replié en bande où le compteur reste visible ([D-39](journal-decisions.md)) |
-| **H-8** | « Fais-moi un truc cohérent, du début à la fin » | Le catalogue public et celui de l'espace partagent la même coquille, le même magasin de données, les mêmes filtres. Cinq composants ont disparu |
-| **H-9** | Le livreur mobile, le client web + mobile, le reste web | Consigné ([D-40](journal-decisions.md)). L'espace web du livreur affiche un bandeau qui le renvoie au mobile, plutôt que des écrans à moitié utiles |
-| **H-10** | Tu as corrigé Cloudinary | Vérifié : le téléversement passe |
+| **I-1** | Mettre à jour les deux fichiers de suivi à chaque fois | Enregistré comme règle permanente. `etat-reel.md` et ce fichier sont désormais mis à jour à chaque livraison |
+| **I-2** | « Enlève tout ce qui concerne le CMS » | La maquette redevient **la référence** : sidebar claire `#fbfbfd`, navbar de 56 px avec recherche en pastille, panneau droit de 300 px, cartes/lignes/badges/onglets. Il ne reste des CMS que **l'affichage d'un produit** — carte et galerie |
+| **I-2** | « Le filtre sur la sidebar, la pire idée » | Sorti de la sidebar, remis **au-dessus de la grille**, comme dans la maquette |
+| **I-2** | « La sidebar et la navbar ne sont pas fixes » | Elles ne défilent plus : seul le contenu défile |
+| **I-2** | Reconnaître un vendeur/client déjà inscrit | **Volontairement non fait**, comme tu l'as dit : en développement on doit pouvoir enchaîner plusieurs comptes. À reprendre au déploiement |
+| **I-3** | La CI GitHub est verte | Noté — c'était la dernière chose que je ne pouvais pas vérifier |
 
 ---
 
-## Ce qui a été construit
+## Ce qui vient ensuite, et ce n'est pas bloqué
 
-**Le parcours d'achat est complet**, du catalogue à la commande :
+Le **paiement** est le prochain morceau : la commande se crée déjà et réserve le
+stock, il reste à débiter et à répartir entre les vendeurs. Je peux l'écrire
+entièrement avec le simulateur ([D-18](journal-decisions.md)) sans toucher à tes
+clés, puis brancher le vrai Stripe. Ensuite viennent la livraison et les
+tournées, qui naissent d'une commande payée.
 
-- **Panier** dans le panneau de droite, sans compte, qui suit à la connexion.
-- **Préparation de commande** qui montre le découpage **avant** de valider : un
-  panier de deux boutiques annonce deux commandes livrées séparément.
-- **Le découpage** ([D-10](journal-decisions.md)) : une commande par boutique
-  Express, une seule commande Standard multi-vendeur, la commission calculée,
-  le stock réservé et non débité, le nom et le prix recopiés.
-- **Suivi client** avec une frise dont le vocabulaire change selon le circuit —
-  « en tournée » n'a aucun sens pour un plat livré en vingt minutes.
-- **Commandes reçues** côté vendeur : sa part seulement, ce qu'il touche, et
-  **les boutons que le serveur autorise** — impossible de sauter une étape.
-- **Validations** côté admin.
-
-**93 tests** : 73 backend, 20 front.
-
----
-
-## Ce qui manque encore, et je te le dis franchement
-
-| Manque | Pourquoi |
-|---|---|
-| **Paiement Stripe** | Le prochain gros morceau. La commande se crée et réserve le stock ; il reste à débiter et à répartir |
-| **Livraison et tournées** | Les tables existent, le code métier non. Une livraison naît d'une commande payée |
-| **Application mobile** | Le livreur y travaille ; c'est un chantier à part entière |
-| **Avis, litiges, promotions, factures** | Palier 2, assumé depuis le début |
-
-Le relevé complet, décision par décision, est dans
-[etat-reel.md](etat-reel.md) — c'est le document à ouvrir pour savoir ce que le
-code fait vraiment, sans avoir à me croire sur parole.
+Le relevé complet de ce qui existe est dans [etat-reel.md](etat-reel.md).
 
 
 ---

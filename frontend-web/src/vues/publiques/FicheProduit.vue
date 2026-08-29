@@ -60,8 +60,8 @@ const photos = computed(() =>
   <div class="mx-auto max-w-[1240px] px-5 py-10">
     <RouterLink
       to="/"
-      class="inline-flex items-center gap-2 text-[13.5px] text-[#b49a8c] transition-colors
-             hover:text-marque-clair"
+      class="inline-flex items-center gap-2 text-[13.5px] text-encre-douce transition-colors
+             hover:text-[color:var(--accent)]"
     >
       <ArrowLeft :size="15" />
       Retour au catalogue
@@ -78,10 +78,10 @@ const photos = computed(() =>
 
     <div
       v-else-if="introuvable"
-      class="mt-10 rounded-2xl border border-encre-3 bg-encre-2/30 px-6 py-16 text-center"
+      class="mt-10 rounded-2xl border border-trait bg-papier px-6 py-16 text-center"
     >
-      <b class="text-[16px] text-white">Ce produit n'est plus au catalogue</b>
-      <p class="mt-2 text-[13.5px] text-[#b49a8c]">
+      <b class="text-[16px] text-encre">Ce produit n'est plus au catalogue</b>
+      <p class="mt-2 text-[13.5px] text-encre-douce">
         Il a peut-etre ete retire par sa boutique, ou celle-ci ne livre pas votre ville.
       </p>
     </div>
@@ -90,7 +90,7 @@ const photos = computed(() =>
       <!-- Galerie : grande image, vignettes dessous — le premier reflexe d'un
            acheteur (design-system.md § 9). -->
       <div>
-        <div class="overflow-hidden rounded-2xl border border-encre-3 bg-encre-2">
+        <div class="overflow-hidden rounded-2xl border border-trait bg-atelier">
           <img
             v-if="photos.length"
             :src="photos[photoActive]?.url"
@@ -104,7 +104,7 @@ const photos = computed(() =>
             :key="photo.id"
             type="button"
             class="h-20 w-24 overflow-hidden rounded-xl border transition-colors duration-150"
-            :class="index === photoActive ? 'border-marque' : 'border-encre-3 hover:border-marque/50'"
+            :class="index === photoActive ? 'border-marque' : 'border-trait hover:border-marque/50'"
             @click="photoActive = index"
           >
             <img :src="photo.url" :alt="photo.texte_alternatif" class="h-full w-full object-cover" />
@@ -121,24 +121,24 @@ const photos = computed(() =>
             <component :is="estExpress ? Bike : Package" :size="12" />
             {{ estExpress ? 'Livraison Express' : 'Livraison Standard' }}
           </span>
-          <span v-if="produit.categorie" class="text-[12.5px] text-[#7c6459]">
+          <span v-if="produit.categorie" class="text-[12.5px] text-encre-douce">
             {{ produit.categorie.nom }}
           </span>
         </div>
 
-        <h1 class="mt-4 text-[30px] leading-tight font-semibold tracking-tight text-white">
+        <h1 class="mt-4 text-[30px] leading-tight font-semibold tracking-tight text-encre">
           {{ produit.nom }}
         </h1>
 
-        <p class="mt-2 flex items-center gap-2 text-[13.5px] text-[#b49a8c]">
+        <p class="mt-2 flex items-center gap-2 text-[13.5px] text-encre-douce">
           <MapPin :size="14" />
           {{ produit.boutique?.nom }} · {{ produit.boutique?.ville }}
           <template v-if="produit.distance_km"> · {{ produit.distance_km }} km</template>
         </p>
 
-        <p class="mt-6 text-[32px] font-bold text-marque">{{ prix }}</p>
+        <p class="mt-6 text-[32px] font-bold text-[color:var(--accent)]">{{ prix }}</p>
 
-        <p class="mt-5 text-[14.5px] leading-relaxed text-[#c9b4a6]">
+        <p class="mt-5 text-[14.5px] leading-relaxed text-encre-douce">
           {{ produit.description }}
         </p>
 
@@ -148,7 +148,7 @@ const photos = computed(() =>
           <button
             v-if="produit.disponible"
             type="button"
-            class="bouton-marque w-full"
+            class="bouton-accent w-full"
             :disabled="panier.occupe"
             @click="panier.ajouter(produit.id)"
           >
@@ -156,30 +156,30 @@ const photos = computed(() =>
             {{ panier.occupe ? 'Ajout…' : 'Ajouter au panier' }}
           </button>
           <template v-else>
-            <button type="button" class="bouton-marque w-full cursor-not-allowed opacity-40" disabled>
+            <button type="button" class="bouton-accent w-full cursor-not-allowed opacity-40" disabled>
               <ShoppingCart :size="17" />
               Indisponible
             </button>
-            <button type="button" class="bouton-discret w-full">
+            <button type="button" class="bouton-neutre w-full">
               <Bell :size="15" />
               Etre alerte quand ce produit revient
             </button>
           </template>
 
-          <p class="text-center text-[12px] text-[#7c6459]">
+          <p class="text-center text-[12px] text-encre-douce">
             Le paiement arrive a la tranche 5. Le panier, lui, fonctionne — et il vous suit
             si vous creez un compte ensuite.
           </p>
         </div>
 
-        <ul class="mt-8 flex flex-col gap-3 border-t border-encre-3 pt-6">
-          <li class="flex items-center gap-3 text-[13.5px] text-[#b49a8c]">
-            <Clock :size="16" class="text-marque" />
+        <ul class="mt-8 flex flex-col gap-3 border-t border-trait pt-6">
+          <li class="flex items-center gap-3 text-[13.5px] text-encre-douce">
+            <Clock :size="16" class="text-[color:var(--accent)]" />
             <template v-if="estExpress">Prepare et livre directement, en minutes.</template>
             <template v-else>Regroupe en entrepot, livre en tournee sous 48 a 72 heures.</template>
           </li>
-          <li class="flex items-center gap-3 text-[13.5px] text-[#b49a8c]">
-            <ShieldCheck :size="16" class="text-marque" />
+          <li class="flex items-center gap-3 text-[13.5px] text-encre-douce">
+            <ShieldCheck :size="16" class="text-[color:var(--accent)]" />
             Boutique verifiee par la plateforme avant publication.
           </li>
         </ul>

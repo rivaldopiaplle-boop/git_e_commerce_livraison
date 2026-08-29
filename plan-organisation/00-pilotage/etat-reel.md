@@ -5,7 +5,7 @@
 > une intention. Il est établi en listant les routes que l'API expose et les
 > écrans que le front compile, puis en les confrontant au dossier de conception.
 >
-> Généré le 29 août, après la mise en cohérence des blocs G et H.
+> Généré le 29 août, après la mise en cohérence des blocs G, H et I.
 
 ---
 
@@ -36,6 +36,15 @@
 | **D-36** CMS sur le contenu, règles d'or sur la structure | une seule coquille | 2 tests |
 
 **93 tests** : 73 backend, 20 front.
+
+### L'interface suit la maquette, pas les CMS
+
+Reprise au bloc I-2 : la sidebar est claire (`#fbfbfd`, 210 px, repliée à
+64 px), la navbar fait 56 px avec sa recherche en pastille et son bloc avatar,
+le panneau droit fait 300 px. Ni l'une ni l'autre ne défile — seul le contenu
+défile. **Les filtres sont sortis de la sidebar** et vivent au-dessus de la
+grille. Ce qui reste des CMS marchands se limite à l'affichage d'un produit :
+carte avec survol, galerie, badges d'état.
 
 ---
 

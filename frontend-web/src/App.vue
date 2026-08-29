@@ -1,16 +1,16 @@
 <script setup lang="ts">
-// Deux enveloppes seulement, et c'est voulu :
+// Deux enveloppes seulement :
 //
 //   pleine page   connexion, inscription, attente de validation
-//   coquille      TOUT le reste — catalogue public compris
+//   coquille      tout le reste — catalogue public compris
 //
-// Le bloc H-6 a tranche : les CMS decident de l'affichage du contenu et des
-// animations, jamais de la structure. Il n'y a donc qu'une seule structure.
+// Il n'y a qu'une seule structure d'ecran dans ce projet, et c'est celle de
+// la maquette. Les filtres ne sont plus passes a la coquille : ils vivent
+// dans le contenu, la ou la maquette les place.
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import CoquilleApp from './composants/CoquilleApp.vue'
-import FiltresCatalogue from './composants/FiltresCatalogue.vue'
 
 const route = useRoute()
 const pleinePage = computed(() => route.meta.plein === true)
@@ -20,9 +20,6 @@ const pleinePage = computed(() => route.meta.plein === true)
   <RouterView v-if="pleinePage" />
 
   <CoquilleApp v-else>
-    <template #filtres>
-      <FiltresCatalogue />
-    </template>
     <RouterView />
   </CoquilleApp>
 </template>

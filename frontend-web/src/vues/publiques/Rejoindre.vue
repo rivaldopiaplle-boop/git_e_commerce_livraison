@@ -38,11 +38,11 @@ const offres = [
 
 <template>
   <div class="mx-auto max-w-[1240px] px-5 py-14">
-    <p class="text-[12px] tracking-[0.16em] text-marque uppercase">Rejoindre la plateforme</p>
-    <h1 class="mt-3 max-w-[20ch] text-4xl leading-tight font-semibold tracking-tight text-white">
+    <p class="text-[12px] tracking-[0.16em] text-[color:var(--accent)] uppercase">Rejoindre la plateforme</p>
+    <h1 class="mt-3 max-w-[20ch] text-4xl leading-tight font-semibold tracking-tight text-encre">
       Vendre ou livrer, en gardant la main.
     </h1>
-    <p class="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-[#b49a8c]">
+    <p class="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-encre-douce">
       Les deux inscriptions sont gratuites et prennent deux minutes. Votre compte est
       ensuite verifie par un administrateur avant d etre active — c est ce qui garantit
       a chaque client que les boutiques et les livreurs sont bien reels.
@@ -52,30 +52,30 @@ const offres = [
       <article
         v-for="offre in offres"
         :key="offre.cle"
-        class="flex flex-col rounded-2xl border border-encre-3 bg-encre-2/40 p-7 transition-colors
+        class="flex flex-col rounded-2xl border border-trait bg-papier p-7 transition-colors
                duration-200 hover:border-marque/40"
       >
-        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-marque/12 text-marque">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--accent-doux)] text-[color:var(--accent)]">
           <component :is="offre.icone" :size="22" />
         </span>
 
-        <h2 class="mt-5 text-[21px] font-semibold tracking-tight text-white">{{ offre.titre }}</h2>
-        <p class="mt-2 text-[14px] text-[#b49a8c]">{{ offre.accroche }}</p>
+        <h2 class="mt-5 text-[21px] font-semibold tracking-tight text-encre">{{ offre.titre }}</h2>
+        <p class="mt-2 text-[14px] text-encre-douce">{{ offre.accroche }}</p>
 
         <ul class="mt-6 flex flex-1 flex-col gap-3">
           <li v-for="point in offre.points" :key="point" class="flex gap-3">
-            <CheckCircle2 :size="17" class="mt-0.5 shrink-0 text-marque/70" />
-            <span class="text-[13.5px] leading-relaxed text-[#c9b4a6]">{{ point }}</span>
+            <CheckCircle2 :size="17" class="mt-0.5 shrink-0 text-[color:var(--accent)]/70" />
+            <span class="text-[13.5px] leading-relaxed text-encre-douce">{{ point }}</span>
           </li>
         </ul>
 
-        <p class="mt-6 rounded-xl bg-encre/60 px-4 py-3 text-[12.5px] text-[#b49a8c]">
-          <b class="text-white">Ce qu on vous demande :</b> {{ offre.demande }}
+        <p class="mt-6 rounded-xl bg-papier px-4 py-3 text-[12.5px] text-encre-douce">
+          <b class="text-encre">Ce qu on vous demande :</b> {{ offre.demande }}
         </p>
 
         <RouterLink
           :to="{ name: 'inscription', query: { profil: offre.cle } }"
-          class="bouton-marque mt-5 w-full"
+          class="bouton-accent mt-5 w-full"
         >
           {{ offre.cle === 'vendeur' ? 'Ouvrir ma boutique' : 'Devenir livreur' }}
           <ArrowRight :size="17" />
@@ -83,9 +83,9 @@ const offres = [
       </article>
     </div>
 
-    <p class="mt-10 text-center text-[13.5px] text-[#b49a8c]">
+    <p class="mt-10 text-center text-[13.5px] text-encre-douce">
       Vous cherchez plutot a commander ?
-      <RouterLink to="/" class="text-marque-clair hover:underline">Voir le catalogue</RouterLink>
+      <RouterLink to="/" class="text-[color:var(--accent)] hover:underline">Voir le catalogue</RouterLink>
     </p>
   </div>
 </template>

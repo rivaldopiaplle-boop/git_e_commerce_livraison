@@ -7,6 +7,10 @@ import { ref } from 'vue'
 
 import { usePosition, VILLES, type Ville } from '../stores/position'
 
+// `clair` : le bandeau vit desormais dans une navbar claire. La prop reste
+// pour que l'appelant puisse dire explicitement dans quel contexte il est.
+defineProps<{ clair?: boolean }>()
+
 const position = usePosition()
 const ouvert = ref(false)
 
@@ -20,13 +24,13 @@ function choisir(ville: Ville) {
   <div class="relative">
     <button
       type="button"
-      class="flex items-center gap-2 rounded-xl border border-encre-3 bg-encre-2/60 px-3 py-2
-             text-[13px] transition-colors duration-150 hover:border-marque"
+      class="flex items-center gap-2 rounded-full bg-atelier px-3.5 py-[7px] text-[12.5px]
+             transition-colors duration-150 hover:bg-trait-doux"
       @click="ouvert = !ouvert"
     >
-      <MapPin :size="15" class="text-marque" />
-      <span class="text-[#b49a8c]">Livrer a</span>
-      <b class="text-white">{{ position.libelle }}</b>
+      <MapPin :size="14" class="text-[color:var(--accent)]" />
+      <span class="text-encre-douce">Livrer a</span>
+      <b class="text-encre">{{ position.libelle }}</b>
     </button>
 
     <Transition
@@ -37,28 +41,28 @@ function choisir(ville: Ville) {
     >
       <div
         v-if="ouvert"
-        class="absolute top-full left-0 z-50 mt-2 w-64 rounded-2xl border border-encre-3
-               bg-encre-2 p-2 shadow-2xl shadow-black/40"
+        class="absolute top-full left-0 z-50 mt-2 w-64 rounded-lg border border-trait
+               bg-papier p-2 shadow-lg"
       >
         <button
           type="button"
           class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px]
-                 text-marque-clair transition-colors hover:bg-white/5"
+                 text-[color:var(--accent)] transition-colors hover:bg-atelier"
           @click="position.localiser()"
         >
           <Crosshair :size="15" />
           {{ position.localisationEnCours ? 'Localisation…' : 'Utiliser ma position' }}
         </button>
 
-        <div class="my-1.5 border-t border-encre-3" />
+        <div class="my-1.5 border-t border-trait-doux" />
 
         <button
           v-for="ville in VILLES"
           :key="ville.nom"
           type="button"
           class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left
-                 text-[13.5px] transition-colors hover:bg-white/5"
-          :class="position.ville?.nom === ville.nom ? 'text-marque' : 'text-[#c9b4a6]'"
+                 text-[13.5px] transition-colors hover:bg-atelier"
+          :class="position.ville?.nom === ville.nom ? 'text-[color:var(--accent)]' : 'text-encre-douce'"
           @click="choisir(ville)"
         >
           {{ ville.nom }}

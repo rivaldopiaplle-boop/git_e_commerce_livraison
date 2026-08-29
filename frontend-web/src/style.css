@@ -1,33 +1,36 @@
 @import 'tailwindcss';
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Les jetons de la marque, echantillonnes dans le logo lui-meme.
-   Reference : plan-organisation/04-maquettes/identite-visuelle.html § 4.
-
-   Declares dans @theme, ils deviennent des classes utilitaires : bg-encre,
-   text-marque, border-peluche… Une couleur ecrite a un seul endroit.
+   Les jetons viennent de plan-organisation/04-maquettes/maquettes.html.
+   La maquette fait foi : c'est elle qui a ete validee, et elle decrit une
+   interface claire — sidebar #fbfbfd, navbar de 56 px, contenu sur fond
+   #f4f5f8. Ce qu'on emprunte aux CMS se limite a l'affichage d'un produit.
    ───────────────────────────────────────────────────────────────────────── */
 @theme {
-  --color-encre: #2a160f;
-  --color-encre-2: #3d2016;
-  --color-encre-3: #4a2718;
+  --color-encre: #0f1420;
+  --color-encre-douce: #5b6478;
+  --color-trait: #e4e7ee;
+  --color-trait-doux: #eef0f5;
+  --color-papier: #ffffff;
+  --color-atelier: #f4f5f8;
+  --color-panneau: #fbfbfd;
+
+  /* La marque, echantillonnee dans le logo — pour l'ecran de connexion et
+     tout ce qui parle de la plateforme elle-meme. */
   --color-marque: #ea8c2a;
   --color-marque-fonce: #d46f1d;
   --color-marque-clair: #f0a344;
-  --color-peluche: #9e5329;
-  --color-peluche-fonce: #592d19;
+  --color-encre-marque: #2a160f;
+  --color-marque-2: #3d2016;
+  --color-marque-3: #4a2718;
+  --color-sable: #b49a8c;
 
-  --color-ardoise: #14181f;
-  --color-atelier: #f5f6f8;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-  --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --radius-carte: 0.5rem;
 
-  --radius-carte: 1rem;
-
-  /* Micro-animations : 150 a 200 ms. En dessous ca saute, au-dessus ca traine
-     (design-system.md § 9). */
+  /* Micro-animations : 150 a 200 ms. En dessous ca saute, au-dessus ca traine. */
   --animate-apparition: apparition 0.2s ease-out;
-  --animate-glissement: glissement 0.18s ease-out;
 }
 
 @keyframes apparition {
@@ -35,71 +38,108 @@
   to { opacity: 1; transform: none; }
 }
 
-@keyframes glissement {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: none; }
-}
-
 @layer base {
-  html {
-    -webkit-font-smoothing: antialiased;
-  }
+  html { -webkit-font-smoothing: antialiased; }
 
   body {
     margin: 0;
-    min-height: 100vh;
     font-family: var(--font-sans);
-    color: #f3e7dd;
-    background: radial-gradient(1100px 620px at 50% -10%, var(--color-encre-3), var(--color-encre));
+    background: var(--color-atelier);
+    color: var(--color-encre);
   }
 
-  #app {
-    min-height: 100vh;
-    display: flex;
-  }
+  #app { min-height: 100vh; display: flex; }
 
   /* Un anneau de focus visible partout : c'est la seule facon de naviguer au
-     clavier, et c'est ce qu'un recruteur attentif a l'accessibilite regarde. */
+     clavier, et ce qu'un recruteur attentif a l'accessibilite regarde. */
   :focus-visible {
-    outline: 2px solid var(--color-marque);
+    outline: 2px solid var(--accent, #16a34a);
     outline-offset: 2px;
     border-radius: 6px;
   }
 }
 
 @layer components {
-  /* Le champ de formulaire, une seule fois pour toute l'application. */
-  .champ {
-    @apply w-full rounded-xl border border-[#5a3826] bg-[#23130d] px-3.5 py-2.5
-           text-[15px] text-[#f3e7dd] transition-colors duration-150
-           placeholder:text-[#7c6459] focus:border-marque focus:outline-none;
+  /* ── Le vocabulaire de la maquette, ecrit une fois ────────────────── */
+
+  .carte {
+    @apply overflow-hidden rounded-lg border border-trait bg-papier;
   }
-  .champ-erreur {
-    @apply border-red-800 bg-red-950/30;
+  .carte-titre {
+    @apply flex items-center justify-between border-b border-trait-doux px-4 py-3
+           text-[12.5px] font-bold;
+  }
+  .ligne {
+    @apply flex items-center gap-3 border-b border-trait-doux px-4 py-3 text-[12.5px]
+           last:border-b-0;
   }
 
+  .badge {
+    @apply rounded-full px-2.5 py-[3px] text-[10.5px] font-bold whitespace-nowrap;
+  }
+  .badge-attente { @apply bg-[#fff1d6] text-[#93590a]; }
+  .badge-ok { @apply bg-[#e2f7ea] text-[#116b34]; }
+  .badge-cours { @apply bg-[#e8ecfa] text-[#2f3f9e]; }
+  .badge-erreur { @apply bg-[#fbe4e2] text-[#9c2116]; }
+
+  .kpi {
+    @apply rounded-lg border border-trait-doux bg-atelier px-4 py-3.5;
+  }
+  .kpi-nombre { @apply text-[21px] font-extrabold; }
+  .kpi-libelle { @apply mt-0.5 text-[11px] font-semibold text-encre-douce; }
+
+  /* Le bouton-icone des listes : toujours une infobulle, toujours un libelle
+     accessible (regle d'or n°6). */
+  .bouton-icone {
+    @apply flex h-8 w-8 items-center justify-center rounded-lg text-encre-douce
+           transition-colors duration-150 hover:bg-atelier hover:text-encre;
+  }
+
+  .champ-clair {
+    @apply w-full rounded-lg border border-trait bg-papier px-3.5 py-2.5 text-[13.5px]
+           text-encre transition-colors duration-150 focus:border-encre-douce focus:outline-none;
+  }
+
+  .puce-filtre {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-trait bg-papier
+           px-3 py-1.5 text-[12px] font-semibold text-encre-douce transition-colors
+           duration-150 hover:border-encre-douce;
+  }
+  .puce-filtre-active {
+    @apply border-transparent text-white;
+    background: var(--accent);
+  }
+
+  .bouton-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+           text-[13px] font-bold text-white transition-opacity duration-150
+           hover:opacity-90 disabled:opacity-50;
+    background: var(--accent);
+  }
+  .bouton-neutre {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-trait
+           bg-papier px-4 py-2.5 text-[13px] font-semibold text-encre-douce
+           transition-colors duration-150 hover:bg-atelier hover:text-encre;
+  }
+
+  /* ── Les ecrans publics, sur fond de marque ───────────────────────── */
+  .champ-marque {
+    @apply w-full rounded-xl border border-[#5a3826] bg-[#23130d] px-3.5 py-2.5 text-[15px]
+           text-[#f3e7dd] transition-colors duration-150 placeholder:text-[#7c6459]
+           focus:border-marque focus:outline-none;
+  }
   .bouton-marque {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-marque px-5 py-3
-           text-[15px] font-bold text-encre transition-all duration-150
-           hover:bg-marque-clair active:scale-[0.985]
-           disabled:cursor-progress disabled:opacity-60;
+           text-[15px] font-bold text-encre-marque transition-all duration-150
+           hover:bg-marque-clair active:scale-[0.985] disabled:cursor-progress
+           disabled:opacity-60;
   }
-
   .bouton-discret {
     @apply inline-flex items-center justify-center gap-2 rounded-xl border border-[#5a3826]
            px-4 py-2.5 text-sm text-[#c9b4a6] transition-colors duration-150
            hover:border-marque hover:text-marque-clair;
   }
-
-  /* Le champ des espaces de travail : fond clair, contrairement aux ecrans
-     publics qui sont sur fond de marque. */
-  .champ-clair {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[14px]
-           text-slate-900 transition-colors duration-150 focus:border-slate-400
-           focus:outline-none;
-  }
-
   .carte-sombre {
-    @apply rounded-2xl border border-encre-3 bg-encre/60 backdrop-blur-sm;
+    @apply rounded-2xl border border-[#4a2718] bg-[#2a160f]/60;
   }
 }

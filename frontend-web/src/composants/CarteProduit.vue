@@ -33,11 +33,11 @@ const estExpress = computed(() => props.produit.boutique.type_service === 'EXPRE
 <template>
   <RouterLink
     :to="{ name: 'produit', params: { id: produit.id } }"
-    class="group flex flex-col overflow-hidden rounded-2xl border border-encre-3 bg-encre-2/40
+    class="group flex flex-col overflow-hidden rounded-2xl border border-trait bg-papier
            transition-all duration-200 hover:-translate-y-1 hover:border-marque/50
            hover:shadow-xl hover:shadow-black/30"
   >
-    <div class="relative aspect-4/3 overflow-hidden bg-encre-2">
+    <div class="relative aspect-4/3 overflow-hidden bg-atelier">
       <img
         v-if="produit.image"
         :src="produit.image"
@@ -47,7 +47,7 @@ const estExpress = computed(() => props.produit.boutique.type_service === 'EXPRE
                group-hover:scale-105"
         :class="produit.disponible ? '' : 'opacity-40 grayscale'"
       />
-      <span v-else class="flex h-full items-center justify-center text-[#5a3826]">
+      <span v-else class="flex h-full items-center justify-center text-trait">
         <ImageOff :size="30" />
       </span>
 
@@ -85,12 +85,12 @@ const estExpress = computed(() => props.produit.boutique.type_service === 'EXPRE
     </div>
 
     <div class="flex flex-1 flex-col p-4">
-      <b class="text-[14.5px] leading-snug font-semibold text-white">{{ produit.nom }}</b>
-      <span class="mt-1 text-[12.5px] text-[#b49a8c]">
+      <b class="text-[14.5px] leading-snug font-semibold text-encre">{{ produit.nom }}</b>
+      <span class="mt-1 text-[12.5px] text-encre-douce">
         {{ produit.boutique.nom }}
         <template v-if="produit.distance_km"> · {{ produit.distance_km }} km</template>
       </span>
-      <span class="mt-3 text-[16px] font-bold text-marque">{{ prix }}</span>
+      <span class="mt-3 text-[16px] font-bold text-[color:var(--accent)]">{{ prix }}</span>
     </div>
   </RouterLink>
 </template>

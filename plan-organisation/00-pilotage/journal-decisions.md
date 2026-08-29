@@ -432,3 +432,24 @@ droite et redisparaît, alors que ça devait être stable mais rétractable. »*
 **Ta formulation, bloc H-9** : *« le livreur est mobile, le client mobile plus
 web, et le reste web. »* L'espace web d'un livreur affiche donc un bandeau qui
 le renvoie à l'application mobile, plutôt que des écrans à moitié utiles.
+
+### D-41 — La maquette fait foi pour l'interface
+ est **la référence**, pas une inspiration parmi
+d'autres : sidebar claire de 210 px sur fond , navbar de 56 px avec
+recherche en pastille et bloc avatar, panneau droit de 300 px, et le vocabulaire
+de contenu — cartes à en-tête, lignes, badges, KPI, onglets soulignés,
+boutons-icônes dans les listes.
+**Ce que ça retire à [D-36](#d-36--en-cas-de-conflit-lusage-des-cms-marchands-lemporte-sur-les-règles-dor)** :
+l'emprunt aux CMS marchands se limite désormais à **l'affichage d'un produit**.
+Ta formulation, bloc I-2 : *« enlève tout ce qui concerne le CMS, sauf leur
+intervention sur un produit ; utilise exactement le même modèle que la maquette.
+Ça nous a gâté le travail. »*
+**Deux règles nommées, à ne pas réessayer** : aucun filtre dans la sidebar —
+ils vont au-dessus de la grille ; et la sidebar comme la navbar ne défilent
+jamais, seul le contenu défile.
+
+### D-42 — La reconnaissance automatique d'un compte attend la production
+Un vendeur ou un client déjà inscrit ne sera reconnu d'une visite à l'autre
+qu'au déploiement. **En développement, on doit pouvoir enchaîner plusieurs
+comptes** pour tester les cinq rôles — c'est ta remarque du bloc I-2, et elle
+est juste : une session collante rendrait la démonstration pénible.
