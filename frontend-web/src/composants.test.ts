@@ -2,8 +2,13 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { Eye } from '@lucide/vue'
+
+import ActionLigne from './composants/ActionLigne.vue'
 import CarteProduit from './composants/CarteProduit.vue'
 import CoquilleApp from './composants/CoquilleApp.vue'
+import Liste from './composants/Liste.vue'
+import type { Colonne } from './composants/liste'
 import { routeur } from './routeur'
 
 // On monte avec le VRAI routeur : un routeur de test allege laisserait passer
@@ -54,5 +59,70 @@ describe('la navigation existe vraiment', () => {
     })
 
     expect(composant.find('a').attributes('href')).toBe('/produit/7')
+  })
+})
+
+describe('les listes du projet', () => {
+  // Le bloc K a redit ce que la regle d'or n°9 disait depuis le bloc A :
+  // « dans les listes d'affichage, des boutons en forme de symbole pour
+  // consulter et gerer les donnees ». Ces tests verifient que ces boutons
+  // existent, qu'ils sont nommes, et surtout QU'ILS CLIQUENT — un bouton qui
+  // ne fait pas son travail est le defaut le plus visible d'un ecran.
+  // `mount` ne transporte pas le generique du composant : on reste donc sur
+  // le type de la contrainte, ce qui suffit largement ici.
+  type Ligne = Record<string, unknown>
+  const LIGNES: Ligne[] = [
+    { id: 1, nom: 'Alpha', quantite: 3 },
+    { id: 2, nom: 'Beta', quantite: 1 },
+  ]
+  const COLONNES: Colonne<Ligne>[] = [
+    { cle: 'nom', titre: 'Nom' },
+    { cle: 'quantite', titre: 'Quantite',
+      tri: (a, b) => Number(a.quantite) - Number(b.quantite) },
+  ]
+  const cleLigne = (ligne: Ligne) => Number(ligne.id)
+
+  it('affiche ses lignes et le libelle de ses colonnes', () => {
+    const vue = mount(Liste, {
+      props: { colonnes: COLONNES, lignes: LIGNES, cleLigne },
+      slots: { 'col-nom': '<span>{{ params.ligne.nom }}</span>' },
+    })
+    expect(vue.text()).toContain('Nom')
+    expect(vue.text()).toContain('Alpha')
+    expect(vue.text()).toContain('Beta')
+  })
+
+  it('affiche un etat vide redige plutot qu un tableau muet', () => {
+    const vue = mount(Liste, {
+      props: { colonnes: COLONNES, lignes: [], cleLigne },
+    })
+    expect(vue.text()).toContain('Aucun résultat')
+  })
+
+  it('le bouton-symbole porte une infobulle et un libelle accessible', () => {
+    const vue = mount(ActionLigne, { props: { titre: 'Consulter', icone: Eye } })
+    const bouton = vue.get('button')
+    expect(bouton.attributes('title')).toBe('Consulter')
+    expect(vue.find('.sr-only').text()).toBe('Consulter')
+  })
+
+  it('le bouton-symbole transmet bien le clic a l ecran', async () => {
+    // C'est LE test qui compte : un bouton-symbole muet ressemble a un bouton
+    // qui marche, et personne ne s'en apercoit avant la demonstration.
+    let clics = 0
+    const vue = mount(ActionLigne, {
+      props: { titre: 'Consulter', icone: Eye, onClick: () => { clics += 1 } },
+    })
+    await vue.get('button').trigger('click')
+    expect(clics).toBe(1)
+  })
+
+  it('un bouton-symbole desactive ne declenche rien', async () => {
+    let clics = 0
+    const vue = mount(ActionLigne, {
+      props: { titre: 'Retirer', icone: Eye, desactive: true, onClick: () => { clics += 1 } },
+    })
+    await vue.get('button').trigger('click')
+    expect(clics).toBe(0)
   })
 })

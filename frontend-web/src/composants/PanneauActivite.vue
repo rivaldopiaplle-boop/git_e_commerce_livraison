@@ -14,11 +14,15 @@ import { computed, ref, watch } from 'vue'
 import { espaces, type Notification } from '../api/espaces'
 import { useAuthentification } from '../stores/authentification'
 import { usePanier } from '../stores/panier'
+import { useVolet } from '../stores/volet'
 
 // Le magasin du panier porte aussi l'etat « panneau ouvert » : les deux
 // panneaux se replient au meme endroit, il n'y a donc qu'un etat a tenir.
 const panneau = usePanier()
 const session = useAuthentification()
+// L'ecran en cours prime : c'est lui qui sait ce qui merite d'etre garde
+// pres de l'oeil. L'activite n'est que le repli.
+const volet = useVolet()
 
 const notifications = ref<Notification[]>([])
 const chargement = ref(false)
@@ -45,7 +49,10 @@ const quand = (date: string) =>
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   })
 
-const titre = computed(() => (session.role === 'ADMIN' ? 'Activite de la plateforme' : 'Activite'))
+const titre = computed(
+  () => volet.titre ?? (session.role === 'ADMIN' ? 'Activite de la plateforme' : 'Activite'),
+)
+const ecranContribue = computed(() => volet.contributeurs > 0)
 </script>
 
 <template>
@@ -70,6 +77,11 @@ const titre = computed(() => (session.role === 'ADMIN' ? 'Activite de la platefo
     </div>
 
     <template v-if="panneau.ouvert">
+      <!-- Ce que l'ecran en cours y depose, par teleportation -->
+      <div id="volet-cible" class="overflow-auto" :class="ecranContribue ? 'flex-1 p-4' : ''" />
+
+      <!-- Le repli, quand aucun ecran ne contribue : ce qui a bouge. -->
+      <template v-if="!ecranContribue">
       <div v-if="chargement" class="flex-1 px-4 py-4 text-[12px] text-encre-douce">
         Chargement…
       </div>
@@ -114,6 +126,7 @@ const titre = computed(() => (session.role === 'ADMIN' ? 'Activite de la platefo
           </span>
         </article>
       </div>
+      </template>
     </template>
   </aside>
 </template>

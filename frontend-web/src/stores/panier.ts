@@ -112,9 +112,39 @@ export const usePanier = defineStore('panier', () => {
     }
   }
 
+  /** Retire d'un geste tout ce qui n'est plus commandable. */
+  async function nettoyer() {
+    occupe.value = true
+    erreur.value = ''
+    try {
+      const resultat = await api.post<Panier & { retirees: { nom: string }[] }>(
+        '/panier/nettoyer',
+      )
+      contenu.value = resultat
+      return resultat.retirees ?? []
+    } finally {
+      occupe.value = false
+    }
+  }
+
+  /** Repartir d'un panier vierge, avec une nouvelle cle de navigateur.
+   *
+   *  Appele a la deconnexion. Sans cela, le panier du compte qui vient de
+   *  partir restait affiche a la personne suivante devant la machine : les
+   *  articles etaient encore a l'ecran alors que le serveur, lui, renvoyait
+   *  bien un panier vide.
+   */
+  function reinitialiser() {
+    contenu.value = { ...VIDE, lignes: [] }
+    ouvert.value = false
+    erreur.value = ''
+    localStorage.removeItem(CLE)
+    poserCleSession(cleDeSession())
+  }
+
   return {
     contenu, ouvert, occupe, erreur,
     nombreArticles, total, plusieursBoutiques,
-    demarrer, charger, ajouter, changerQuantite, retirer,
+    demarrer, charger, ajouter, changerQuantite, retirer, nettoyer, reinitialiser,
   }
 })

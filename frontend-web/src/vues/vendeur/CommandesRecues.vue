@@ -1,22 +1,36 @@
 <script setup lang="ts">
-// La file du vendeur : ce qu'il doit preparer.
+// La file du vendeur : ce qu'il doit préparer.
 //
-// Les boutons d'action viennent du SERVEUR (`suites_possibles`) : le front
-// n'a pas a connaitre la machine a etats, il affiche ce qu'on lui donne. C'est
-// ce qui garantit qu'un vendeur ne saute jamais une etape.
-import { Bike, ClipboardList, Package } from '@lucide/vue'
+// C'est l'écran que la maquette décrit le plus précisément : une liste avec
+// ses boutons-symboles, et le **détail de la commande sélectionnée dans le
+// volet de droite**, avec un seul bouton — « passer au statut suivant,
+// jamais de menu libre ».
+//
+// Les suites possibles viennent du SERVEUR (`suites_possibles`) : le front
+// n'a pas à connaître la machine à états, il affiche ce qu'on lui donne.
+// C'est ce qui garantit qu'un vendeur ne saute jamais une étape.
+import {
+  AlertTriangle, Bike, Check, ClipboardList, Eye, Package, X,
+} from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 import { commandes, type SousCommande } from '../../api/commandes'
+import ActionLigne from '../../composants/ActionLigne.vue'
+import Liste from '../../composants/Liste.vue'
+import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import Squelette from '../../composants/Squelette.vue'
+import Volet from '../../composants/Volet.vue'
 
-const liste = ref<SousCommande[]>([])
+type Ligne = SousCommande & { [cle: string]: unknown }
+
+const liste = ref<Ligne[]>([])
 const chargement = ref(true)
 const erreur = ref('')
 const onglet = ref('a_faire')
+const selection = ref<Ligne | null>(null)
+const occupe = ref(false)
 
-// On ne traite pas tout d'un bloc : la file se range par etape, comme dans
+// On ne traite pas tout d'un bloc : la file se range par étape, comme dans
 // n'importe quelle cuisine ou n'importe quel atelier.
 const ETAPES: Record<string, string[]> = {
   a_faire: ['A_PREPARER'],
@@ -31,16 +45,27 @@ const parEtape = (cle: string) =>
 const visibles = computed(() => parEtape(onglet.value))
 
 const LIBELLES: Record<string, string> = {
-  EN_PREPARATION: 'Commencer la preparation',
-  PRETE: 'Marquer prete',
-  EXPEDIEE: 'Expedier',
-  ANNULEE: 'Annuler',
+  EN_PREPARATION: 'Commencer la préparation',
+  PRETE: 'Marquer prête',
+  EXPEDIEE: 'Expédier',
+  ANNULEE: 'Annuler la commande',
+}
+
+const BADGES: Record<string, string> = {
+  A_PREPARER: 'badge-attente',
+  EN_PREPARATION: 'badge-cours',
+  PRETE: 'badge-ok',
+  EXPEDIEE: 'badge-ok',
+  ANNULEE: 'badge-erreur',
 }
 
 async function charger() {
   chargement.value = true
   try {
-    liste.value = await commandes.recues()
+    liste.value = (await commandes.recues()) as Ligne[]
+    // Ce qui attend en tête de file s'ouvre tout seul : on arrive ici pour
+    // préparer quelque chose, pas pour contempler une liste.
+    selection.value = parEtape(onglet.value)[0] ?? null
   } finally {
     chargement.value = false
   }
@@ -48,136 +73,195 @@ async function charger() {
 
 onMounted(charger)
 
-async function avancer(sous: SousCommande, statut: string) {
+async function avancer(sous: Ligne, statut: string) {
   erreur.value = ''
+  occupe.value = true
   try {
-    const mise_a_jour = await commandes.avancer(sous.id, statut)
-    Object.assign(sous, mise_a_jour)
+    const miseAJour = await commandes.avancer(sous.id, statut)
+    Object.assign(sous, miseAJour)
   } catch (echec) {
-    erreur.value = echec instanceof Error ? echec.message : 'Changement refuse.'
+    erreur.value = echec instanceof Error ? echec.message : 'Changement refusé.'
+  } finally {
+    occupe.value = false
   }
 }
+
+/** La suite normale, celle du bouton principal. L'annulation reste à part :
+ *  elle ne se déclenche pas par le même geste que « avancer ». */
+const suiteNormale = (sous: Ligne) =>
+  (sous.suites_possibles ?? []).find((statut) => statut !== 'ANNULEE') ?? null
+
+const colonnes: Colonne<Ligne>[] = [
+  { cle: 'numero', titre: 'Commande', largeur: 180 },
+  { cle: 'articles', titre: 'Contenu' },
+  { cle: 'montant', titre: 'Votre part', largeur: 110, aligne: 'droite', masquerSous: 'md',
+    tri: (a, b) => a.montant_vendeur_centimes - b.montant_vendeur_centimes },
+  { cle: 'statut', titre: 'État', largeur: 120, aligne: 'centre' },
+]
 
 const euros = (centimes: number) =>
   (centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 </script>
 
 <template>
-  <div class="mx-auto max-w-[960px] animate-[apparition_0.2s_ease-out]">
-    <p v-if="erreur" class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700">
-      {{ erreur }}
-    </p>
-
+  <div class="mx-auto max-w-[1040px] animate-[apparition_0.2s_ease-out]">
     <Onglets
-      v-if="!chargement && liste.length"
       v-model="onglet"
       :onglets="[
-        { cle: 'a_faire', libelle: 'A preparer', compteur: parEtape('a_faire').length },
-        { cle: 'en_cours', libelle: 'En preparation', compteur: parEtape('en_cours').length },
-        { cle: 'pretes', libelle: 'Pretes', compteur: parEtape('pretes').length },
-        { cle: 'terminees', libelle: 'Terminees', compteur: parEtape('terminees').length },
+        { cle: 'a_faire', libelle: 'À préparer', compteur: parEtape('a_faire').length },
+        { cle: 'en_cours', libelle: 'En préparation', compteur: parEtape('en_cours').length },
+        { cle: 'pretes', libelle: 'Prêtes', compteur: parEtape('pretes').length },
+        { cle: 'terminees', libelle: 'Terminées', compteur: parEtape('terminees').length },
       ]"
     />
 
-    <div v-if="chargement" class="flex flex-col gap-3">
-      <Squelette v-for="n in 3" :key="n" hauteur="130px" />
-    </div>
+    <p v-if="erreur" class="bandeau bandeau-erreur mb-3">
+      <AlertTriangle :size="15" class="mt-px shrink-0" />
+      {{ erreur }}
+    </p>
 
-    <div v-else-if="!liste.length"
-         class="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
-      <span
-        class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
-        :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
-      >
-        <ClipboardList :size="24" />
-      </span>
-      <b class="mt-4 block text-[15px]">Aucune commande pour l instant</b>
-      <p class="mt-1.5 text-[13.5px] text-slate-500">
-        Les commandes de vos clients apparaitront ici, dans leur ordre d arrivee.
-      </p>
-    </div>
-
-    <div
-      v-else-if="!visibles.length"
-      class="carte p-10 text-center"
+    <Liste
+      :colonnes="colonnes"
+      :lignes="visibles"
+      :cle-ligne="(sous) => sous.id"
+      :chargement="chargement"
+      :recherche="(sous) => `${sous.numero_commande ?? ''} ${sous.lignes.map((l) => l.nom_produit_capture).join(' ')}`"
+      placeholder="Numéro de commande, produit…"
     >
-      <b class="text-[14px]">Rien a cette etape</b>
-      <p class="mt-1 text-[13px] text-encre-douce">
-        Les commandes apparaissent d abord dans « A preparer ».
-      </p>
-    </div>
+      <template #col-numero="{ ligne }">
+        <b class="flex min-w-0 items-center gap-2">
+          <component
+            :is="ligne.type_service === 'EXPRESS' ? Bike : Package"
+            :size="14"
+            class="shrink-0 text-encre-douce"
+          />
+          <span class="truncate">{{ ligne.numero_commande ?? `n° ${ligne.id}` }}</span>
+        </b>
+      </template>
+      <template #col-articles="{ ligne }">
+        <span class="min-w-0 truncate text-encre-douce">
+          {{ ligne.lignes.reduce((total, l) => total + l.quantite, 0) }} article(s) —
+          {{ ligne.lignes.map((l) => l.nom_produit_capture).join(', ') }}
+        </span>
+      </template>
+      <template #col-montant="{ ligne }">
+        <b>{{ euros(ligne.montant_vendeur_centimes) }}</b>
+      </template>
+      <template #col-statut="{ ligne }">
+        <span class="badge" :class="BADGES[ligne.statut_preparation] ?? 'badge-neutre'">
+          {{ ligne.libelle_statut }}
+        </span>
+      </template>
 
-    <div v-else class="flex flex-col gap-4">
-      <article
-        v-for="sous in visibles"
-        :key="sous.id"
-        class="rounded-2xl border border-slate-200 bg-white p-5"
-      >
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <span
-              class="flex h-10 w-10 items-center justify-center rounded-xl"
-              :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
-            >
-              <component :is="sous.type_service === 'EXPRESS' ? Bike : Package" :size="19" />
-            </span>
-            <div>
-              <b class="text-[14.5px]">{{ sous.numero_commande }}</b>
-              <p class="text-[12.5px] text-slate-500">
-                {{ sous.date_commande ? new Date(sous.date_commande).toLocaleString('fr-FR') : '' }}
-              </p>
-            </div>
-          </div>
+      <template #actions="{ ligne }">
+        <ActionLigne
+          titre="Consulter cette commande"
+          :icone="Eye"
+          :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
+          @click="selection = selection?.id === ligne.id ? null : ligne"
+        />
+        <ActionLigne
+          v-if="suiteNormale(ligne)"
+          :titre="LIBELLES[suiteNormale(ligne)!] ?? 'Étape suivante'"
+          :icone="Check"
+          ton="accent"
+          :desactive="occupe"
+          @click="avancer(ligne, suiteNormale(ligne)!)"
+        />
+        <ActionLigne
+          v-if="(ligne.suites_possibles ?? []).includes('ANNULEE')"
+          titre="Annuler cette commande"
+          :icone="X"
+          ton="danger"
+          :desactive="occupe"
+          @click="avancer(ligne, 'ANNULEE')"
+        />
+      </template>
 
-          <div class="text-right">
-            <span class="rounded-full bg-slate-100 px-3 py-1 text-[12px] font-semibold
-                         text-slate-700">
-              {{ sous.libelle_statut }}
-            </span>
-            <p class="mt-1.5 text-[12.5px] text-slate-500">
-              Vous touchez <b class="text-slate-800">{{ euros(sous.montant_vendeur_centimes) }}</b>
-              · commission {{ euros(sous.montant_commission_centimes) }}
-            </p>
-          </div>
+      <template #vide>
+        <div class="vide">
+          <ClipboardList :size="30" class="text-trait" />
+          <b class="vide-titre">
+            {{
+              onglet === 'a_faire' ? 'Rien à préparer pour l\'instant'
+              : onglet === 'terminees' ? 'Aucune commande terminée'
+              : 'Rien à cette étape'
+            }}
+          </b>
+          <p class="vide-texte">
+            Les commandes payées arrivent ici automatiquement, dans l'ordre où elles
+            tombent.
+          </p>
         </div>
+      </template>
+    </Liste>
 
-        <ul class="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4">
-          <li
-            v-for="ligne in sous.lignes"
-            :key="ligne.id"
-            class="flex items-center gap-3 text-[13.5px]"
-          >
-            <img
-              v-if="ligne.image"
-              :src="ligne.image"
-              :alt="ligne.nom_produit_capture"
-              class="h-10 w-10 rounded-lg object-cover"
-            />
-            <span class="flex-1">{{ ligne.nom_produit_capture }}</span>
-            <span class="text-slate-500">x{{ ligne.quantite }}</span>
-            <b>{{ euros(ligne.sous_total_centimes) }}</b>
-          </li>
-        </ul>
-
-        <!-- Les seules actions autorisees, telles que le serveur les donne -->
-        <div v-if="sous.suites_possibles?.length" class="mt-4 flex flex-wrap gap-2">
-          <button
-            v-for="suite in sous.suites_possibles"
-            :key="suite"
-            type="button"
-            class="rounded-xl px-4 py-2 text-[13px] font-semibold transition-opacity
-                   hover:opacity-90"
-            :class="suite === 'ANNULEE' ? 'bg-red-50 text-red-700' : 'text-white'"
-            :style="suite === 'ANNULEE' ? undefined : { background: 'var(--accent)' }"
-            @click="avancer(sous, suite)"
-          >
-            {{ LIBELLES[suite] ?? suite }}
-          </button>
+    <!-- Le volet de la maquette : le détail, et UN seul bouton d'avancement. -->
+    <Volet
+      v-if="selection"
+      :titre="selection.numero_commande ?? `Commande n° ${selection.id}`"
+    >
+      <dl class="flex flex-col gap-2 text-[12px]">
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Service</dt>
+          <dd class="font-semibold">
+            {{ selection.type_service === 'EXPRESS' ? 'Express' : 'Standard' }}
+          </dd>
         </div>
-        <p v-else class="mt-4 text-[12.5px] text-slate-500">
-          Plus rien a faire de votre cote sur cette commande.
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Statut</dt>
+          <dd>
+            <span class="badge" :class="BADGES[selection.statut_preparation] ?? 'badge-neutre'">
+              {{ selection.libelle_statut }}
+            </span>
+          </dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Vous touchez</dt>
+          <dd class="font-semibold">{{ euros(selection.montant_vendeur_centimes) }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Commission</dt>
+          <dd class="font-semibold">{{ euros(selection.montant_commission_centimes) }}</dd>
+        </div>
+      </dl>
+
+      <b class="mt-4 block text-[11px] font-bold tracking-wider text-encre-douce uppercase">
+        À préparer
+      </b>
+      <ul class="mt-2 flex flex-col gap-1.5">
+        <li
+          v-for="produit in selection.lignes"
+          :key="produit.id"
+          class="flex items-center gap-2 rounded-lg border border-trait bg-papier px-2.5 py-2
+                 text-[12px]"
+        >
+          <span
+            class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-atelier
+                   text-[10.5px] font-bold"
+          >
+            {{ produit.quantite }}
+          </span>
+          <span class="min-w-0 flex-1 truncate">{{ produit.nom_produit_capture }}</span>
+          <b>{{ euros(produit.sous_total_centimes) }}</b>
+        </li>
+      </ul>
+
+      <div v-if="suiteNormale(selection)" class="mt-4">
+        <button
+          type="button"
+          class="bouton-accent w-full"
+          :disabled="occupe"
+          @click="avancer(selection, suiteNormale(selection)!)"
+        >
+          <Check :size="15" />
+          {{ LIBELLES[suiteNormale(selection)!] ?? 'Étape suivante' }}
+        </button>
+        <p class="mt-2 text-[11px] leading-relaxed text-encre-douce">
+          On passe au statut suivant, jamais à un statut choisi librement : c'est le
+          serveur qui dit ce qui est possible.
         </p>
-      </article>
-    </div>
+      </div>
+    </Volet>
   </div>
 </template>

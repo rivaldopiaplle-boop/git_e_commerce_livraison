@@ -1,16 +1,18 @@
 <script setup lang="ts">
-// Toutes les boutiques, quel que soit leur statut.
+// Toutes les boutiques et tous les livreurs, quel que soit leur statut.
 //
-// L'ecran de validation ne montrait que ce qui attend une decision : on ne
-// savait jamais ce qu'un dossier refuse etait devenu, ni combien de boutiques
-// tournaient reellement. Les livreurs sont dans le second onglet, pour la
-// meme raison.
-import { Bike, Package, Search, Store, Truck } from '@lucide/vue'
+// L'écran de validation ne montre que ce qui attend une décision : on ne
+// savait jamais ce qu'un dossier refusé était devenu, ni combien de boutiques
+// tournaient réellement.
+import { Bike, Eye, Package, ShieldCheck, Store, Truck } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 import { espaces } from '../../api/espaces'
+import ActionLigne from '../../composants/ActionLigne.vue'
+import Liste from '../../composants/Liste.vue'
+import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import Squelette from '../../composants/Squelette.vue'
+import Volet from '../../composants/Volet.vue'
 
 type Boutique = {
   id: number
@@ -23,6 +25,7 @@ type Boutique = {
   produits: number
   commandes: number
   description: string
+  [cle: string]: unknown
 }
 type LivreurAdmin = {
   id: number
@@ -34,13 +37,15 @@ type LivreurAdmin = {
   statut_validation: string
   statut_disponibilite: string
   livraisons: number
+  [cle: string]: unknown
 }
 
 const boutiques = ref<Boutique[]>([])
 const livreurs = ref<LivreurAdmin[]>([])
 const chargement = ref(true)
 const onglet = ref('boutiques')
-const recherche = ref('')
+const selection = ref<Boutique | null>(null)
+const selectionLivreur = ref<LivreurAdmin | null>(null)
 
 onMounted(async () => {
   try {
@@ -59,19 +64,36 @@ const STATUTS: Record<string, string> = {
   SUSPENDU: 'badge-neutre',
 }
 
-const boutiquesVisibles = computed(() => {
-  const texte = recherche.value.trim().toLowerCase()
-  if (!texte) return boutiques.value
-  return boutiques.value.filter((boutique) =>
-    `${boutique.nom_boutique} ${boutique.ville} ${boutique.responsable} ${boutique.email}`
-      .toLowerCase()
-      .includes(texte),
-  )
-})
+const colonnesBoutiques: Colonne<Boutique>[] = [
+  { cle: 'boutique', titre: 'Boutique',
+    tri: (a, b) => a.nom_boutique.localeCompare(b.nom_boutique) },
+  { cle: 'service', titre: 'Service', largeur: 96, aligne: 'centre' },
+  { cle: 'produits', titre: 'Produits', largeur: 90, aligne: 'droite', masquerSous: 'sm',
+    tri: (a, b) => a.produits - b.produits },
+  { cle: 'commandes', titre: 'Commandes', largeur: 100, aligne: 'droite', masquerSous: 'lg',
+    tri: (a, b) => a.commandes - b.commandes },
+  { cle: 'statut', titre: 'Dossier', largeur: 100, aligne: 'centre' },
+]
+
+const colonnesLivreurs: Colonne<LivreurAdmin>[] = [
+  { cle: 'livreur', titre: 'Livreur', tri: (a, b) => a.nom.localeCompare(b.nom) },
+  { cle: 'mode', titre: 'Mode', largeur: 96, aligne: 'centre' },
+  { cle: 'entrepot', titre: 'Entrepôt', masquerSous: 'md' },
+  { cle: 'livraisons', titre: 'Livraisons', largeur: 100, aligne: 'droite', masquerSous: 'sm',
+    tri: (a, b) => a.livraisons - b.livraisons },
+  { cle: 'statut', titre: 'Dossier', largeur: 100, aligne: 'centre' },
+]
+
+const enAttente = computed(
+  () => boutiques.value.filter((b) => b.statut_validation === 'EN_ATTENTE').length
+    + livreurs.value.filter((l) => l.statut_validation === 'EN_ATTENTE').length,
+)
+
+const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1020px] animate-[apparition_0.2s_ease-out]">
+  <div class="mx-auto max-w-[1060px] animate-[apparition_0.2s_ease-out]">
     <Onglets
       v-model="onglet"
       :onglets="[
@@ -80,90 +102,193 @@ const boutiquesVisibles = computed(() => {
       ]"
     />
 
-    <div
+    <p v-if="enAttente" class="bandeau mb-3">
+      <ShieldCheck :size="15" class="mt-px shrink-0" />
+      {{ enAttente }} dossier(s) attendent une décision.
+      <RouterLink :to="{ name: 'admin-validations' }" class="ml-1 font-bold underline">
+        Ouvrir les validations
+      </RouterLink>
+    </p>
+
+    <Liste
       v-if="onglet === 'boutiques'"
-      class="mb-4 flex items-center gap-2 rounded-full bg-papier px-3.5 py-2 ring-1 ring-trait"
+      :colonnes="colonnesBoutiques"
+      :lignes="boutiques"
+      :cle-ligne="(boutique) => boutique.id"
+      :chargement="chargement"
+      :recherche="(b) => `${b.nom_boutique} ${b.ville} ${b.responsable} ${b.email}`"
+      placeholder="Nom de boutique, ville, responsable…"
     >
-      <Search :size="14" class="text-encre-douce" />
-      <input
-        v-model="recherche"
-        type="search"
-        placeholder="Nom de boutique, ville, responsable…"
-        class="w-full bg-transparent text-[12.5px] focus:outline-none"
-      />
-    </div>
-
-    <div v-if="chargement" class="flex flex-col gap-2">
-      <Squelette v-for="n in 5" :key="n" hauteur="56px" />
-    </div>
-
-    <div v-else-if="onglet === 'boutiques'" class="carte">
-      <div v-if="!boutiquesVisibles.length" class="vide">
-        <Store :size="30" class="text-trait" />
-        <b class="vide-titre">Aucune boutique ne correspond</b>
-      </div>
-
-      <div v-for="boutique in boutiquesVisibles" :key="boutique.id" class="ligne">
-        <span
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-          :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
-        >
-          <component :is="boutique.type_activite === 'EXPRESS' ? Bike : Package" :size="16" />
-        </span>
-        <span class="min-w-0 flex-1">
-          <b class="block truncate">{{ boutique.nom_boutique }}</b>
-          <span class="text-[11.2px] text-encre-douce">
-            {{ boutique.responsable }} · {{ boutique.email }}
-            <template v-if="boutique.ville"> · {{ boutique.ville }}</template>
+      <template #col-boutique="{ ligne }">
+        <span class="flex min-w-0 items-center gap-3">
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+            :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
+          >
+            <component :is="ligne.type_activite === 'EXPRESS' ? Bike : Package" :size="16" />
+          </span>
+          <span class="min-w-0">
+            <b class="block truncate">{{ ligne.nom_boutique }}</b>
+            <span class="text-[11.2px] text-encre-douce">
+              {{ ligne.responsable }}<template v-if="ligne.ville"> · {{ ligne.ville }}</template>
+            </span>
           </span>
         </span>
-        <span class="badge badge-neutre w-[86px] justify-center">
-          {{ boutique.type_activite.toLowerCase() }}
+      </template>
+      <template #col-service="{ ligne }">
+        <span class="badge badge-neutre">{{ ligne.type_activite.toLowerCase() }}</span>
+      </template>
+      <template #col-produits="{ ligne }">{{ ligne.produits }}</template>
+      <template #col-commandes="{ ligne }">{{ ligne.commandes }}</template>
+      <template #col-statut="{ ligne }">
+        <span class="badge" :class="STATUTS[ligne.statut_validation] ?? 'badge-neutre'">
+          {{ lisible(ligne.statut_validation) }}
         </span>
-        <span class="hidden w-24 text-right text-encre-douce sm:block">
-          {{ boutique.produits }} produit(s)
-        </span>
-        <span class="hidden w-24 text-right text-encre-douce lg:block">
-          {{ boutique.commandes }} commande(s)
-        </span>
-        <span class="badge w-[92px] justify-center"
-              :class="STATUTS[boutique.statut_validation] ?? 'badge-neutre'">
-          {{ boutique.statut_validation.toLowerCase().replace(/_/g, ' ') }}
-        </span>
-      </div>
-    </div>
+      </template>
 
-    <div v-else class="carte">
-      <div v-if="!livreurs.length" class="vide">
-        <Truck :size="30" class="text-trait" />
-        <b class="vide-titre">Aucun livreur inscrit</b>
-      </div>
+      <template #actions="{ ligne }">
+        <ActionLigne
+          titre="Consulter cette boutique"
+          :icone="Eye"
+          :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
+          @click="selection = selection?.id === ligne.id ? null : ligne"
+        />
+        <ActionLigne
+          titre="Traiter le dossier de validation"
+          :icone="ShieldCheck"
+          :desactive="ligne.statut_validation !== 'EN_ATTENTE'"
+          :vers="{ name: 'admin-validations' }"
+        />
+      </template>
 
-      <div v-for="livreur in livreurs" :key="livreur.id" class="ligne">
-        <span
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-          :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
-        >
-          <component :is="livreur.mode_livraison === 'EXPRESS' ? Bike : Truck" :size="16" />
-        </span>
-        <span class="min-w-0 flex-1">
-          <b class="block truncate">{{ livreur.nom }}</b>
-          <span class="text-[11.2px] text-encre-douce">
-            {{ livreur.email }} · {{ livreur.vehicule }}
-            <template v-if="livreur.entrepot"> · {{ livreur.entrepot }}</template>
+      <template #vide>
+        <div class="vide">
+          <Store :size="30" class="text-trait" />
+          <b class="vide-titre">Aucune boutique ne correspond</b>
+        </div>
+      </template>
+    </Liste>
+
+    <Liste
+      v-else
+      :colonnes="colonnesLivreurs"
+      :lignes="livreurs"
+      :cle-ligne="(livreur) => livreur.id"
+      :chargement="chargement"
+      :recherche="(l) => `${l.nom} ${l.email} ${l.entrepot} ${l.vehicule}`"
+      placeholder="Nom, e-mail, entrepôt…"
+    >
+      <template #col-livreur="{ ligne }">
+        <span class="flex min-w-0 items-center gap-3">
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+            :style="{ background: 'var(--accent-doux)', color: 'var(--accent)' }"
+          >
+            <component :is="ligne.mode_livraison === 'EXPRESS' ? Bike : Truck" :size="16" />
+          </span>
+          <span class="min-w-0">
+            <b class="block truncate">{{ ligne.nom }}</b>
+            <span class="text-[11.2px] text-encre-douce">
+              {{ ligne.email }} · {{ ligne.vehicule }}
+            </span>
           </span>
         </span>
-        <span class="badge badge-neutre w-[86px] justify-center">
-          {{ livreur.mode_livraison.toLowerCase() }}
+      </template>
+      <template #col-mode="{ ligne }">
+        <span class="badge badge-neutre">{{ ligne.mode_livraison.toLowerCase() }}</span>
+      </template>
+      <template #col-entrepot="{ ligne }">
+        <span class="min-w-0 truncate text-encre-douce">{{ ligne.entrepot || '—' }}</span>
+      </template>
+      <template #col-livraisons="{ ligne }">{{ ligne.livraisons }}</template>
+      <template #col-statut="{ ligne }">
+        <span class="badge" :class="STATUTS[ligne.statut_validation] ?? 'badge-neutre'">
+          {{ lisible(ligne.statut_validation) }}
         </span>
-        <span class="hidden w-28 text-right text-encre-douce sm:block">
-          {{ livreur.livraisons }} livraison(s)
-        </span>
-        <span class="badge w-[92px] justify-center"
-              :class="STATUTS[livreur.statut_validation] ?? 'badge-neutre'">
-          {{ livreur.statut_validation.toLowerCase().replace(/_/g, ' ') }}
-        </span>
-      </div>
-    </div>
+      </template>
+
+      <template #actions="{ ligne }">
+        <ActionLigne
+          titre="Consulter ce livreur"
+          :icone="Eye"
+          :ton="selectionLivreur?.id === ligne.id ? 'accent' : 'neutre'"
+          @click="selectionLivreur = selectionLivreur?.id === ligne.id ? null : ligne"
+        />
+        <ActionLigne
+          titre="Traiter le dossier de validation"
+          :icone="ShieldCheck"
+          :desactive="ligne.statut_validation !== 'EN_ATTENTE'"
+          :vers="{ name: 'admin-validations' }"
+        />
+      </template>
+
+      <template #vide>
+        <div class="vide">
+          <Truck :size="30" class="text-trait" />
+          <b class="vide-titre">Aucun livreur inscrit</b>
+        </div>
+      </template>
+    </Liste>
+
+    <Volet v-if="onglet === 'boutiques' && selection" :titre="selection.nom_boutique">
+      <dl class="flex flex-col gap-2 text-[12px]">
+        <div>
+          <dt class="text-encre-douce">Responsable</dt>
+          <dd class="font-semibold">{{ selection.responsable }}</dd>
+          <dd class="break-all text-encre-douce">{{ selection.email }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Service</dt>
+          <dd class="font-semibold">{{ selection.type_activite }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Ville</dt>
+          <dd class="font-semibold">{{ selection.ville || '—' }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Produits en ligne</dt>
+          <dd class="font-semibold">{{ selection.produits }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Commandes reçues</dt>
+          <dd class="font-semibold">{{ selection.commandes }}</dd>
+        </div>
+        <div v-if="selection.description">
+          <dt class="text-encre-douce">Description</dt>
+          <dd class="leading-relaxed">{{ selection.description }}</dd>
+        </div>
+      </dl>
+    </Volet>
+
+    <Volet v-if="onglet === 'livreurs' && selectionLivreur" :titre="selectionLivreur.nom">
+      <dl class="flex flex-col gap-2 text-[12px]">
+        <div>
+          <dt class="text-encre-douce">Adresse e-mail</dt>
+          <dd class="font-semibold break-all">{{ selectionLivreur.email }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Mode</dt>
+          <dd class="font-semibold">{{ selectionLivreur.mode_livraison }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Véhicule</dt>
+          <dd class="font-semibold">{{ selectionLivreur.vehicule }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Entrepôt</dt>
+          <dd class="font-semibold">{{ selectionLivreur.entrepot || '—' }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Disponibilité</dt>
+          <dd class="font-semibold">
+            {{ lisible(selectionLivreur.statut_disponibilite) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Livraisons effectuées</dt>
+          <dd class="font-semibold">{{ selectionLivreur.livraisons }}</dd>
+        </div>
+      </dl>
+    </Volet>
   </div>
 </template>

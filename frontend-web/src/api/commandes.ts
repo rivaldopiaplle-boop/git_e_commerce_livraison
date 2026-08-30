@@ -49,7 +49,21 @@ export type Commande = {
 
 export const commandes = {
   apercu: () =>
-    api.get<{ commandes: ApercuCommande[]; total_centimes: number }>('/panier/apercu-commandes'),
+    api.get<{
+      commandes: ApercuCommande[]
+      total_centimes: number
+      // Les lignes qu'on ne peut pas commander, nommement. Sans elles,
+      // l'ecran ne pouvait qu'echouer sans dire quoi retirer.
+      lignes_bloquantes: {
+        id_ligne: number
+        id_produit: number
+        nom: string
+        quantite: number
+        code: string
+        message: string
+        disponible?: number
+      }[]
+    }>('/panier/apercu-commandes'),
   creer: (corps: object) => api.post<Commande[]>('/commandes', corps),
   miennes: () => api.get<Commande[]>('/mes-commandes'),
   recues: () => api.get<SousCommande[]>('/vendeurs/commandes'),

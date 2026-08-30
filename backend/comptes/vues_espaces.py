@@ -543,3 +543,151 @@ __all__ = [
     "suspendre",
     "utilisateurs",
 ]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Client — les avis
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def avis_de_commande(requete, identifiant):
+    """L'avis du client sur une commande livree.
+
+    Trois regles, toutes tenues cote serveur :
+
+      · **on ne note que ce qu'on a recu** (R-06) : la commande doit etre
+        livree. Autoriser un avis avant livraison ouvre la porte aux faux ;
+      · **on ne note que ses propres commandes** ;
+      · **un seul avis par cible et par commande** — la boutique, le livreur,
+        et chaque produit recu.
+    """
+    from commandes.models import Commande, StatutCommande
+    from engagement.models import Avis, CibleAvis
+
+    profil = getattr(requete.user, "profil_client", None)
+    if profil is None:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    commande = (
+        Commande.objects.filter(pk=identifiant, client=profil)
+        .prefetch_related("sous_commandes__vendeur", "sous_commandes__lignes__produit")
+        .first()
+    )
+    if commande is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    deja = {
+        (avis.cible, avis.id_cible): avis
+        for avis in Avis.objects.filter(client=profil, commande=commande)
+    }
+
+    if requete.method == "POST":
+        if commande.statut_actuel != StatutCommande.LIVREE:
+            return Response(
+                {"erreur": {"code": "pas_encore_livree",
+                            "message": "On ne note que ce qu'on a recu : "
+                                       "attendez la livraison.",
+                            "details": {}}},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        cible = requete.data.get("cible")
+        id_cible = requete.data.get("id_cible")
+        note = requete.data.get("note")
+        if cible not in CibleAvis.values or not id_cible:
+            return Response(
+                {"erreur": {"code": "cible_invalide",
+                            "message": "Precisez ce que vous notez.", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            note = int(note)
+        except (TypeError, ValueError):
+            note = 0
+        if not 1 <= note <= 5:
+            return Response(
+                {"erreur": {"code": "note_invalide",
+                            "message": "La note va de 1 a 5.", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verifier que la cible appartient bien a CETTE commande : sans cela,
+        # un client pourrait noter n'importe quelle boutique en changeant un
+        # identifiant dans la requete.
+        if not _cible_appartient(commande, cible, int(id_cible)):
+            return Response(
+                {"erreur": {"code": "cible_hors_commande",
+                            "message": "Cet element ne fait pas partie de la commande.",
+                            "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        avis, _ = Avis.objects.update_or_create(
+            client=profil, commande=commande, cible=cible, id_cible=int(id_cible),
+            defaults={"note": note,
+                      "commentaire": str(requete.data.get("commentaire", ""))[:2000]},
+        )
+        deja[(avis.cible, avis.id_cible)] = avis
+
+    return Response({"data": _avis_possibles(commande, deja)})
+
+
+def _cible_appartient(commande, cible, id_cible):
+    from engagement.models import CibleAvis
+
+    if cible == CibleAvis.VENDEUR:
+        return commande.sous_commandes.filter(vendeur_id=id_cible).exists()
+    if cible == CibleAvis.PRODUIT:
+        return commande.sous_commandes.filter(lignes__produit_id=id_cible).exists()
+    if cible == CibleAvis.LIVREUR:
+        livraison = getattr(commande, "livraison", None)
+        return bool(livraison and livraison.livreur_id == id_cible)
+    return False
+
+
+def _avis_possibles(commande, deja):
+    """Ce que ce client peut noter sur cette commande, et ce qu'il a deja note.
+
+    L'ecran n'a ainsi rien a deviner : il affiche la liste telle quelle.
+    """
+    from commandes.models import StatutCommande
+    from engagement.models import CibleAvis
+
+    elements = []
+    for sous_commande in commande.sous_commandes.all():
+        elements.append({
+            "cible": CibleAvis.VENDEUR,
+            "id_cible": sous_commande.vendeur_id,
+            "libelle": sous_commande.vendeur.nom_boutique,
+            "sous_titre": "La boutique",
+        })
+        for ligne in sous_commande.lignes.all():
+            if ligne.produit_id:
+                elements.append({
+                    "cible": CibleAvis.PRODUIT,
+                    "id_cible": ligne.produit_id,
+                    "libelle": ligne.nom_produit_capture,
+                    "sous_titre": "Le produit",
+                })
+
+    livraison = getattr(commande, "livraison", None)
+    if livraison and livraison.livreur_id:
+        utilisateur = livraison.livreur.utilisateur
+        elements.append({
+            "cible": CibleAvis.LIVREUR,
+            "id_cible": livraison.livreur_id,
+            "libelle": utilisateur.prenom,
+            "sous_titre": "Le livreur",
+        })
+
+    for element in elements:
+        avis = deja.get((element["cible"], element["id_cible"]))
+        element["note"] = avis.note if avis else None
+        element["commentaire"] = avis.commentaire if avis else ""
+
+    return {
+        "livree": commande.statut_actuel == StatutCommande.LIVREE,
+        "elements": elements,
+    }

@@ -103,3 +103,30 @@ def modifier_ligne(requete, identifiant):
         ligne.save(update_fields=["quantite"])
 
     return Response({"data": resume(panier, requete)})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def nettoyer_panier(requete):
+    """Retire d'un geste tout ce qui n'est plus commandable.
+
+    Sans cette route, un panier de quinze articles dont un seul a ete retire
+    de la vente devenait entierement incommandable, et le client n'avait
+    aucun moyen de s'en sortir : l'ecran refusait, sans dire quoi enlever.
+    Une impasse pareille fait abandonner un achat.
+    """
+    from .decoupage import lignes_bloquantes
+
+    panier = panier_courant(requete.user, _cle(requete), creer=False)
+    if panier is None:
+        return Response({"data": resume(None, requete)})
+
+    bloquantes = lignes_bloquantes(panier)
+    identifiants = [ligne["id_ligne"] for ligne in bloquantes]
+    if identifiants:
+        LignePanier.objects.filter(panier=panier, id__in=identifiants).delete()
+
+    return Response({"data": {
+        **resume(panier, requete),
+        "retirees": bloquantes,
+    }})

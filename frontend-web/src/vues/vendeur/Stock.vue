@@ -1,62 +1,59 @@
 <script setup lang="ts">
-// L'ecran de stock.
+// L'écran de stock.
 //
-// Il presentait l'ajustement dans un formulaire deplie sous la ligne, avec
-// une quantite a saisir sous la forme « +5 / -2 » et un historique tasse
-// dessous. Deux erreurs :
-//
-//   · la maquette prevoit une POPUP pour cette action, avec « Nouvelle
-//     quantite » et un motif a choisir. C'est ainsi qu'on fait un inventaire :
-//     on compte ce qu'il y a sur l'etagere, on ne calcule pas de tete l'ecart
-//     avec ce que l'ecran affiche ;
-//   · l'historique n'a rien a faire coince entre deux lignes de liste. Il
-//     part dans son propre onglet, en tableau, ou il se lit.
+// La correction du stock est une **popup**, comme la maquette la décrit :
+// « Nouvelle quantité » et un motif à choisir. On compte ce qu'il y a sur
+// l'étagère, on ne calcule pas de tête l'écart avec ce que l'écran affiche.
+// L'historique a son propre onglet, en tableau, tous produits confondus.
 import {
-  AlertTriangle, ArrowDownRight, ArrowUpRight, Boxes, Check, History, PackageX, Search,
+  AlertTriangle, ArrowDownRight, ArrowUpRight, Boxes, Check, History, PackageX,
 } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 import { EchecApi } from '../../api/client'
 import { vendeur, type Mouvement, type ProduitCatalogue } from '../../api/vendeur'
+import ActionLigne from '../../composants/ActionLigne.vue'
+import Liste from '../../composants/Liste.vue'
+import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
 import Popup from '../../composants/Popup.vue'
-import Squelette from '../../composants/Squelette.vue'
+import Volet from '../../composants/Volet.vue'
 
-const produits = ref<ProduitCatalogue[]>([])
+type Ligne = ProduitCatalogue & { [cle: string]: unknown }
+type LigneJournal = Mouvement & { produit: string; [cle: string]: unknown }
+
+const produits = ref<Ligne[]>([])
 const chargement = ref(true)
 const onglet = ref('tout')
-const filtre = ref('')
 
-const ajuste = ref<ProduitCatalogue | null>(null)
+const ajuste = ref<Ligne | null>(null)
+const selection = ref<Ligne | null>(null)
+const mouvementsProduit = ref<Mouvement[]>([])
 const saisie = ref({ quantite: '0', type: 'AJUSTEMENT', motif: '' })
 const erreur = ref('')
 const message = ref('')
 const occupe = ref(false)
 
-const journal = ref<(Mouvement & { produit: string })[]>([])
+const journal = ref<LigneJournal[]>([])
 const journalCharge = ref(false)
 
-// Les motifs de la maquette. Une liste fermee plutot qu'un champ libre : six
+// Les motifs de la maquette. Une liste fermée plutôt qu'un champ libre : six
 // mois plus tard, « erreur » et « erreur de saisie » ne se regroupent plus.
 const MOTIFS = [
-  'Inventaire',
-  'Casse',
-  'Erreur de saisie',
-  'Perime',
-  'Vol ou perte',
-  'Rupture constatee en boutique',
+  'Inventaire', 'Casse', 'Erreur de saisie', 'Périmé', 'Vol ou perte',
+  'Rupture constatée en boutique',
 ]
 
 const TYPES = [
   { valeur: 'AJUSTEMENT', libelle: 'Ajustement manuel', motifRequis: true },
-  { valeur: 'REAPPRO', libelle: 'Reapprovisionnement', motifRequis: false },
+  { valeur: 'REAPPRO', libelle: 'Réapprovisionnement', motifRequis: false },
   { valeur: 'RETOUR', libelle: 'Retour client', motifRequis: false },
 ]
 
 async function charger() {
   chargement.value = true
   try {
-    produits.value = await vendeur.mesProduits()
+    produits.value = (await vendeur.mesProduits()) as Ligne[]
   } finally {
     chargement.value = false
   }
@@ -65,20 +62,15 @@ async function charger() {
 onMounted(charger)
 
 const aReapprovisionner = computed(() =>
-  produits.value.filter(
-    (p) => p.est_visible && p.stock_disponible <= p.seuil_alerte,
-  ),
+  produits.value.filter((p) => p.est_visible && p.stock_disponible <= p.seuil_alerte),
 )
 const ruptures = computed(() => produits.value.filter((p) => p.est_visible && p.est_en_rupture))
 
-const visibles = computed(() => {
-  const base =
-    onglet.value === 'manquants' ? aReapprovisionner.value
-      : onglet.value === 'ruptures' ? ruptures.value
-        : produits.value
-  const recherche = filtre.value.trim().toLowerCase()
-  return recherche ? base.filter((p) => p.nom.toLowerCase().includes(recherche)) : base
-})
+const visibles = computed(() =>
+  onglet.value === 'manquants' ? aReapprovisionner.value
+    : onglet.value === 'ruptures' ? ruptures.value
+      : produits.value,
+)
 
 const typeCourant = computed(
   () => TYPES.find((type) => type.valeur === saisie.value.type) ?? TYPES[0],
@@ -87,11 +79,20 @@ const ecart = computed(
   () => Number(saisie.value.quantite || 0) - (ajuste.value?.stock_disponible ?? 0),
 )
 
-function ouvrir(produit: ProduitCatalogue) {
+function ouvrirAjustement(produit: Ligne) {
   ajuste.value = produit
   saisie.value = { quantite: String(produit.stock_disponible), type: 'AJUSTEMENT', motif: '' }
   erreur.value = ''
   message.value = ''
+}
+
+async function consulter(produit: Ligne) {
+  if (selection.value?.id === produit.id) {
+    selection.value = null
+    return
+  }
+  selection.value = produit
+  mouvementsProduit.value = await vendeur.stock.mouvements(produit.id)
 }
 
 async function appliquer() {
@@ -105,20 +106,21 @@ async function appliquer() {
       saisie.value.type,
       saisie.value.motif,
     )
-    message.value = `« ${ajuste.value.nom} » : stock a ${resultat.stock_disponible}.`
+    message.value = `« ${ajuste.value.nom} » : stock à ${resultat.stock_disponible}.`
     ajuste.value = null
     journalCharge.value = false
     await charger()
+    if (selection.value) await consulter(selection.value)
     if (onglet.value === 'journal') await chargerJournal()
   } catch (echec) {
-    erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Ajustement refuse.'
+    erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Ajustement refusé.'
   } finally {
     occupe.value = false
   }
 }
 
-/** Le journal complet : tous les mouvements de la boutique, du plus recent
- *  au plus ancien. C'est ce qu'on ouvre quand un chiffre ne tombe pas juste. */
+/** Le journal complet : tous les mouvements de la boutique. C'est ce qu'on
+ *  ouvre quand un chiffre ne tombe pas juste. */
 async function chargerJournal() {
   if (journalCharge.value) return
   const lots = await Promise.all(
@@ -130,7 +132,7 @@ async function chargerJournal() {
   journal.value = lots
     .flat()
     .sort((a, b) => b.date_mouvement.localeCompare(a.date_mouvement))
-    .slice(0, 120)
+    .slice(0, 150) as LigneJournal[]
   journalCharge.value = true
 }
 
@@ -139,19 +141,43 @@ function changerOnglet(valeur: string) {
   if (valeur === 'journal') chargerJournal()
 }
 
+const colonnes: Colonne<Ligne>[] = [
+  { cle: 'produit', titre: 'Produit', tri: (a, b) => a.nom.localeCompare(b.nom) },
+  { cle: 'seuil', titre: 'Seuil', largeur: 74, aligne: 'droite', masquerSous: 'md' },
+  { cle: 'stock', titre: 'En stock', largeur: 90, aligne: 'droite',
+    tri: (a, b) => a.stock_disponible - b.stock_disponible },
+  { cle: 'etat', titre: 'État', largeur: 100, aligne: 'centre' },
+]
+
+const colonnesJournal: Colonne<LigneJournal>[] = [
+  { cle: 'date', titre: 'Date', largeur: 130,
+    tri: (a, b) => a.date_mouvement.localeCompare(b.date_mouvement) },
+  { cle: 'produit', titre: 'Produit' },
+  { cle: 'type', titre: 'Type', largeur: 150, masquerSous: 'md' },
+  { cle: 'quantite', titre: 'Quantité', largeur: 90, aligne: 'droite' },
+  { cle: 'apres', titre: 'Après', largeur: 70, aligne: 'droite' },
+  { cle: 'motif', titre: 'Motif', masquerSous: 'lg' },
+]
+
 const quand = (date: string) =>
   new Date(date).toLocaleString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
   })
+
+const etat = (produit: Ligne) =>
+  produit.est_en_rupture ? { classe: 'badge-erreur', libelle: 'rupture' }
+    : produit.stock_disponible <= produit.seuil_alerte
+      ? { classe: 'badge-attente', libelle: 'stock bas' }
+      : { classe: 'badge-ok', libelle: 'ok' }
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1040px] animate-[apparition_0.2s_ease-out]">
+  <div class="mx-auto max-w-[1060px] animate-[apparition_0.2s_ease-out]">
     <Onglets
       :model-value="onglet"
       :onglets="[
         { cle: 'tout', libelle: 'Tous les produits', compteur: produits.length },
-        { cle: 'manquants', libelle: 'A reapprovisionner', compteur: aReapprovisionner.length },
+        { cle: 'manquants', libelle: 'À réapprovisionner', compteur: aReapprovisionner.length },
         { cle: 'ruptures', libelle: 'En rupture', compteur: ruptures.length },
         { cle: 'journal', libelle: 'Historique' },
       ]"
@@ -163,188 +189,208 @@ const quand = (date: string) =>
       {{ message }}
     </p>
 
-    <!-- ── L'historique, dans son propre onglet ─────────────────────── -->
-    <div v-if="onglet === 'journal'" class="carte">
-      <h3 class="carte-titre">
-        <span class="flex items-center gap-2"><History :size="15" /> Mouvements de stock</span>
-        <span class="text-[11px] font-semibold text-encre-douce">
-          les 120 derniers, toutes references confondues
+    <!-- L'historique, dans son propre onglet -->
+    <Liste
+      v-if="onglet === 'journal'"
+      :colonnes="colonnesJournal"
+      :lignes="journal"
+      :cle-ligne="(mouvement) => mouvement.id"
+      :chargement="!journalCharge"
+      :recherche="(m) => `${m.produit} ${m.libelle_type} ${m.motif} ${m.auteur}`"
+      placeholder="Produit, motif, auteur…"
+      :par-page="15"
+    >
+      <template #col-date="{ ligne }">
+        <span class="text-encre-douce">{{ quand(ligne.date_mouvement) }}</span>
+      </template>
+      <template #col-produit="{ ligne }">
+        <b class="truncate">{{ ligne.produit }}</b>
+      </template>
+      <template #col-type="{ ligne }">{{ ligne.libelle_type }}</template>
+      <template #col-quantite="{ ligne }">
+        <b :class="ligne.quantite > 0 ? 'text-succes' : 'text-alerte'">
+          <component
+            :is="ligne.quantite > 0 ? ArrowUpRight : ArrowDownRight"
+            :size="12"
+            class="inline"
+          />
+          {{ ligne.quantite > 0 ? '+' : '' }}{{ ligne.quantite }}
+        </b>
+      </template>
+      <template #col-apres="{ ligne }">{{ ligne.stock_apres }}</template>
+      <template #col-motif="{ ligne }">
+        <span class="min-w-0 truncate text-encre-douce">
+          {{ ligne.motif || '—' }} · {{ ligne.auteur }}
         </span>
-      </h3>
-
-      <div v-if="!journalCharge" class="p-4">
-        <Squelette v-for="n in 5" :key="n" hauteur="34px" />
-      </div>
-
-      <div v-else-if="!journal.length" class="vide">
-        <History :size="30" class="text-trait" />
-        <b class="vide-titre">Aucun mouvement enregistre</b>
-        <p class="vide-texte">
-          Chaque reapprovisionnement, vente ou correction apparaitra ici, avec son motif
-          et son auteur.
-        </p>
-      </div>
-
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-[12.5px]">
-          <thead>
-            <tr class="border-b border-trait-doux text-left text-[10.5px] font-bold
-                       tracking-wider text-encre-douce uppercase">
-              <th class="px-4 py-2.5">Date</th>
-              <th class="px-4 py-2.5">Produit</th>
-              <th class="px-4 py-2.5">Type</th>
-              <th class="px-4 py-2.5 text-right">Quantite</th>
-              <th class="px-4 py-2.5 text-right">Apres</th>
-              <th class="px-4 py-2.5">Motif</th>
-              <th class="px-4 py-2.5">Par</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="mouvement in journal"
-              :key="mouvement.id"
-              class="border-b border-trait-doux last:border-0 hover:bg-atelier"
-            >
-              <td class="px-4 py-2.5 whitespace-nowrap text-encre-douce">
-                {{ quand(mouvement.date_mouvement) }}
-              </td>
-              <td class="px-4 py-2.5 font-semibold">{{ mouvement.produit }}</td>
-              <td class="px-4 py-2.5">{{ mouvement.libelle_type }}</td>
-              <td
-                class="px-4 py-2.5 text-right font-bold whitespace-nowrap"
-                :class="mouvement.quantite > 0 ? 'text-succes' : 'text-alerte'"
-              >
-                <component
-                  :is="mouvement.quantite > 0 ? ArrowUpRight : ArrowDownRight"
-                  :size="12"
-                  class="inline"
-                />
-                {{ mouvement.quantite > 0 ? '+' : '' }}{{ mouvement.quantite }}
-              </td>
-              <td class="px-4 py-2.5 text-right">{{ mouvement.stock_apres }}</td>
-              <td class="px-4 py-2.5 text-encre-douce">{{ mouvement.motif || '—' }}</td>
-              <td class="px-4 py-2.5 text-encre-douce">{{ mouvement.auteur }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── Les listes de produits ───────────────────────────────────── -->
-    <template v-else>
-      <div class="mb-4 flex items-center gap-2 rounded-full bg-papier px-3.5 py-2 ring-1
-                  ring-trait">
-        <Search :size="14" class="text-encre-douce" />
-        <input
-          v-model="filtre"
-          type="search"
-          placeholder="Filtrer par nom…"
-          class="w-full bg-transparent text-[12.5px] focus:outline-none"
-        />
-      </div>
-
-      <p v-if="aReapprovisionner.length && onglet === 'tout'" class="bandeau mb-3">
-        <AlertTriangle :size="15" class="mt-px shrink-0" />
-        {{ aReapprovisionner.length }} produit(s) sous le seuil d alerte — pensez a
-        reapprovisionner ou a corriger le stock systeme.
-      </p>
-
-      <div v-if="chargement" class="flex flex-col gap-2">
-        <Squelette v-for="n in 5" :key="n" hauteur="54px" />
-      </div>
-
-      <div v-else-if="!visibles.length" class="carte">
+      </template>
+      <template #vide>
         <div class="vide">
-          <Boxes :size="30" class="text-trait" />
-          <b class="vide-titre">
-            {{
-              onglet === 'manquants' ? 'Rien a reapprovisionner'
-              : onglet === 'ruptures' ? 'Aucune rupture en cours'
-              : 'Aucun produit'
-            }}
-          </b>
+          <History :size="30" class="text-trait" />
+          <b class="vide-titre">Aucun mouvement enregistré</b>
           <p class="vide-texte">
-            {{
-              onglet === 'tout'
-                ? 'Les produits de votre boutique apparaitront ici avec leur stock.'
-                : 'Tout est au-dessus du seuil que vous avez fixe.'
-            }}
+            Chaque réapprovisionnement, vente ou correction apparaîtra ici, avec son
+            motif et son auteur.
           </p>
         </div>
-      </div>
+      </template>
+    </Liste>
 
-      <div v-else class="carte">
-        <div v-for="produit in visibles" :key="produit.id" class="ligne">
-          <img
-            v-if="produit.image"
-            :src="produit.image"
-            :alt="produit.nom"
-            class="h-10 w-10 shrink-0 rounded-lg object-cover"
-          />
-          <span class="min-w-0 flex-1">
-            <b class="block truncate">{{ produit.nom }}</b>
-            <span class="text-[11.2px] text-encre-douce">
-              seuil d alerte a {{ produit.seuil_alerte }}
-              <template v-if="produit.stock_reserve">
-                · {{ produit.stock_reserve }} reserve(s) par un paiement en cours
-              </template>
-              <template v-if="!produit.est_visible"> · retire de la vente</template>
+    <!-- Les produits -->
+    <template v-else>
+      <p v-if="aReapprovisionner.length && onglet === 'tout'" class="bandeau mb-3">
+        <AlertTriangle :size="15" class="mt-px shrink-0" />
+        {{ aReapprovisionner.length }} produit(s) sous le seuil d'alerte — pensez à
+        réapprovisionner ou à corriger le stock système.
+      </p>
+
+      <Liste
+        :colonnes="colonnes"
+        :lignes="visibles"
+        :cle-ligne="(produit) => produit.id"
+        :chargement="chargement"
+        :recherche="(p) => p.nom"
+        placeholder="Filtrer par nom…"
+      >
+        <template #col-produit="{ ligne }">
+          <span class="flex min-w-0 items-center gap-3">
+            <img
+              v-if="ligne.image"
+              :src="ligne.image"
+              :alt="ligne.nom"
+              class="h-9 w-9 shrink-0 rounded-lg object-cover"
+            />
+            <span class="min-w-0">
+              <b class="block truncate">{{ ligne.nom }}</b>
+              <span class="text-[11.2px] text-encre-douce">
+                <template v-if="ligne.stock_reserve">
+                  {{ ligne.stock_reserve }} réservé(s) par un paiement en cours
+                </template>
+                <template v-else-if="!ligne.est_visible">retiré de la vente</template>
+                <template v-else>{{ ligne.categorie?.nom ?? 'Sans catégorie' }}</template>
+              </span>
             </span>
           </span>
+        </template>
+        <template #col-seuil="{ ligne }">
+          <span class="text-encre-douce">{{ ligne.seuil_alerte }}</span>
+        </template>
+        <template #col-stock="{ ligne }">
+          <b class="text-[15px]">{{ ligne.stock_disponible }}</b>
+        </template>
+        <template #col-etat="{ ligne }">
+          <span class="badge" :class="etat(ligne).classe">{{ etat(ligne).libelle }}</span>
+        </template>
 
-          <span class="w-16 shrink-0 text-right text-[16px] font-extrabold">
-            {{ produit.stock_disponible }}
-          </span>
+        <template #actions="{ ligne }">
+          <ActionLigne
+            titre="Consulter l'historique de ce produit"
+            :icone="History"
+            :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
+            @click="consulter(ligne)"
+          />
+          <ActionLigne
+            titre="Corriger le stock"
+            :icone="Boxes"
+            @click="ouvrirAjustement(ligne)"
+          />
+          <ActionLigne
+            titre="Mettre en rupture"
+            :icone="PackageX"
+            ton="danger"
+            :desactive="ligne.est_en_rupture"
+            @click="ouvrirAjustement(ligne); saisie.quantite = '0';
+                    saisie.motif = 'Rupture constatée en boutique'"
+          />
+        </template>
 
-          <span
-            class="badge w-[92px] shrink-0 justify-center"
-            :class="
-              produit.est_en_rupture ? 'badge-erreur'
-              : produit.stock_disponible <= produit.seuil_alerte ? 'badge-attente'
-              : 'badge-ok'
-            "
-          >
-            {{
-              produit.est_en_rupture ? 'rupture'
-              : produit.stock_disponible <= produit.seuil_alerte ? 'stock bas'
-              : 'ok'
-            }}
-          </span>
-
-          <button
-            type="button"
-            class="bouton-ligne"
-            title="Corriger le stock"
-            @click="ouvrir(produit)"
-          >
-            <Boxes :size="14" />
-            <span class="sr-only">Corriger le stock de {{ produit.nom }}</span>
-          </button>
-        </div>
-      </div>
+        <template #vide>
+          <div class="vide">
+            <Boxes :size="30" class="text-trait" />
+            <b class="vide-titre">
+              {{
+                onglet === 'manquants' ? 'Rien à réapprovisionner'
+                : onglet === 'ruptures' ? 'Aucune rupture en cours'
+                : 'Aucun produit'
+              }}
+            </b>
+            <p class="vide-texte">
+              {{
+                onglet === 'tout'
+                  ? 'Les produits de votre boutique apparaîtront ici avec leur stock.'
+                  : 'Tout est au-dessus du seuil que vous avez fixé.'
+              }}
+            </p>
+          </div>
+        </template>
+      </Liste>
     </template>
 
-    <!-- ── La popup d'ajustement, telle que la maquette la decrit ───── -->
+    <!-- L'historique du produit consulté, dans le volet -->
+    <Volet v-if="selection" :titre="selection.nom">
+      <dl class="flex flex-col gap-2 text-[12px]">
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">En stock</dt>
+          <dd class="font-semibold">{{ selection.stock_disponible }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Commandable</dt>
+          <dd class="font-semibold">{{ selection.stock_commandable }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-encre-douce">Seuil d'alerte</dt>
+          <dd class="font-semibold">{{ selection.seuil_alerte }}</dd>
+        </div>
+      </dl>
+
+      <button type="button" class="bouton-accent mt-3 w-full" @click="ouvrirAjustement(selection)">
+        <Boxes :size="15" /> Corriger le stock
+      </button>
+
+      <b class="mt-4 block text-[11px] font-bold tracking-wider text-encre-douce uppercase">
+        Derniers mouvements
+      </b>
+      <div v-if="!mouvementsProduit.length" class="vide !py-6">
+        <b class="vide-titre">Aucun mouvement</b>
+      </div>
+      <ul v-else class="mt-2 flex flex-col gap-1.5">
+        <li
+          v-for="mouvement in mouvementsProduit.slice(0, 10)"
+          :key="mouvement.id"
+          class="rounded-lg border border-trait bg-papier px-2.5 py-2 text-[11.5px]"
+        >
+          <span class="flex items-center justify-between gap-2">
+            <b>{{ mouvement.libelle_type }}</b>
+            <b :class="mouvement.quantite > 0 ? 'text-succes' : 'text-alerte'">
+              {{ mouvement.quantite > 0 ? '+' : '' }}{{ mouvement.quantite }}
+              → {{ mouvement.stock_apres }}
+            </b>
+          </span>
+          <span class="mt-0.5 block text-encre-douce">
+            {{ quand(mouvement.date_mouvement) }}
+            <template v-if="mouvement.motif"> · {{ mouvement.motif }}</template>
+          </span>
+        </li>
+      </ul>
+    </Volet>
+
+    <!-- La popup d'ajustement, telle que la maquette la décrit -->
     <Popup
       v-if="ajuste"
       titre="Corriger le stock"
-      :explication="`« ${ajuste.nom} » — le systeme en compte ${ajuste.stock_disponible}.
-                     Saisissez la quantite reellement presente : l'ecart est calcule et
-                     trace dans l'historique, jamais une modification silencieuse.`"
+      :explication="`« ${ajuste.nom} » — le système en compte ${ajuste.stock_disponible}.
+                     Saisissez la quantité réellement présente : l'écart est calculé et
+                     tracé dans l'historique, jamais une modification silencieuse.`"
       @fermer="ajuste = null"
     >
       <form class="flex flex-col gap-3.5" @submit.prevent="appliquer">
         <label class="flex flex-col gap-1.5">
-          <span class="etiquette">Nouvelle quantite</span>
-          <input
-            v-model="saisie.quantite"
-            type="number"
-            min="0"
-            required
-            class="champ-clair"
-          />
-          <span v-if="ecart !== 0" class="text-[11.5px] font-semibold"
-                :class="ecart > 0 ? 'text-succes' : 'text-alerte'">
+          <span class="etiquette">Nouvelle quantité</span>
+          <input v-model="saisie.quantite" type="number" min="0" required class="champ-clair" />
+          <span
+            v-if="ecart !== 0"
+            class="text-[11.5px] font-semibold"
+            :class="ecart > 0 ? 'text-succes' : 'text-alerte'"
+          >
             {{ ecart > 0 ? '+' : '' }}{{ ecart }} par rapport au stock actuel
           </span>
         </label>
@@ -384,9 +430,9 @@ const quand = (date: string) =>
       <template #actions>
         <button
           type="button"
-          class="bouton-neutre !py-2 mr-auto"
-          title="Passer le stock a zero"
-          @click="saisie.quantite = '0'; saisie.motif = saisie.motif || 'Rupture constatee'"
+          class="bouton-neutre mr-auto !py-2"
+          title="Passer le stock à zéro"
+          @click="saisie.quantite = '0'; saisie.motif = saisie.motif || 'Rupture constatée'"
         >
           <PackageX :size="15" />
           Mettre en rupture

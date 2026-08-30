@@ -1,17 +1,41 @@
 <script setup lang="ts">
-// Les colis recus a l'entrepot, groupes par boutique deposante.
+// Les colis reçus à l'entrepôt.
 //
-// C'est ainsi qu'ils arrivent physiquement : un vendeur Standard depose son
-// lot du jour, pas un colis a la fois. Les grouper par commande obligerait le
-// magasinier a faire dans sa tete le travail que l'ecran doit faire.
-import { Building2, MapPin, Package, Warehouse } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+// Deux reproches du bloc K-1, tous deux justes :
+//
+//   « on ne peut même pas consulter les colis » — c'était une liste morte, sans
+//   aucun bouton. On voyait des numéros de commande sans jamais savoir ce qu'il
+//   y avait dedans ni où ça allait.
+//
+//   « gérer, je ne pense pas que ce soit une bonne idée » — d'accord, et c'est
+//   la bonne intuition : un magasinier ne modifie pas une commande, il la
+//   **réceptionne**. Les actions sont donc **consulter** (le détail dans le
+//   volet) et **localiser** (la destination), pas « modifier ».
+import { Eye, MapPin, Package, Warehouse } from '@lucide/vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { espaces, type Colis } from '../../api/espaces'
-import Squelette from '../../composants/Squelette.vue'
+import ActionLigne from '../../composants/ActionLigne.vue'
+import Liste from '../../composants/Liste.vue'
+import type { Colonne } from '../../composants/liste'
+import Onglets from '../../composants/Onglets.vue'
+import Volet from '../../composants/Volet.vue'
+
+type LigneColis = {
+  id: number
+  numero_commande: string
+  destination: string
+  articles: number
+  date_expedition: string | null
+  vendeur: string
+  ville: string
+  [cle: string]: unknown
+}
 
 const donnees = ref<Colis | null>(null)
 const chargement = ref(true)
+const onglet = ref('tout')
+const selection = ref<LigneColis | null>(null)
 
 onMounted(async () => {
   try {
@@ -20,6 +44,36 @@ onMounted(async () => {
     chargement.value = false
   }
 })
+
+/** Les colis à plat : c'est ce qu'une liste triable demande. Le regroupement
+ *  par boutique reste accessible par l'onglet et par la colonne. */
+const tousLesColis = computed<LigneColis[]>(() =>
+  (donnees.value?.groupes ?? []).flatMap((groupe) =>
+    groupe.colis.map((colis) => ({
+      ...colis,
+      vendeur: groupe.vendeur,
+      ville: groupe.ville,
+    })),
+  ),
+)
+
+const boutiques = computed(() => (donnees.value?.groupes ?? []).map((g) => g.vendeur))
+
+const visibles = computed(() =>
+  onglet.value === 'tout'
+    ? tousLesColis.value
+    : tousLesColis.value.filter((colis) => colis.vendeur === onglet.value),
+)
+
+const colonnes: Colonne<LigneColis>[] = [
+  { cle: 'numero', titre: 'Commande', largeur: 170 },
+  { cle: 'vendeur', titre: 'Boutique déposante' },
+  { cle: 'destination', titre: 'Destination', masquerSous: 'md' },
+  { cle: 'articles', titre: 'Articles', largeur: 80, aligne: 'droite',
+    tri: (a, b) => a.articles - b.articles },
+  { cle: 'recu', titre: 'Reçu le', largeur: 120, aligne: 'droite', masquerSous: 'lg',
+    tri: (a, b) => (a.date_expedition ?? '').localeCompare(b.date_expedition ?? '') },
+]
 
 const quand = (date: string | null) =>
   date
@@ -30,56 +84,104 @@ const quand = (date: string | null) =>
 </script>
 
 <template>
-  <div class="mx-auto max-w-[900px] animate-[apparition_0.2s_ease-out]">
-    <div v-if="chargement" class="flex flex-col gap-2">
-      <Squelette v-for="n in 3" :key="n" hauteur="90px" />
-    </div>
+  <div class="mx-auto max-w-[1000px] animate-[apparition_0.2s_ease-out]">
+    <p class="bandeau bandeau-info mb-4">
+      <Warehouse :size="15" class="mt-px shrink-0" />
+      <span>
+        <b>{{ donnees?.entrepot?.nom ?? 'Entrepôt' }}</b> — {{ donnees?.total ?? 0 }} colis reçu(s)
+        de {{ boutiques.length }} boutique(s). Un entrepôt regroupe plusieurs vendeurs
+        Standard : c'est ce qui rend une tournée possible.
+      </span>
+    </p>
 
-    <template v-else-if="donnees">
-      <p class="bandeau bandeau-info mb-4">
-        <Warehouse :size="15" class="mt-px shrink-0" />
-        <span>
-          <b>{{ donnees.entrepot?.nom ?? 'Entrepot' }}</b> — {{ donnees.total }} colis recu(s)
-          de {{ donnees.groupes.length }} boutique(s). Un entrepot regroupe plusieurs
-          vendeurs Standard : c'est ce qui rend une tournee possible.
+    <Onglets
+      v-if="boutiques.length > 1"
+      v-model="onglet"
+      :onglets="[
+        { cle: 'tout', libelle: 'Tous les colis', compteur: tousLesColis.length },
+        ...(donnees?.groupes ?? []).map((groupe) => ({
+          cle: groupe.vendeur,
+          libelle: groupe.vendeur,
+          compteur: groupe.colis.length,
+        })),
+      ]"
+    />
+
+    <Liste
+      :colonnes="colonnes"
+      :lignes="visibles"
+      :cle-ligne="(colis) => colis.id"
+      :chargement="chargement"
+      :recherche="(colis) => `${colis.numero_commande} ${colis.vendeur} ${colis.destination}`"
+      placeholder="Numéro de commande, boutique, ville…"
+    >
+      <template #col-numero="{ ligne }">
+        <b class="truncate">{{ ligne.numero_commande }}</b>
+      </template>
+      <template #col-vendeur="{ ligne }">
+        <span class="min-w-0 truncate">
+          {{ ligne.vendeur }}
+          <span v-if="ligne.ville" class="text-encre-douce">· {{ ligne.ville }}</span>
         </span>
-      </p>
+      </template>
+      <template #col-destination="{ ligne }">
+        <span class="flex min-w-0 items-center gap-1 truncate text-encre-douce">
+          <MapPin :size="11" class="shrink-0" /> {{ ligne.destination }}
+        </span>
+      </template>
+      <template #col-articles="{ ligne }">
+        <span class="font-bold">{{ ligne.articles }}</span>
+      </template>
+      <template #col-recu="{ ligne }">
+        <span class="text-encre-douce">{{ quand(ligne.date_expedition) }}</span>
+      </template>
 
-      <div v-if="!donnees.groupes.length" class="carte">
+      <template #actions="{ ligne }">
+        <ActionLigne
+          titre="Consulter ce colis"
+          :icone="Eye"
+          :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
+          @click="selection = selection?.id === ligne.id ? null : ligne"
+        />
+      </template>
+
+      <template #vide>
         <div class="vide">
           <Package :size="30" class="text-trait" />
-          <b class="vide-titre">Rien a receptionner</b>
+          <b class="vide-titre">Rien à réceptionner</b>
           <p class="vide-texte">
-            Aucun vendeur n a expedie de colis vers cet entrepot pour l instant. Les
-            depots apparaitront ici des qu une boutique marquera une commande expediee.
+            Aucun vendeur n'a expédié de colis vers cet entrepôt. Les dépôts apparaîtront ici
+            dès qu'une boutique marquera une commande expédiée.
           </p>
         </div>
-      </div>
+      </template>
+    </Liste>
 
-      <section v-for="groupe in donnees.groupes" :key="groupe.vendeur" class="carte mb-3">
-        <h3 class="carte-titre">
-          <span class="flex items-center gap-2">
-            <Building2 :size="15" />
-            {{ groupe.vendeur }}
-            <span class="text-[11px] font-semibold text-encre-douce">{{ groupe.ville }}</span>
-          </span>
-          <span class="badge badge-cours">{{ groupe.colis.length }} colis</span>
-        </h3>
-
-        <div v-for="colis in groupe.colis" :key="colis.id" class="ligne">
-          <Package :size="16" class="shrink-0 text-encre-douce" />
-          <span class="min-w-0 flex-1">
-            <b class="block truncate">{{ colis.numero_commande }}</b>
-            <span class="flex items-center gap-1 text-[11.2px] text-encre-douce">
-              <MapPin :size="11" /> {{ colis.destination }}
-            </span>
-          </span>
-          <span class="text-encre-douce">{{ colis.articles }} article(s)</span>
-          <span class="w-28 text-right text-[11.5px] text-encre-douce">
-            recu le {{ quand(colis.date_expedition) }}
-          </span>
+    <!-- Le détail dans le volet : on consulte sans quitter la liste. -->
+    <Volet v-if="selection" :titre="`Colis ${selection.numero_commande}`">
+      <dl class="flex flex-col gap-2.5 text-[12px]">
+        <div>
+          <dt class="font-bold text-encre-douce">Boutique déposante</dt>
+          <dd>{{ selection.vendeur }}<template v-if="selection.ville"> · {{ selection.ville }}</template></dd>
         </div>
-      </section>
-    </template>
+        <div>
+          <dt class="font-bold text-encre-douce">Destination</dt>
+          <dd>{{ selection.destination }}</dd>
+        </div>
+        <div>
+          <dt class="font-bold text-encre-douce">Contenu</dt>
+          <dd>{{ selection.articles }} article(s)</dd>
+        </div>
+        <div>
+          <dt class="font-bold text-encre-douce">Reçu le</dt>
+          <dd>{{ quand(selection.date_expedition) }}</dd>
+        </div>
+      </dl>
+
+      <p class="bandeau mt-4 !text-[11.5px]">
+        Un magasinier réceptionne et charge : il ne modifie ni la commande, ni son contenu,
+        ni son prix. Le rattachement à une tournée se fait depuis l'écran des tournées.
+      </p>
+    </Volet>
   </div>
 </template>

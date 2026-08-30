@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
 import { api, poserJeton } from '../api/client'
 import { poserJetonVendeur } from '../api/vendeur'
 import { routeur } from '../routeur'
+import { usePanier } from './panier'
 
 export type Role = 'CLIENT' | 'VENDEUR' | 'GESTIONNAIRE' | 'LIVREUR' | 'ADMIN'
 
@@ -114,6 +115,10 @@ export const useAuthentification = defineStore('authentification', () => {
     poserJeton(null)
     poserJetonVendeur(null)
     localStorage.removeItem(CLE_STOCKAGE)
+
+    // Le panier appartenait au compte qui part : le laisser a l'ecran le
+    // montrerait a la personne suivante devant la machine.
+    usePanier().reinitialiser()
 
     // Rester dans un espace de travail apres s'etre deconnecte n'a aucun
     // sens : on retourne au catalogue, comme sur toute plateforme.

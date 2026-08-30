@@ -1,5 +1,7 @@
 from django.urls import path
 
+from comptes import vues_espaces
+
 from . import views, vues_commande
 
 urlpatterns = [
@@ -7,10 +9,12 @@ urlpatterns = [
     path("panier/lignes", views.ajouter_ligne, name="ajouter-ligne"),
     path("panier/lignes/<int:identifiant>", views.modifier_ligne, name="modifier-ligne"),
     path("panier/apercu-commandes", vues_commande.apercu_commandes, name="apercu-commandes"),
+    path("panier/nettoyer", views.nettoyer_panier, name="nettoyer-panier"),
 
     path("commandes", vues_commande.creer_commandes, name="creer-commandes"),
     path("mes-commandes", vues_commande.mes_commandes, name="mes-commandes"),
     path("commandes/<int:identifiant>", vues_commande.detail_commande, name="detail-commande"),
+    path("commandes/<int:identifiant>/avis", vues_espaces.avis_de_commande, name="avis-commande"),
 
     path("vendeurs/commandes", vues_commande.commandes_recues, name="commandes-recues"),
     path("vendeurs/sous-commandes/<int:identifiant>", vues_commande.avancer_preparation,

@@ -556,3 +556,60 @@ toutes les possibilités et éventualités ».*
 **Pourquoi** : un écran confronté pour la première fois à un cas le jour de la
 démonstration est un écran qui casse. Et un tableau de bord qui n'affiche que
 des zéros ne se montre pas à un recruteur.
+
+### D-52 — Une seule liste pour tout le projet, avec ses boutons-symboles
+
+Chaque écran réinventait sa liste : l'un en tableau, l'autre en lignes, un
+troisième avec un dépliant. Trois grammaires pour une seule idée, et des
+boutons d'action présents une fois sur deux.
+
+`frontend-web/src/composants/Liste.vue` reprend `Tableau.tsx` du projet banque :
+colonnes déclarées, recherche, tri, pagination, état vide rédigé, et surtout
+des **boutons-symboles en fin de ligne pour consulter et gérer**.
+`ActionLigne.vue` garantit les trois choses qu'on oublie une fois sur deux :
+infobulle, libellé accessible, état désactivé qui reste survolable.
+
+**Ta formulation, bloc K-1** : *« les listes sont mal gérées ; les boutons sous
+forme de symboles pour consulter et gérer les données comme le projet banque,
+au lieu d'une liste déroulante — ici je suis sérieux, je veux les symboles pour
+toutes les listes du projet, tous les rôles. »* C'est aussi la règle d'or n°9,
+posée dès le bloc A.
+
+### D-53 — Le panneau droit appartient à l'écran en cours
+
+Il affichait la même chose partout, donc rien d'utile nulle part. Repris de
+`useVolet` du projet banque : chaque écran **dépose** dans le volet ce qui
+mérite d'être gardé près de l'œil — le colis consulté, les arrêts d'une
+tournée, le détail d'une commande avec son unique bouton d'avancement. Sans
+contribution de l'écran, le volet retombe sur l'activité récente.
+
+**Ta formulation, bloc K-1** : *« le panneau droit des autres rôles n'a rien,
+pourquoi ? »* — parce qu'aucun écran ne le nourrissait.
+
+### D-54 — Un panier ne se bloque jamais tout entier
+
+Une seule ligne devenue indisponible faisait échouer l'aperçu de commande en
+409. L'écran affichait « votre panier est vide » alors que le panneau latéral
+montrait quinze articles, et rien ne disait quoi enlever. C'est ce qui se
+cachait derrière *« le bouton passer la commande ne fonctionne pas »* (K-1).
+
+Désormais : l'**aperçu est tolérant** — il liste nommément ce qui bloque et
+chiffre le reste —, la **création reste stricte** — on ne facture rien
+d'indisponible —, et une route `POST /panier/nettoyer` retire les articles
+fautifs d'un geste.
+
+### D-55 — Le panier disparaît avec la session
+
+Le panier restait affiché après déconnexion : les articles du compte qui venait
+de partir s'affichaient encore à la personne suivante devant la machine. Le
+serveur, lui, renvoyait bien un panier vide. La déconnexion vide désormais le
+magasin et régénère la clé de panier du navigateur.
+
+### D-56 — On ne note que ce qu'on a reçu, et seulement sa propre commande
+
+L'avis n'existait nulle part alors que la table était en base depuis le début
+(K-1 : *« le client ne peut pas donner son avis »*). Il est servi par
+`GET/POST /commandes/{id}/avis`, avec quatre refus vérifiés côté serveur :
+commande non livrée (409), commande d'un autre client (404), cible absente de
+la commande (400), note hors de 1–5 (400). Le client note la boutique, chaque
+produit reçu et le livreur — jamais autre chose.

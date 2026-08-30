@@ -5,7 +5,7 @@
 > une intention. Il est établi en listant les routes que l'API expose et les
 > écrans que le front compile, puis en les confrontant au dossier de conception.
 >
-> Généré le 30 août, après le bloc J.
+> Généré le 30 août, après le premier lot du bloc K.
 
 ---
 
@@ -49,8 +49,13 @@
 | **D-49** stock en quantité réelle, dans une popup | `nouvelle_quantite` + motif | 3 tests |
 | **D-50** le CA ne quitte pas le serveur pour le personnel | `tableau_de_bord_vendeur` | 2 tests |
 | **D-51** jeu de données couvrant tous les états | `seed_activite` | manuel |
+| **D-52** une seule liste, avec ses boutons-symboles | `Liste.vue` + `ActionLigne.vue`, 10 écrans | 5 tests |
+| **D-53** le volet appartient à l'écran | `Volet.vue` + `stores/volet.ts` | manuel |
+| **D-54** un panier ne se bloque jamais tout entier | aperçu tolérant, création stricte | 3 tests |
+| **D-55** le panier disparaît avec la session | `panier.reinitialiser()` à la déconnexion | manuel |
+| **D-56** on ne note que ce qu'on a reçu | `GET/POST /commandes/{id}/avis` | 4 tests |
 
-**119 tests** : 82 backend, 37 front. **34 routes d'API vérifiées une par une**,
+**131 tests** : 89 backend, 42 front. **34 routes d'API vérifiées une par une**,
 avec le rôle attendu et les refus attendus.
 
 ### L'interface suit la maquette, pas les CMS
@@ -77,7 +82,7 @@ produit : carte avec survol, galerie, badges d'état.
 | Livreur | vue d'ensemble, **mes courses, ma tournée, mes gains** (lecture seule) | **fait au web** ; l'action est mobile ([D-40](journal-decisions.md)) |
 | Admin | tableau de bord, validations, **boutiques et livreurs**, **utilisateurs**, **litiges**, **journal d'audit** | **fait** |
 
-**53 routes d'API**, **27 écrans web**. Toutes les entrées de barre latérale
+**56 routes d'API**, **27 écrans web**. Toutes les entrées de barre latérale
 mènent à une route réelle : un test le vérifie rôle par rôle.
 
 ### Le jeu de données de démonstration

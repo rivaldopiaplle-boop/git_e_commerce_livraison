@@ -65,8 +65,58 @@ def frais_livraison_centimes(type_service, montant_produits_centimes, zone=None)
     return base
 
 
-def _apercu_groupes(panier):
-    """Groupe les lignes par vendeur, en verifiant au passage la disponibilite."""
+def probleme_de_ligne(ligne):
+    """Ce qui empeche CETTE ligne d'etre commandee, ou None.
+
+    Rendue publique parce que trois appelants en ont besoin : l'apercu, la
+    creation de commande, et la route qui nettoie le panier.
+    """
+    produit = ligne.produit
+    if not produit.est_visible or produit.vendeur.statut_validation != "VALIDE":
+        return {
+            "code": "retire",
+            "message": f"« {produit.nom} » a ete retire de la vente.",
+        }
+    if produit.stock_commandable <= 0:
+        return {
+            "code": "rupture",
+            "message": f"« {produit.nom} » est en rupture de stock.",
+        }
+    if produit.stock_commandable < ligne.quantite:
+        return {
+            "code": "stock_insuffisant",
+            "message": (f"« {produit.nom} » : il ne reste que "
+                        f"{produit.stock_commandable} exemplaire(s)."),
+            "disponible": produit.stock_commandable,
+        }
+    return None
+
+
+def lignes_bloquantes(panier):
+    """Les lignes du panier qu'on ne peut pas commander, avec leur raison."""
+    bloquees = []
+    for ligne in panier.lignes.select_related("produit", "produit__vendeur").order_by("id"):
+        souci = probleme_de_ligne(ligne)
+        if souci:
+            bloquees.append({
+                "id_ligne": ligne.id,
+                "id_produit": ligne.produit_id,
+                "nom": ligne.produit.nom,
+                "quantite": ligne.quantite,
+                **souci,
+            })
+    return bloquees
+
+
+def _apercu_groupes(panier, strict=True):
+    """Groupe les lignes par vendeur.
+
+    `strict=True` refuse le panier des la premiere ligne fautive : c'est ce
+    qu'il faut au moment de creer la commande, ou l'on ne veut rien facturer
+    d'indisponible. `strict=False` ignore ces lignes et rend ce qui reste
+    commandable : c'est ce qu'il faut a l'apercu, pour montrer au client
+    quatorze articles valides et UN probleme, plutot qu'un mur.
+    """
     lignes = list(
         panier.lignes.select_related("produit", "produit__vendeur").order_by("id")
     )
@@ -75,13 +125,12 @@ def _apercu_groupes(panier):
 
     groupes = {}
     for ligne in lignes:
+        souci = probleme_de_ligne(ligne)
+        if souci:
+            if strict:
+                raise PanierInvalide(souci["message"])
+            continue
         produit = ligne.produit
-        if not produit.est_visible or produit.vendeur.statut_validation != "VALIDE":
-            raise PanierInvalide(f"« {produit.nom} » n'est plus disponible a la vente.")
-        if produit.stock_commandable < ligne.quantite:
-            raise PanierInvalide(
-                f"« {produit.nom} » : il ne reste que {produit.stock_commandable} exemplaire(s)."
-            )
         groupes.setdefault(produit.vendeur_id, {"vendeur": produit.vendeur, "lignes": []})
         groupes[produit.vendeur_id]["lignes"].append(ligne)
     return groupes
@@ -93,7 +142,7 @@ def apercu(panier):
     Le client doit savoir qu'il s'apprete a creer trois commandes livrees
     separement — le decouvrir apres le paiement serait une mauvaise surprise.
     """
-    groupes = _apercu_groupes(panier)
+    groupes = _apercu_groupes(panier, strict=False)
     commandes = []
 
     express = [g for g in groupes.values() if g["vendeur"].type_activite == TypeService.EXPRESS]
@@ -128,7 +177,13 @@ def apercu(panier):
         })
 
     total = sum(c["montant_produits_centimes"] + c["montant_livraison_centimes"] for c in commandes)
-    return {"commandes": commandes, "total_centimes": total}
+    # Les lignes ecartees partent avec l'apercu : l'ecran doit pouvoir dire
+    # LESQUELLES posent probleme, et proposer de les retirer.
+    return {
+        "commandes": commandes,
+        "total_centimes": total,
+        "lignes_bloquantes": lignes_bloquantes(panier),
+    }
 
 
 @transaction.atomic
