@@ -70,9 +70,9 @@ const colonnes: Colonne<LigneColis>[] = [
   { cle: 'vendeur', titre: 'Boutique déposante' },
   { cle: 'destination', titre: 'Destination', masquerSous: 'md' },
   { cle: 'articles', titre: 'Articles', largeur: 80, aligne: 'droite',
-    tri: (a, b) => a.articles - b.articles },
+    champTri: 'articles' },
   { cle: 'recu', titre: 'Reçu le', largeur: 120, aligne: 'droite', masquerSous: 'lg',
-    tri: (a, b) => (a.date_expedition ?? '').localeCompare(b.date_expedition ?? '') },
+    champTri: 'date_expedition' },
 ]
 
 const quand = (date: string | null) =>
@@ -113,6 +113,8 @@ const quand = (date: string | null) =>
       :cle-ligne="(colis) => colis.id"
       :chargement="chargement"
       :recherche="(colis) => `${colis.numero_commande} ${colis.vendeur} ${colis.destination}`"
+      :active="(colis) => selection?.id === colis.id"
+      @ligne-cliquee="(colis) => (selection = selection?.id === colis.id ? null : colis)"
       placeholder="Numéro de commande, boutique, ville…"
     >
       <template #col-numero="{ ligne }">

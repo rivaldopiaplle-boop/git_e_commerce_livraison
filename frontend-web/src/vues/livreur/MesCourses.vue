@@ -60,9 +60,9 @@ const colonnes: Colonne<Ligne>[] = [
   { cle: 'course', titre: 'Course' },
   { cle: 'trajet', titre: 'Trajet', masquerSous: 'md' },
   { cle: 'distance', titre: 'Distance', largeur: 90, aligne: 'droite', masquerSous: 'sm',
-    tri: (a, b) => Number(a.distance_km ?? 0) - Number(b.distance_km ?? 0) },
+    champTri: 'distance_km' },
   { cle: 'gain', titre: 'Rapporte', largeur: 100, aligne: 'droite',
-    tri: (a, b) => a.remuneration_livreur_centimes - b.remuneration_livreur_centimes },
+    champTri: 'remuneration_livreur_centimes' },
   { cle: 'statut', titre: 'État', largeur: 110, aligne: 'centre' },
 ]
 </script>
@@ -113,6 +113,8 @@ const colonnes: Colonne<Ligne>[] = [
       :cle-ligne="(course) => course.id"
       :chargement="chargement"
       :recherche="(c) => `${c.numero_commande} ${c.client} ${c.adresse?.ville ?? ''}`"
+      :active="(c) => selection?.id === c.id"
+      @ligne-cliquee="(c) => (selection = selection?.id === c.id ? null : c)"
       placeholder="Commande, client, ville…"
     >
       <template #col-course="{ ligne }">

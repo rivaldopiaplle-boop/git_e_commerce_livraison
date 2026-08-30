@@ -9,10 +9,12 @@ import { Check, Home, MapPin, Plus, Star, Trash2 } from '@lucide/vue'
 import { onMounted, ref } from 'vue'
 
 import { EchecApi } from '../../api/client'
+import { useNotification } from '../../notifications'
 import { espaces, type Adresse } from '../../api/espaces'
 import Popup from '../../composants/Popup.vue'
 import Squelette from '../../composants/Squelette.vue'
 
+const notifier = useNotification()
 const adresses = ref<Adresse[]>([])
 const chargement = ref(true)
 const erreur = ref('')
@@ -35,20 +37,22 @@ async function charger() {
 
 onMounted(charger)
 
-async function agir(action: Promise<Adresse[]>) {
+async function agir(action: Promise<Adresse[]>, reussite?: string) {
   erreur.value = ''
   occupe.value = true
   try {
     adresses.value = await action
+    if (reussite) notifier.succes(reussite)
   } catch (echec) {
-    erreur.value = echec instanceof EchecApi ? echec.erreur.message : "L action a echoue."
+    erreur.value = echec instanceof EchecApi ? echec.erreur.message : "L'action a échoué."
+    notifier.echec(erreur.value)
   } finally {
     occupe.value = false
   }
 }
 
 async function ajouter() {
-  await agir(espaces.client.ajouterAdresse(nouvelle.value))
+  await agir(espaces.client.ajouterAdresse(nouvelle.value), 'Adresse ajoutee a votre carnet.')
   if (!erreur.value) {
     ajout.value = false
     nouvelle.value = {
@@ -131,7 +135,10 @@ async function ajouter() {
               class="bouton-ligne"
               title="Definir comme adresse principale"
               :disabled="occupe"
-              @click="agir(espaces.client.modifierAdresse(adresse.id, { est_principale: true }))"
+              @click="agir(
+                espaces.client.modifierAdresse(adresse.id, { est_principale: true }),
+                'Adresse principale mise a jour.',
+              )"
             >
               <Star :size="14" />
               <span class="sr-only">Definir comme principale</span>
@@ -141,7 +148,7 @@ async function ajouter() {
               class="bouton-ligne bouton-ligne-danger"
               title="Retirer du carnet"
               :disabled="occupe"
-              @click="agir(espaces.client.retirerAdresse(adresse.id))"
+              @click="agir(espaces.client.retirerAdresse(adresse.id), 'Adresse retiree du carnet.')"
             >
               <Trash2 :size="14" />
               <span class="sr-only">Retirer</span>

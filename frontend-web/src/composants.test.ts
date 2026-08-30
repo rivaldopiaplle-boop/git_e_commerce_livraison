@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Eye } from '@lucide/vue'
+import PrimeVue from 'primevue/config'
 
 import ActionLigne from './composants/ActionLigne.vue'
 import CarteProduit from './composants/CarteProduit.vue'
@@ -77,8 +78,7 @@ describe('les listes du projet', () => {
   ]
   const COLONNES: Colonne<Ligne>[] = [
     { cle: 'nom', titre: 'Nom' },
-    { cle: 'quantite', titre: 'Quantite',
-      tri: (a, b) => Number(a.quantite) - Number(b.quantite) },
+    { cle: 'quantite', titre: 'Quantite', champTri: 'quantite' },
   ]
   const cleLigne = (ligne: Ligne) => Number(ligne.id)
 
@@ -86,6 +86,7 @@ describe('les listes du projet', () => {
     const vue = mount(Liste, {
       props: { colonnes: COLONNES, lignes: LIGNES, cleLigne },
       slots: { 'col-nom': '<span>{{ params.ligne.nom }}</span>' },
+      global: { plugins: [PrimeVue] },
     })
     expect(vue.text()).toContain('Nom')
     expect(vue.text()).toContain('Alpha')
@@ -95,8 +96,49 @@ describe('les listes du projet', () => {
   it('affiche un etat vide redige plutot qu un tableau muet', () => {
     const vue = mount(Liste, {
       props: { colonnes: COLONNES, lignes: [], cleLigne },
+      global: { plugins: [PrimeVue] },
     })
     expect(vue.text()).toContain('Aucun résultat')
+  })
+
+  it('le tri par en-tete reordonne vraiment les lignes', async () => {
+    // Ce test existe a cause d'une vraie erreur : la premiere version passait
+    // un comparateur a `sortFunction`, une option qui n'existe pas dans
+    // PrimeVue 5. L'attribut partait dans le DOM et le tri ne faisait RIEN,
+    // sans le moindre signal. Un tri qui ne trie pas ressemble a un tri.
+    const vue = mount(Liste, {
+      props: { colonnes: COLONNES, lignes: LIGNES, cleLigne },
+      slots: { 'col-nom': '<span>{{ params.ligne.nom }}</span>' },
+      global: { plugins: [PrimeVue] },
+    })
+
+    const ordre = () =>
+      vue.findAll('tbody tr').map((ligne) => ligne.text().replace(/\s+/g, ' ').trim())
+
+    expect(ordre()[0]).toContain('Alpha')
+
+    // Alpha vaut 3, Beta vaut 1 : trier par quantite croissante met Beta devant.
+    await vue.findAll('thead th')[1].trigger('click')
+    expect(ordre()[0]).toContain('Beta')
+
+    // Et le second clic inverse le sens.
+    await vue.findAll('thead th')[1].trigger('click')
+    expect(ordre()[0]).toContain('Alpha')
+  })
+
+  it('la ligne entiere est cliquable, pas seulement son bouton', async () => {
+    // « Ce n'est pas cliquable, c'est bizarre » : seul le petit bouton en bout
+    // de ligne reagissait.
+    const vue = mount(Liste, {
+      props: { colonnes: COLONNES, lignes: LIGNES, cleLigne },
+      slots: { 'col-nom': '<span>{{ params.ligne.nom }}</span>' },
+      global: { plugins: [PrimeVue] },
+    })
+
+    await vue.findAll('tbody tr')[1].trigger('click')
+    const emis = vue.emitted('ligne-cliquee')
+    expect(emis).toHaveLength(1)
+    expect((emis![0][0] as Ligne).nom).toBe('Beta')
   })
 
   it('le bouton-symbole porte une infobulle et un libelle accessible', () => {

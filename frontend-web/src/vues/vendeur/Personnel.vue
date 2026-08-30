@@ -9,17 +9,18 @@ import { AlertTriangle, Check, Mail, Users, UserPlus, X } from '@lucide/vue'
 import { onMounted, ref } from 'vue'
 
 import { EchecApi } from '../../api/client'
+import { useNotification } from '../../notifications'
 import { espaces, type MembrePersonnel } from '../../api/espaces'
 import Popup from '../../composants/Popup.vue'
 import Squelette from '../../composants/Squelette.vue'
 
+const notifier = useNotification()
 const personnel = ref<MembrePersonnel[]>([])
 const acces = ref<{ libelle: string; autorise: boolean }[]>([])
 const chargement = ref(true)
 const creation = ref(false)
 const occupe = ref(false)
 const erreur = ref('')
-const message = ref('')
 
 const nouveau = ref({ prenom: '', nom: '', email: '', mot_de_passe: '' })
 
@@ -41,12 +42,13 @@ async function creer() {
   occupe.value = true
   try {
     await espaces.vendeur.creerGestionnaire(nouveau.value)
-    message.value = `Le compte de ${nouveau.value.prenom} est cree.`
+    notifier.succes(`Le compte de ${nouveau.value.prenom} est créé.`)
     creation.value = false
     nouveau.value = { prenom: '', nom: '', email: '', mot_de_passe: '' }
     await charger()
   } catch (echec) {
-    erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Creation refusee.'
+    erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Création refusée.'
+    notifier.echec(erreur.value)
   } finally {
     occupe.value = false
   }
@@ -66,10 +68,6 @@ async function creer() {
           Creer un compte
         </button>
       </div>
-
-      <p v-if="message" class="bandeau bandeau-info mb-3">
-        <Check :size="15" class="mt-px shrink-0" /> {{ message }}
-      </p>
 
       <div v-if="chargement" class="flex flex-col gap-2">
         <Squelette v-for="n in 2" :key="n" hauteur="56px" />

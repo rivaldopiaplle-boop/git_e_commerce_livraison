@@ -18,6 +18,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { api, EchecApi } from '../../api/client'
+import { useNotification } from '../../notifications'
 import { commandes, type Commande } from '../../api/commandes'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -35,6 +36,7 @@ type ElementNotable = {
   commentaire: string
 }
 
+const notifier = useNotification()
 const route = useRoute()
 const liste = ref<Ligne[]>([])
 const chargement = ref(true)
@@ -47,7 +49,6 @@ const note = ref(5)
 const commentaire = ref('')
 const erreur = ref('')
 const occupe = ref(false)
-const message = ref('')
 
 onMounted(async () => {
   try {
@@ -95,17 +96,15 @@ const BADGES: Record<string, string> = {
 }
 
 const colonnes: Colonne<Ligne>[] = [
-  { cle: 'numero', titre: 'Commande', largeur: 190,
-    tri: (a, b) => a.date_commande.localeCompare(b.date_commande) },
+  { cle: 'numero', titre: 'Commande', largeur: 190, champTri: 'date_commande' },
   { cle: 'boutiques', titre: 'Boutiques' },
   { cle: 'montant', titre: 'Montant', largeur: 100, aligne: 'droite', masquerSous: 'sm',
-    tri: (a, b) => a.montant_total_centimes - b.montant_total_centimes },
+    champTri: 'montant_total_centimes' },
   { cle: 'statut', titre: 'Suivi', largeur: 140, aligne: 'centre' },
 ]
 
 async function ouvrirAvis(commande: Ligne) {
   erreur.value = ''
-  message.value = ''
   avisOuvert.value = commande
   const donnees = await api.get<{ livree: boolean; elements: ElementNotable[] }>(
     `/commandes/${commande.id}/avis`,
@@ -137,11 +136,12 @@ async function envoyerAvis() {
       },
     )
     notables.value = donnees.elements
-    message.value = `Merci — votre avis sur « ${choisi.value.libelle} » est enregistré.`
+    notifier.succes(`Votre avis sur « ${choisi.value.libelle} » est enregistré.`, 'Merci')
     const suivant = donnees.elements.find((element) => element.note === null)
     if (suivant) choisir(suivant)
   } catch (echec) {
     erreur.value = echec instanceof EchecApi ? echec.erreur.message : "L'avis n'a pas été pris."
+    notifier.echec(erreur.value)
   } finally {
     occupe.value = false
   }
@@ -163,17 +163,14 @@ const quand = (date: string) => new Date(date).toLocaleDateString('fr-FR')
       }}. Vous suivez chacune ci-dessous.
     </p>
 
-    <p v-if="message" class="bandeau bandeau-info mb-4">
-      <Star :size="15" class="mt-px shrink-0" />
-      {{ message }}
-    </p>
-
     <Liste
       :colonnes="colonnes"
       :lignes="liste"
       :cle-ligne="(commande) => commande.id"
       :chargement="chargement"
       :recherche="(c) => `${c.numero_commande} ${c.boutiques.join(' ')}`"
+      :active="(c) => selection?.id === c.id"
+      @ligne-cliquee="(c) => (selection = selection?.id === c.id ? null : c)"
       placeholder="Numéro de commande, boutique…"
     >
       <template #col-numero="{ ligne }">

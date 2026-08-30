@@ -11,6 +11,7 @@ import {
 import { computed, onMounted, ref } from 'vue'
 
 import { EchecApi } from '../../api/client'
+import { useNotification } from '../../notifications'
 import { vendeur, type Mouvement, type ProduitCatalogue } from '../../api/vendeur'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -22,6 +23,7 @@ import Volet from '../../composants/Volet.vue'
 type Ligne = ProduitCatalogue & { [cle: string]: unknown }
 type LigneJournal = Mouvement & { produit: string; [cle: string]: unknown }
 
+const notifier = useNotification()
 const produits = ref<Ligne[]>([])
 const chargement = ref(true)
 const onglet = ref('tout')
@@ -31,7 +33,6 @@ const selection = ref<Ligne | null>(null)
 const mouvementsProduit = ref<Mouvement[]>([])
 const saisie = ref({ quantite: '0', type: 'AJUSTEMENT', motif: '' })
 const erreur = ref('')
-const message = ref('')
 const occupe = ref(false)
 
 const journal = ref<LigneJournal[]>([])
@@ -83,7 +84,6 @@ function ouvrirAjustement(produit: Ligne) {
   ajuste.value = produit
   saisie.value = { quantite: String(produit.stock_disponible), type: 'AJUSTEMENT', motif: '' }
   erreur.value = ''
-  message.value = ''
 }
 
 async function consulter(produit: Ligne) {
@@ -106,14 +106,17 @@ async function appliquer() {
       saisie.value.type,
       saisie.value.motif,
     )
-    message.value = `« ${ajuste.value.nom} » : stock à ${resultat.stock_disponible}.`
+    notifier.succes(`« ${ajuste.value.nom} » : stock à ${resultat.stock_disponible}.`)
     ajuste.value = null
     journalCharge.value = false
     await charger()
     if (selection.value) await consulter(selection.value)
     if (onglet.value === 'journal') await chargerJournal()
   } catch (echec) {
+    // L'erreur reste AUSSI dans la popup : elle explique pourquoi le
+    // formulaire qu'on a sous les yeux a ete refuse.
     erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Ajustement refusé.'
+    notifier.echec(erreur.value)
   } finally {
     occupe.value = false
   }
@@ -142,16 +145,16 @@ function changerOnglet(valeur: string) {
 }
 
 const colonnes: Colonne<Ligne>[] = [
-  { cle: 'produit', titre: 'Produit', tri: (a, b) => a.nom.localeCompare(b.nom) },
-  { cle: 'seuil', titre: 'Seuil', largeur: 74, aligne: 'droite', masquerSous: 'md' },
+  { cle: 'produit', titre: 'Produit', champTri: 'nom' },
+  { cle: 'seuil', titre: 'Seuil', largeur: 74, aligne: 'droite', masquerSous: 'md',
+    champTri: 'seuil_alerte' },
   { cle: 'stock', titre: 'En stock', largeur: 90, aligne: 'droite',
-    tri: (a, b) => a.stock_disponible - b.stock_disponible },
+    champTri: 'stock_disponible' },
   { cle: 'etat', titre: 'État', largeur: 100, aligne: 'centre' },
 ]
 
 const colonnesJournal: Colonne<LigneJournal>[] = [
-  { cle: 'date', titre: 'Date', largeur: 130,
-    tri: (a, b) => a.date_mouvement.localeCompare(b.date_mouvement) },
+  { cle: 'date', titre: 'Date', largeur: 130, champTri: 'date_mouvement' },
   { cle: 'produit', titre: 'Produit' },
   { cle: 'type', titre: 'Type', largeur: 150, masquerSous: 'md' },
   { cle: 'quantite', titre: 'Quantité', largeur: 90, aligne: 'droite' },
@@ -183,11 +186,6 @@ const etat = (produit: Ligne) =>
       ]"
       @update:model-value="changerOnglet"
     />
-
-    <p v-if="message" class="bandeau bandeau-info mb-3">
-      <Check :size="15" class="mt-px shrink-0" />
-      {{ message }}
-    </p>
 
     <!-- L'historique, dans son propre onglet -->
     <Liste
@@ -249,6 +247,8 @@ const etat = (produit: Ligne) =>
         :cle-ligne="(produit) => produit.id"
         :chargement="chargement"
         :recherche="(p) => p.nom"
+        :active="(p) => selection?.id === p.id"
+        @ligne-cliquee="consulter"
         placeholder="Filtrer par nom…"
       >
         <template #col-produit="{ ligne }">

@@ -29,8 +29,7 @@ onMounted(async () => {
 })
 
 const colonnes: Colonne<Ligne>[] = [
-  { cle: 'date', titre: 'Quand', largeur: 130,
-    tri: (a, b) => a.date.localeCompare(b.date) },
+  { cle: 'date', titre: 'Quand', largeur: 130, champTri: 'date' },
   { cle: 'objet', titre: 'Objet', largeur: 130, aligne: 'centre' },
   { cle: 'transition', titre: 'Changement' },
   { cle: 'commentaire', titre: 'Motif', masquerSous: 'lg' },
@@ -58,6 +57,8 @@ const quand = (date: string) =>
       :cle-ligne="(trace) => trace.id"
       :chargement="chargement"
       :recherche="(t) => `${t.type_objet} ${t.id_objet} ${t.statut_apres} ${t.par} ${t.commentaire}`"
+      :active="(t) => selection?.id === t.id"
+      @ligne-cliquee="(t) => (selection = selection?.id === t.id ? null : t)"
       placeholder="Statut, auteur, numéro d'objet…"
       :par-page="20"
     >

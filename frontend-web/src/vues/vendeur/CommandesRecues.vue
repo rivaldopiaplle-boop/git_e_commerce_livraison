@@ -95,7 +95,7 @@ const colonnes: Colonne<Ligne>[] = [
   { cle: 'numero', titre: 'Commande', largeur: 180 },
   { cle: 'articles', titre: 'Contenu' },
   { cle: 'montant', titre: 'Votre part', largeur: 110, aligne: 'droite', masquerSous: 'md',
-    tri: (a, b) => a.montant_vendeur_centimes - b.montant_vendeur_centimes },
+    champTri: 'montant_vendeur_centimes' },
   { cle: 'statut', titre: 'État', largeur: 120, aligne: 'centre' },
 ]
 
@@ -126,6 +126,8 @@ const euros = (centimes: number) =>
       :cle-ligne="(sous) => sous.id"
       :chargement="chargement"
       :recherche="(sous) => `${sous.numero_commande ?? ''} ${sous.lignes.map((l) => l.nom_produit_capture).join(' ')}`"
+      :active="(sous) => selection?.id === sous.id"
+      @ligne-cliquee="(sous) => (selection = selection?.id === sous.id ? null : sous)"
       placeholder="Numéro de commande, produit…"
     >
       <template #col-numero="{ ligne }">

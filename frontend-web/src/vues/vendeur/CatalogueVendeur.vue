@@ -6,11 +6,12 @@
 // la fiche publique, modifier, déclarer une rupture, retirer de la vente et
 // **remettre en vente**, ce qui manquait.
 import {
-  AlertTriangle, Eye, EyeOff, ImageOff, Package, PackageX, Pencil, Plus, RotateCcw,
+  Eye, EyeOff, ImageOff, Package, PackageX, Pencil, Plus, RotateCcw,
 } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 import { EchecApi } from '../../api/client'
+import { useNotification } from '../../notifications'
 import { vendeur, type ProduitCatalogue } from '../../api/vendeur'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -21,10 +22,10 @@ import Volet from '../../composants/Volet.vue'
 
 type Ligne = ProduitCatalogue & { [cle: string]: unknown }
 
+const notifier = useNotification()
 const produits = ref<Ligne[]>([])
 const chargement = ref(true)
 const onglet = ref('en-vente')
-const erreur = ref('')
 const selection = ref<Ligne | null>(null)
 
 const enRupture = ref<Ligne | null>(null)
@@ -53,11 +54,11 @@ const visibles = computed(() =>
 )
 
 const colonnes: Colonne<Ligne>[] = [
-  { cle: 'produit', titre: 'Produit', tri: (a, b) => a.nom.localeCompare(b.nom) },
+  { cle: 'produit', titre: 'Produit', champTri: 'nom' },
   { cle: 'prix', titre: 'Prix', largeur: 100, aligne: 'droite',
-    tri: (a, b) => a.prix_centimes - b.prix_centimes },
+    champTri: 'prix_centimes' },
   { cle: 'stock', titre: 'Stock', largeur: 90, aligne: 'droite', masquerSous: 'sm',
-    tri: (a, b) => a.stock_disponible - b.stock_disponible },
+    champTri: 'stock_disponible' },
   { cle: 'etat', titre: 'État', largeur: 104, aligne: 'centre' },
 ]
 
@@ -71,8 +72,7 @@ const etat = (produit: Ligne) =>
         ? { classe: 'badge-attente', libelle: 'stock bas' }
         : { classe: 'badge-ok', libelle: 'en vente' }
 
-async function agir(action: Promise<unknown>) {
-  erreur.value = ''
+async function agir(action: Promise<unknown>, reussite?: string) {
   occupe.value = true
   try {
     await action
@@ -80,8 +80,9 @@ async function agir(action: Promise<unknown>) {
     if (selection.value) {
       selection.value = produits.value.find((p) => p.id === selection.value!.id) ?? null
     }
+    if (reussite) notifier.succes(reussite)
   } catch (echec) {
-    erreur.value = echec instanceof EchecApi ? echec.erreur.message : "L'action a échoué."
+    notifier.echec(echec instanceof EchecApi ? echec.erreur.message : "L'action a échoué.")
   } finally {
     occupe.value = false
   }
@@ -91,7 +92,10 @@ async function declarerRupture() {
   if (!enRupture.value) return
   const produit = enRupture.value
   enRupture.value = null
-  await agir(vendeur.stock.definir(produit.id, 0, 'AJUSTEMENT', motifRupture.value))
+  await agir(
+    vendeur.stock.definir(produit.id, 0, 'AJUSTEMENT', motifRupture.value),
+    `« ${produit.nom} » est declare en rupture.`,
+  )
   motifRupture.value = 'Rupture constatée en boutique'
 }
 </script>
@@ -107,17 +111,14 @@ async function declarerRupture() {
       ]"
     />
 
-    <p v-if="erreur" class="bandeau bandeau-erreur mb-3">
-      <AlertTriangle :size="15" class="mt-px shrink-0" />
-      {{ erreur }}
-    </p>
-
     <Liste
       :colonnes="colonnes"
       :lignes="visibles"
       :cle-ligne="(produit) => produit.id"
       :chargement="chargement"
       :recherche="(p) => `${p.nom} ${p.categorie?.nom ?? ''}`"
+      :active="(p) => selection?.id === p.id"
+      @ligne-cliquee="(p) => (selection = selection?.id === p.id ? null : p)"
       placeholder="Nom de produit, catégorie…"
     >
       <template #outils>
@@ -188,7 +189,7 @@ async function declarerRupture() {
           :icone="EyeOff"
           ton="danger"
           :desactive="occupe"
-          @click="agir(vendeur.masquer(ligne.id))"
+          @click="agir(vendeur.masquer(ligne.id), `« ${ligne.nom} » est retire de la vente.`)"
         />
         <ActionLigne
           v-else
@@ -196,7 +197,7 @@ async function declarerRupture() {
           :icone="RotateCcw"
           ton="accent"
           :desactive="occupe"
-          @click="agir(vendeur.remettreEnVente(ligne.id))"
+          @click="agir(vendeur.remettreEnVente(ligne.id), `« ${ligne.nom} » est de nouveau en vente.`)"
         />
       </template>
 

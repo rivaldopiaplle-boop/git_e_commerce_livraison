@@ -57,7 +57,7 @@ const colonnes: Colonne<LigneTournee>[] = [
   { cle: 'zone', titre: 'Zone' },
   { cle: 'livreur', titre: 'Livreur', masquerSous: 'md' },
   { cle: 'arrets', titre: 'Arrêts', largeur: 74, aligne: 'droite',
-    tri: (a, b) => a.nombre_arrets - b.nombre_arrets },
+    champTri: 'nombre_arrets' },
   { cle: 'distance', titre: 'Distance', largeur: 90, aligne: 'droite', masquerSous: 'lg' },
   { cle: 'statut', titre: 'État', largeur: 104, aligne: 'centre' },
 ]
@@ -99,6 +99,8 @@ const BADGES_ARRET: Record<string, string> = {
       :cle-ligne="(tournee) => tournee.id"
       :chargement="chargement"
       :recherche="(t) => `tournée ${t.id} ${t.zone ?? ''} ${t.livreur?.nom ?? ''}`"
+      :active="(t) => selection?.id === t.id"
+      @ligne-cliquee="(t) => (selection = selection?.id === t.id ? null : t)"
       placeholder="Numéro, zone, livreur…"
     >
       <template #col-numero="{ ligne }">

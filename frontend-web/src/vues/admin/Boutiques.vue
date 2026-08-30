@@ -65,22 +65,21 @@ const STATUTS: Record<string, string> = {
 }
 
 const colonnesBoutiques: Colonne<Boutique>[] = [
-  { cle: 'boutique', titre: 'Boutique',
-    tri: (a, b) => a.nom_boutique.localeCompare(b.nom_boutique) },
+  { cle: 'boutique', titre: 'Boutique', champTri: 'nom_boutique' },
   { cle: 'service', titre: 'Service', largeur: 96, aligne: 'centre' },
   { cle: 'produits', titre: 'Produits', largeur: 90, aligne: 'droite', masquerSous: 'sm',
-    tri: (a, b) => a.produits - b.produits },
+    champTri: 'produits' },
   { cle: 'commandes', titre: 'Commandes', largeur: 100, aligne: 'droite', masquerSous: 'lg',
-    tri: (a, b) => a.commandes - b.commandes },
+    champTri: 'commandes' },
   { cle: 'statut', titre: 'Dossier', largeur: 100, aligne: 'centre' },
 ]
 
 const colonnesLivreurs: Colonne<LivreurAdmin>[] = [
-  { cle: 'livreur', titre: 'Livreur', tri: (a, b) => a.nom.localeCompare(b.nom) },
+  { cle: 'livreur', titre: 'Livreur', champTri: 'nom' },
   { cle: 'mode', titre: 'Mode', largeur: 96, aligne: 'centre' },
   { cle: 'entrepot', titre: 'Entrepôt', masquerSous: 'md' },
   { cle: 'livraisons', titre: 'Livraisons', largeur: 100, aligne: 'droite', masquerSous: 'sm',
-    tri: (a, b) => a.livraisons - b.livraisons },
+    champTri: 'livraisons' },
   { cle: 'statut', titre: 'Dossier', largeur: 100, aligne: 'centre' },
 ]
 
@@ -117,6 +116,8 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
       :cle-ligne="(boutique) => boutique.id"
       :chargement="chargement"
       :recherche="(b) => `${b.nom_boutique} ${b.ville} ${b.responsable} ${b.email}`"
+      :active="(b) => selection?.id === b.id"
+      @ligne-cliquee="(b) => (selection = selection?.id === b.id ? null : b)"
       placeholder="Nom de boutique, ville, responsable…"
     >
       <template #col-boutique="{ ligne }">
@@ -176,6 +177,8 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
       :cle-ligne="(livreur) => livreur.id"
       :chargement="chargement"
       :recherche="(l) => `${l.nom} ${l.email} ${l.entrepot} ${l.vehicule}`"
+      :active="(l) => selectionLivreur?.id === l.id"
+      @ligne-cliquee="(l) => (selectionLivreur = selectionLivreur?.id === l.id ? null : l)"
       placeholder="Nom, e-mail, entrepôt…"
     >
       <template #col-livreur="{ ligne }">

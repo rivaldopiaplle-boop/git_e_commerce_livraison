@@ -8,6 +8,7 @@ import { Ban, Eye, RotateCcw, Users } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 import { EchecApi } from '../../api/client'
+import { useNotification } from '../../notifications'
 import { espaces, type CompteAdmin } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -17,11 +18,11 @@ import Volet from '../../composants/Volet.vue'
 
 type Ligne = CompteAdmin & { [cle: string]: unknown }
 
+const notifier = useNotification()
 const comptes = ref<Ligne[]>([])
 const repartition = ref<{ role: string; nombre: number }[]>([])
 const chargement = ref(true)
 const onglet = ref('TOUS')
-const erreur = ref('')
 const occupe = ref(false)
 const selection = ref<Ligne | null>(null)
 
@@ -63,25 +64,29 @@ const compteur = (role: string) =>
   repartition.value.find((entree) => entree.role === role)?.nombre ?? 0
 
 async function basculer(compte: Ligne) {
-  erreur.value = ''
   occupe.value = true
   try {
     const resultat = await espaces.admin.suspendre(compte.id)
     compte.statut_compte = resultat.statut_compte
+    notifier.succes(
+      resultat.statut_compte === 'SUSPENDU'
+        ? `Le compte de ${compte.prenom} ${compte.nom} est suspendu.`
+        : `Le compte de ${compte.prenom} ${compte.nom} est réactivé.`,
+    )
   } catch (echec) {
-    erreur.value = echec instanceof EchecApi ? echec.erreur.message : "L'action a échoué."
+    notifier.echec(echec instanceof EchecApi ? echec.erreur.message : "L'action a échoué.")
   } finally {
     occupe.value = false
   }
 }
 
 const colonnes: Colonne<Ligne>[] = [
-  { cle: 'personne', titre: 'Personne', tri: (a, b) => a.nom.localeCompare(b.nom) },
+  { cle: 'personne', titre: 'Personne', champTri: 'nom' },
   { cle: 'rattachement', titre: 'Rattachement', masquerSous: 'md' },
   { cle: 'role', titre: 'Rôle', largeur: 116, aligne: 'centre' },
   { cle: 'statut', titre: 'Statut', largeur: 124, aligne: 'centre' },
   { cle: 'inscription', titre: 'Inscrit le', largeur: 96, aligne: 'droite', masquerSous: 'lg',
-    tri: (a, b) => a.date_inscription.localeCompare(b.date_inscription) },
+    champTri: 'date_inscription' },
 ]
 
 const quand = (date: string) => new Date(date).toLocaleDateString('fr-FR')
@@ -100,14 +105,14 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
       ]"
     />
 
-    <p v-if="erreur" class="bandeau bandeau-erreur mb-3">{{ erreur }}</p>
-
     <Liste
       :colonnes="colonnes"
       :lignes="visibles"
       :cle-ligne="(compte) => compte.id"
       :chargement="chargement"
       :recherche="(c) => `${c.prenom} ${c.nom} ${c.email} ${c.rattachement}`"
+      :active="(c) => selection?.id === c.id"
+      @ligne-cliquee="(c) => (selection = selection?.id === c.id ? null : c)"
       placeholder="Nom, adresse e-mail, boutique…"
       :par-page="15"
     >

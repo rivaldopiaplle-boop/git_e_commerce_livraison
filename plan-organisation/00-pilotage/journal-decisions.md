@@ -613,3 +613,62 @@ L'avis n'existait nulle part alors que la table était en base depuis le début
 commande non livrée (409), commande d'un autre client (404), cible absente de
 la commande (400), note hors de 1–5 (400). Le client note la boutique, chaque
 produit reçu et le livreur — jamais autre chose.
+
+### D-57 — PrimeVue est enregistré, et la stack suit celle du projet banque
+
+[D-26](#d-26--interface--tailwind-css--primevue-en-sinspirant-des-cms-marchands)
+impose PrimeVue depuis le bloc C, et pour une raison précise : *« pour ne pas
+redessiner à la main les tableaux, fenêtres, tiroirs et notifications que la
+règle d'or n°6 impose »*. J'avais laissé PrimeVue **installé mais non
+enregistré**, en arguant du poids de son thème, puis j'ai redessiné à la main
+les quatre choses qu'il devait fournir.
+
+**Ta formulation, bloc K** : *« tu n'utilises pas les équivalents de MUI, hot,
+hook, react router, rien n'est beau, rien ne ressemble au projet existant. »*
+
+La correspondance appliquée, tirée de `banque-app/frontend-web/package.json` :
+
+| Projet banque (React) | RivDinde (Vue) |
+|---|---|
+| `@mui/material` | **PrimeVue**, thème `Aura` dérivé sur les jetons de la maquette |
+| `@tanstack/react-query` | **`@tanstack/vue-query`** |
+| `react-hot-toast` | **service `Toast` de PrimeVue**, derrière `useNotification()` |
+| `react-hook-form` + `zod` | **`vee-validate` + `zod`** |
+| `react-router-dom` | `vue-router` — déjà en place |
+
+**Ce que ça coûte** : le paquet passe de 166 à 479 Ko (132 Ko compressés). Le
+compte est honnête, et c'est le prix d'une interface qui ressemble à quelque
+chose de connu plutôt qu'à un assemblage maison.
+
+**Ce que ça rapporte** : le tri, la pagination, le piège de focus des fenêtres,
+le retour du focus au bouton d'origine, les rôles ARIA et la navigation au
+clavier ne sont plus à écrire — ni à oublier.
+
+La couleur primaire du thème pointe sur `--accent`, la variable posée par la
+coquille selon le rôle : un tableau, une fenêtre et un toast prennent donc
+automatiquement le bleu du vendeur ou le rouge de l'admin, sans qu'aucun
+composant ne sache quel rôle est connecté ([règle d'or n°8](regles-d-or.md)).
+
+### D-58 — Une colonne triable déclare un champ, jamais un comparateur
+
+La première version de `Liste.vue` passait un comparateur à `sortFunction`.
+**Cette option n'existe pas dans PrimeVue 5** : l'attribut partait dans le DOM,
+et le tri ne faisait **rien** — sans erreur, sans avertissement. Une colonne
+qui ne trie pas ressemble exactement à une colonne qui trie.
+
+Une colonne déclare donc `champTri`, la propriété réelle de la ligne sur
+laquelle trier, et le type l'impose. Un test clique l'en-tête et vérifie que
+les lignes **changent effectivement d'ordre**, dans les deux sens.
+
+C'est la même famille d'erreur que les jetons CSS absents ([D-47](#d-47--un-test-refuse-les-classes-css-qui-ne-mènent-à-rien)) :
+une chose qui ne produit ni exception ni test rouge doit être protégée par une
+vérification automatique, jamais par de l'attention.
+
+### D-59 — La ligne entière est cliquable
+
+*« Ce n'est pas cliquable, c'est bizarre »* (bloc K). Seul le petit bouton en
+bout de ligne réagissait ; le reste de la ligne était inerte, ce qui donne une
+impression d'écran mort. Cliquer une ligne fait désormais la même chose que son
+bouton « consulter », la ligne sélectionnée porte l'accent du rôle en filet à
+gauche, et les boutons d'action arrêtent la propagation pour ne pas déclencher
+les deux à la fois. Un test le vérifie.
