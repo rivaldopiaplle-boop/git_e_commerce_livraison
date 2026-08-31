@@ -310,3 +310,119 @@ class Administrateur(models.Model):
 
     def __str__(self):
         return str(self.utilisateur)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Le profil : ce qui se change seul, et ce qui se demande (D-77)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class ChampSensible(models.TextChoices):
+    """Les champs d'identite, geles. Repris du projet banque.
+
+    Sur une place de marche, l'identite engage : un vendeur valide sur un nom
+    ne doit pas pouvoir en changer seul apres coup. L'e-mail, le telephone et
+    l'adresse, eux, se corrigent librement — ils n'engagent personne.
+    """
+
+    NOM = "NOM", "Nom"
+    PRENOM = "PRENOM", "Prenom"
+    DATE_NAISSANCE = "DATE_NAISSANCE", "Date de naissance"
+
+
+class StatutDemande(models.TextChoices):
+    EN_ATTENTE = "EN_ATTENTE", "En attente"
+    ACCEPTEE = "ACCEPTEE", "Acceptee"
+    REFUSEE = "REFUSEE", "Refusee"
+
+
+class DemandeModification(models.Model):
+    """Une demande de correction d'identite, arbitree par un administrateur.
+
+    Elle porte le motif : sans lui, un administrateur devrait accepter ou
+    refuser a l'aveugle, ce qui revient a tout accepter.
+    """
+
+    utilisateur = models.ForeignKey(
+        Utilisateur, on_delete=models.CASCADE, related_name="demandes_modification"
+    )
+    motif = models.TextField(blank=True)
+    statut = models.CharField(
+        max_length=12, choices=StatutDemande.choices, default=StatutDemande.EN_ATTENTE
+    )
+    decide_par = models.ForeignKey(
+        Utilisateur, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="demandes_arbitrees",
+    )
+    commentaire_decision = models.TextField(blank=True)
+    date_demande = models.DateTimeField(auto_now_add=True)
+    date_decision = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "demande de modification"
+        verbose_name_plural = "demandes de modification"
+        ordering = ["-date_demande"]
+
+    def __str__(self):
+        return f"Demande {self.pk} de {self.utilisateur_id} ({self.statut})"
+
+
+class ChampDemande(models.Model):
+    """Un champ dans une demande : ce qu'il vaut, ce qu'il devrait valoir.
+
+    Une demande porte plusieurs champs — corriger « Benali » en « Ben Ali »
+    change souvent le nom ET le prenom.
+    """
+
+    demande = models.ForeignKey(
+        DemandeModification, on_delete=models.CASCADE, related_name="champs"
+    )
+    champ = models.CharField(max_length=20, choices=ChampSensible.choices)
+    valeur_actuelle = models.CharField(max_length=150, blank=True)
+    valeur_demandee = models.CharField(max_length=150)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["demande", "champ"], name="un_champ_par_demande")
+        ]
+
+    def __str__(self):
+        return f"{self.champ} : {self.valeur_actuelle} -> {self.valeur_demandee}"
+
+
+class Preferences(models.Model):
+    """Les reglages de l'application, par compte.
+
+    Separes du profil (D-76) : le profil dit QUI on est, les preferences disent
+    COMMENT l'application se comporte. Les melanger produit un ecran fourre-tout
+    que personne ne relit.
+    """
+
+    utilisateur = models.OneToOneField(
+        Utilisateur, on_delete=models.CASCADE, related_name="preferences"
+    )
+
+    # Canaux de notification. Le canal dans l'application est toujours actif :
+    # une information critique n'a jamais un canal unique (scenario 12.1).
+    notifications_email = models.BooleanField(default=True)
+    notifications_push = models.BooleanField(default=True)
+    courriels_promotionnels = models.BooleanField(default=False)
+
+    # Confort d'affichage.
+    densite = models.CharField(
+        max_length=10,
+        choices=[("COMPACTE", "Compacte"), ("NORMALE", "Normale")],
+        default="NORMALE",
+    )
+    masquer_montants = models.BooleanField(
+        default=False, help_text="Cache les montants a l'ecran, utile en public."
+    )
+
+    date_maj = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "preferences"
+        verbose_name_plural = "preferences"
+
+    def __str__(self):
+        return f"Preferences de {self.utilisateur_id}"

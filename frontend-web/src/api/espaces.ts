@@ -191,9 +191,23 @@ export const espaces = {
         total: number
       }>(`/admin/utilisateurs${suffixe}`)
     },
-    suspendre: (id: number) => api.post<{ id: number; statut_compte: string }>(
-      `/admin/utilisateurs/${id}/suspendre`,
-    ),
+    /** Suspendre ou reactiver un compte. Suspendre exige un motif : la
+     *  personne doit savoir ce qu'on lui reproche (D-93). */
+    basculerCompte: (id: number, motif = '') =>
+      api.post<{ id: number; statut_compte: string }>(`/admin/comptes/${id}/basculer`, { motif }),
+
+    /** Les cinq decisions possibles sur une boutique, en une seule route :
+     *  valider, refuser, suspendre, reactiver, revalider. */
+    deciderVendeur: (id: number, decision: string, motif = '') =>
+      api.post<Record<string, unknown>>(`/admin/vendeurs/${id}/decision`, { decision, motif }),
+    deciderLivreur: (id: number, decision: string, motif = '', idEntrepot?: number) =>
+      api.post<Record<string, unknown>>(`/admin/livreurs/${id}/decision`, {
+        decision, motif, id_entrepot: idEntrepot,
+      }),
+    validations: () =>
+      api.get<{ vendeurs: Record<string, unknown>[]; livreurs: Record<string, unknown>[] }>(
+        '/admin/validations',
+      ),
     boutiques: () => api.get<Record<string, unknown>[]>('/admin/boutiques'),
     livreurs: () => api.get<Record<string, unknown>[]>('/admin/livreurs'),
     litiges: () =>
@@ -206,4 +220,69 @@ export const espaces = {
       api.get<{ notifications: Notification[]; non_lues: number }>('/moi/notifications'),
     marquerLues: () => api.post<{ non_lues: number }>('/moi/notifications/lues'),
   },
+}
+
+// ── Profil et paramètres (D-76, D-77) ─────────────────────────────────────
+
+export type ChampDemande = {
+  champ: string
+  libelle: string
+  valeur_actuelle: string
+  valeur_demandee: string
+}
+
+export type Demande = {
+  id: number
+  statut: string
+  libelle_statut: string
+  motif: string
+  commentaire_decision: string
+  date_demande: string
+  date_decision: string | null
+  demandeur: { id: number; nom: string; email: string; role: string }
+  champs: ChampDemande[]
+}
+
+export type Profil = {
+  identite: {
+    nom: string
+    prenom: string
+    role: string
+    libelle_role: string
+    statut_compte: string
+    date_inscription: string
+  }
+  coordonnees: { email: string; telephone: string }
+  champs_geles: { champ: string; libelle: string }[]
+  demandes: Demande[]
+  demandes_en_attente: number
+}
+
+export type Parametres = {
+  notifications_email: boolean
+  notifications_push: boolean
+  courriels_promotionnels: boolean
+  densite: 'COMPACTE' | 'NORMALE'
+  masquer_montants: boolean
+  canal_in_app_toujours_actif: boolean
+}
+
+export const profil = {
+  lire: () => api.get<Profil>('/moi/profil'),
+  modifierCoordonnees: (donnees: { email?: string; telephone?: string }) =>
+    api.patch<Profil>('/moi/profil', donnees),
+  demanderModification: (champs: Record<string, string>, motif: string) =>
+    api.post<Demande>('/moi/demandes-modification', { champs, motif }),
+  changerMotDePasse: (ancien: string, nouveau: string) =>
+    api.post<{ change: boolean }>('/moi/mot-de-passe', { ancien, nouveau }),
+
+  parametres: () => api.get<Parametres>('/moi/parametres'),
+  modifierParametres: (donnees: Partial<Parametres>) =>
+    api.patch<Parametres>('/moi/parametres', donnees),
+
+  // Côté administration
+  demandesAArbitrer: () =>
+    api.get<{ demandes: Demande[]; en_attente: number }>('/admin/demandes-modification'),
+  arbitrer: (id: number, accepter: boolean, commentaire: string) =>
+    api.post<Demande>(`/admin/demandes-modification/${id}`, { accepter, commentaire }),
 }

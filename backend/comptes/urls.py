@@ -5,7 +5,7 @@ Un contrat qui n'est pas respecte par le code n'est plus un contrat.
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from . import views, vues_espaces
+from . import views, vues_espaces, vues_gestion, vues_profil
 
 urlpatterns = [
     path("auth/inscription/client", views.inscription_client, name="inscription-client"),
@@ -48,4 +48,28 @@ urlpatterns += [
     path("admin/litiges", vues_espaces.litiges, name="admin-litiges"),
     path("admin/journal", vues_espaces.journal_audit, name="admin-journal"),
     path("admin/validations/resume", vues_espaces.resume_validations, name="admin-resume"),
+]
+
+# -- Profil et parametres (D-76, D-77) -----------------------------------
+urlpatterns += [
+    path("moi/profil", vues_profil.mon_profil, name="mon-profil"),
+    path("moi/demandes-modification", vues_profil.demander_modification,
+         name="demander-modification"),
+    path("moi/mot-de-passe", vues_profil.changer_mot_de_passe, name="changer-mot-de-passe"),
+    path("moi/parametres", vues_profil.mes_parametres, name="mes-parametres"),
+
+    path("admin/demandes-modification", vues_profil.demandes_a_arbitrer,
+         name="demandes-a-arbitrer"),
+    path("admin/demandes-modification/<int:identifiant>", vues_profil.arbitrer_demande,
+         name="arbitrer-demande"),
+]
+
+# -- La gestion, cote administration (D-93) ------------------------------
+urlpatterns += [
+    path("admin/vendeurs/<int:identifiant>/decision", vues_gestion.decider_vendeur,
+         name="decider-vendeur"),
+    path("admin/livreurs/<int:identifiant>/decision", vues_gestion.decider_livreur,
+         name="decider-livreur"),
+    path("admin/comptes/<int:identifiant>/basculer", vues_gestion.basculer_compte,
+         name="basculer-compte"),
 ]

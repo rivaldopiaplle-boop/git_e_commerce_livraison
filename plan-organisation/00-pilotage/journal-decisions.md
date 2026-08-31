@@ -672,3 +672,514 @@ impression d'écran mort. Cliquer une ligne fait désormais la même chose que s
 bouton « consulter », la ligne sélectionnée porte l'accent du rôle en filet à
 gauche, et les boutons d'action arrêtent la propagation pour ne pas déclencher
 les deux à la fois. Un test le vérifie.
+
+---
+
+# Bloc L — les décisions
+
+> Chaque remarque du bloc L, y compris les sous-remarques, a sa décision ici.
+> Elles sont écrites **avant** le code, comme demandé en L-13.
+
+## L-A — Les règles transversales
+
+### D-60 — Trois niveaux d'interaction, et un seul choix possible à chaque fois
+
+Tu demandais une règle plutôt qu'un arbitrage écran par écran. La voici, et
+elle s'applique partout sans exception :
+
+| Ce que l'action demande | Ce qu'on ouvre |
+|---|---|
+| Rien de plus que le geste (marquer lu, ajouter au panier, accepter une course) | **Rien** — exécution directe, un toast pour confirmer |
+| Voir un peu plus sans perdre sa place (aperçu produit, aperçu adresse, résumé d'une validation) | **Popup** |
+| Un contenu riche à plusieurs sous-parties (détail de commande, litige, fiche d'un gestionnaire) | **Page dédiée**, avec onglets internes |
+| Un geste **irréversible** ou coûteux (supprimer, suspendre, rejeter, annuler) | **Popup de confirmation** qui explique la conséquence, jamais un simple « OK ? » |
+
+**Ta formulation, L-2 et L-3** : *« les symboles-boutons irréversibles comme
+supprimer doivent avoir une fenêtre popup qui explique bien les conséquences
+pour une reconfirmation »*, et *« l'œil pour consulter, au lieu d'ouvrir une
+popup, sélectionne — ce qui ne sert à rien »*.
+
+**Ce que ça change concrètement** : l'œil n'est plus un sélecteur. Il ouvre un
+aperçu en popup quand le contenu est court, ou navigue vers une page quand il
+est riche. Le volet de droite garde son rôle — il montre ce sur quoi on
+travaille — mais il n'est plus la *seule* réponse au clic sur l'œil.
+
+### D-61 — Rien ne se supprime : on suspend, on désactive, on archive
+
+**Ta formulation, L-2 et L-3** : *« certains trucs soi-disant supprimables
+devraient être juste suspendus ou désactivés »*.
+
+La règle du projet était déjà la suppression logique ([D-13](#d-13--suppression-toujours-logique)) ;
+elle devient une règle d'interface :
+
+| Objet | Ce que fait le bouton | Pourquoi |
+|---|---|---|
+| Produit | **Retirer de la vente**, réversible | Des commandes passées le référencent |
+| Compte (tous rôles) | **Suspendre**, réversible | Ses commandes et ses traces restent |
+| Adresse | **Retirer du carnet** — l'adresse elle-même survit | Des commandes livrées y pointent |
+| Boutique, livreur | **Suspendre**, réversible | Idem |
+| Avis | **Masquer** (modération), jamais effacer | Une modération doit pouvoir s'expliquer |
+| Ligne de panier, brouillon de tournée | **Supprimer** vraiment | Rien n'en dépend |
+
+Un bouton rouge n'existe que pour les deux dernières lignes de ce tableau.
+
+### D-62 — Toute action se propage à ceux qu'elle concerne
+
+**Ta formulation, L-7** : *« tu n'as pas pensé aux autres pour que cette partie
+soit synchronisée »*, et la même remarque en L-3, L-4, L-6.
+
+C'est le trou de conception le plus profond du bloc L, et il est unique :
+**une action changeait une ligne en base et s'arrêtait là**. Trois mécanismes le
+comblent, aucun n'est inventé pour l'occasion :
+
+1. **Un événement métier par action sensible.** Valider un vendeur, suspendre un
+   compte, ajuster un stock, faire avancer une commande, trancher un litige :
+   chacun émet un événement capté par des abonnés (patron Observateur). Les
+   abonnés écrivent le journal d'audit, créent les notifications, et invalident
+   les caches concernés.
+2. **Une notification à chaque partie concernée**, avec le lien vers l'écran où
+   agir — jamais un silence après une décision.
+3. **Le rafraîchissement côté destinataire.** Au MVP, par interrogation
+   périodique ([D-16](#d-16--livraison-mvp-sans-temps-réel-websocket) l'a déjà
+   tranché contre les WebSockets) : les écrans de travail relisent leur file
+   toutes les trente secondes via `@tanstack/vue-query`, qui sait déjà le faire.
+
+### D-63 — Une suspension coupe l'accès immédiatement
+
+Un jeton JWT reste valide jusqu'à son expiration : suspendre un compte ne le
+déconnectait pas. C'est une faille, pas un détail d'ergonomie.
+
+À chaque requête authentifiée, la permission `EstActif` relit le statut du
+compte en base — elle le faisait déjà — et le front, recevant un 403 au code
+`compte_suspendu`, bascule sur un écran dédié qui explique la situation au lieu
+d'une page morte.
+
+### D-64 — Chaque KPI et chaque ligne mène quelque part
+
+**Ta formulation, L-3** : *« le dashboard n'est pas cliquable, n'est pas joli »*.
+
+Un chiffre isolé qu'on ne peut qu'admirer est un élément mort qui trompe l'œil.
+Chaque tuile de tableau de bord ouvre **la liste correspondante, filtre déjà
+appliqué** : cliquer « 3 commandes à préparer » ouvre les commandes reçues
+filtrées sur « à préparer », jamais l'écran générique.
+
+---
+
+## L-1 — Le visiteur non connecté
+
+### D-65 — L'alerte de retour en stock exige un compte
+
+Tu as tranché contre ma recommandation, et ton choix se défend : *« non,
+l'inscription est mieux »*. Un courriel seul ouvre la porte au spam
+d'inscription, et l'alerte n'a de valeur que si on peut ensuite acheter. Le
+bouton mène donc à l'inscription, en gardant le produit en mémoire pour
+inscrire l'alerte juste après.
+
+### D-66 — La barre latérale d'un visiteur ne montre que ce qu'il peut faire
+
+Tu as validé l'option B : pas d'entrées grisées avec un cadenas, mais une
+barre latérale **plus courte**, plus un bouton « Se connecter / S'inscrire ».
+Une entrée grisée est une fausse promesse de contenu caché.
+
+Si un visiteur force une URL privée, il est envoyé vers la connexion **et
+revient là où il allait** une fois connecté — jamais renvoyé à l'accueil, ce
+qui l'obligerait à refaire son chemin.
+
+### D-67 — Les pages « Devenir vendeur » et « Devenir livreur » sont deux vitrines
+
+**Ta formulation, L-1** : *« je veux de vraies frames ou librairies qui font ça
+très joli, très spécial »*.
+
+Deux pages publiques distinctes, sur le modèle « Vendre sur Amazon » : une
+promesse en haut, trois arguments chiffrés, les étapes de la candidature, une
+foire aux questions, et le formulaire en bas. Elles restent peu mises en avant
+dans la navigation — l'immense majorité des visiteurs viennent acheter.
+
+Les composants viennent de PrimeVue (accordéon pour la FAQ, étapes pour le
+parcours, cartes) : rien n'est redessiné à la main.
+
+### D-68 — Le catalogue navigue par produit, la page Boutiques navigue par vendeur
+
+Les deux logiques coexistent dans toutes les vraies places de marché, et l'une
+ne remplace pas l'autre : on cherche « un burger », ou on cherche « tout ce que
+vend Chez Karim ». La page Boutiques applique le **même filtre géographique**
+que le catalogue pour les boutiques Express, sans quoi elle promettrait des
+boutiques qui ne livrent pas.
+
+### D-69 — Grille verticale pour chercher, carrousel horizontal pour découvrir
+
+Si l'utilisateur est censé tout regarder → **vertical**. S'il est censé n'en
+retenir que deux ou trois en passant → **horizontal**. Le catalogue principal
+n'est donc jamais horizontal, et une section de trois recommandations n'est
+jamais en grille.
+
+### D-70 — Un code promo générique s'applique au panier invité
+
+Il ne dépend d'aucun historique : rien ne justifie d'exiger un compte. Un code
+nominatif ou de fidélité, lui, exige la connexion — il est rattaché à une
+personne.
+
+---
+
+## L-2 — Le client connecté
+
+### D-71 — Les avis sont publics, et visibles par tout le monde
+
+**Ta formulation** : *« les autres ne voient pas son avis »*, *« l'admin et le
+vendeur ne voient pas l'avis »*. Vérifié : la fiche produit publique ne
+renvoyait ni `avis` ni `note_moyenne`, et aucun écran d'administration ne les
+listait. Un avis qu'on est seul à voir n'est pas un avis.
+
+Trois endroits l'affichent désormais :
+
+- **la fiche produit publique** : note moyenne, répartition par étoile, et les
+  avis eux-mêmes — c'est ce qu'un acheteur lit avant d'acheter ;
+- **l'espace vendeur** : les avis qui le concernent, avec la possibilité de
+  **signaler** un avis abusif à l'administration, jamais de le supprimer ;
+- **l'espace admin** : la file de modération, où un avis signalé est masqué ou
+  rétabli avec un motif.
+
+### D-72 — On note ce qui compose la commande, et l'écran dit pourquoi
+
+**Ta formulation** : *« il peut donner un avis sur Julien alors que le produit
+est pour TechSophie »*.
+
+Vérification faite, le livreur proposé **est bien celui de cette commande** : le
+serveur ne propose que des cibles rattachées à la commande, et refuse les
+autres. Le défaut est donc d'affichage : les trois cibles étaient alignées à
+plat, si bien qu'un nom de personne apparaissait à côté d'un nom de boutique
+sans que rien n'explique le lien.
+
+L'écran regroupe désormais les cibles en trois sections nommées — **La
+boutique**, **Les produits reçus**, **La livraison** — et la section livraison
+précise « Sonia vous a livré cette commande le 28 août ».
+
+### D-73 — La note se donne avec un composant de notation, pas cinq boutons
+
+**Ta formulation** : *« il est obligé de donner soit 5 soit laisser à 4 »*.
+
+Cinq boutons dessinés à la main, dont l'état actif se lit uniquement au
+remplissage, ne se comprennent pas : on ne sait pas si on a cliqué. Le composant
+`Rating` de PrimeVue s'en charge — survol, clic, effacement, clavier, libellé
+accessible — et il affiche la note choisie en toutes lettres à côté.
+
+### D-74 — L'adresse de livraison suit la commande jusqu'au livreur
+
+**Ta formulation** : *« mes adresses : ces informations ne sont pas utilisées
+par le vendeur, l'entrepôt, le gestionnaire ni le livreur, pourquoi ? »*
+
+La question est juste, et le défaut réel. L'adresse et ses **instructions de
+livraison** sont maintenant reprises :
+
+| Qui | Ce qu'il en voit | Pourquoi pas plus |
+|---|---|---|
+| Vendeur, gestionnaire | Ville et code postal | Il prépare un colis, il n'a pas à connaître l'étage de quelqu'un |
+| Gestionnaire d'entrepôt | Ville, code postal, **zone** | C'est la zone qui décide de la tournée |
+| Livreur | **Adresse complète et instructions** | C'est lui qui sonne à la porte |
+| Admin | Tout, en cas de litige | Il arbitre |
+
+Le cloisonnement n'est pas une pudeur : une adresse complète diffusée à toute
+la chaîne est une donnée personnelle exposée sans nécessité.
+
+### D-75 — Le détail d'une commande est une page, l'ajout d'une adresse une popup
+
+Application directe de [D-60](#d-60--trois-niveaux-dinteraction-et-un-seul-choix-possible-à-chaque-fois) :
+une commande porte une frise de suivi, une facture et un litige potentiel — trop
+riche pour une popup. Une adresse tient en cinq champs.
+
+### D-76 — Profil et Paramètres restent deux écrans distincts
+
+Tu as tranché contre ma recommandation de les fusionner : *« profil et
+paramètres doivent être différents et ressembler au projet banque »*. C'est
+d'ailleurs ce que fait le projet banque, avec deux entrées séparées.
+
+- **Profil** : qui je suis. Identité **gelée**, coordonnées modifiables.
+- **Paramètres** : comment l'application se comporte. Mot de passe, sécurité,
+  notifications, affichage, données.
+
+### D-77 — L'identité ne se modifie que par une demande validée
+
+Repris du projet banque, et c'est ce qui donne au profil son sérieux : nom,
+prénom et date de naissance sont **gelés**. Les changer passe par une demande
+motivée, visible dans le volet de droite avec son état, et validée par un
+administrateur. L'e-mail, le téléphone et l'adresse restent modifiables
+directement.
+
+**Pourquoi c'est juste ici aussi** : sur une place de marché, l'identité engage
+— un vendeur validé sur un nom ne doit pas pouvoir en changer seul.
+
+### D-78 — La facture s'imprime par le navigateur, rien de plus
+
+Ton doute était fondé : *« je ne suis pas sûr que ce soit une bonne idée »*.
+Une feuille de style `@media print` et `window.print()` suffisent — le
+navigateur propose lui-même « Enregistrer en PDF ». Aucune dépendance, aucun
+travail serveur. Une génération PDF côté serveur (WeasyPrint) reste possible
+plus tard si la facture doit être envoyée par courriel.
+
+Rien d'autre ne s'imprime côté client : ni une liste de commandes, ni des avis.
+
+---
+
+## L-3 — Le vendeur
+
+### D-79 — Le catalogue et le stock ne font qu'un écran
+
+**Ta formulation** : *« Mon catalogue et Stock se marchent sur les pieds, si tu
+organises bien on peut fusionner »*, et *« deux fois le bouton corriger le
+stock »*.
+
+Tu as raison : ce sont deux vues du même objet. Un seul écran **Catalogue**,
+avec des onglets — *En vente*, *Stock et alertes*, *Retirés*, *Historique* — et
+**un seul** bouton de correction de stock par ligne. La rupture se déclare
+depuis la popup de correction, où elle a sa place, plutôt que par un second
+bouton qui ouvre la même popup.
+
+### D-80 — Le vendeur voit ce que son personnel a fait, et réciproquement
+
+**Ta formulation, L-3 et L-4** : *« le vendeur et le gestionnaire se marchent
+sur les pieds, ne sont pas complémentaires, et les actions de l'un ne sont pas
+mises à jour chez l'autre »*, et *« il est tellement inutile »*.
+
+Vérifié : les deux tableaux de bord affichaient les mêmes compteurs, et aucun ne
+disait **qui** avait agi. Ce qui est ajouté :
+
+- chaque mouvement de stock et chaque changement de statut portent leur auteur,
+  et l'écran l'affiche — « ajusté par Nadia, il y a deux heures » ;
+- le vendeur a, dans **Mon personnel**, l'activité de chaque employé : commandes
+  préparées, ajustements faits, dernière connexion ;
+- le gestionnaire voit **ce que le vendeur a changé** qui le concerne : un
+  produit retiré de la vente, un prix modifié, une commande annulée ;
+- les deux files se rafraîchissent seules : préparer une commande la fait
+  disparaître de l'écran de l'autre sans qu'il ait à recharger.
+
+### D-81 — La chaîne d'une commande suit le métier, pas une machine abstraite
+
+**Ta formulation** : *« la chaîne n'est pas trop comme dans la réalité »*.
+
+Les statuts existants restaient justes, mais l'écran les présentait comme une
+suite d'étiquettes. Trois corrections :
+
+- **le vocabulaire suit le circuit** : un restaurant « met en préparation » puis
+  « signale prête » ; un vendeur Standard « prépare le colis » puis « l'expédie
+  vers l'entrepôt ». Le même statut technique, deux mots différents ;
+- **le temps compte** : une commande à préparer affiche depuis combien de temps
+  elle attend, et passe en alerte au-delà du délai annoncé au client ;
+- **l'annulation exige un motif** ([D-07](#d-07--annulation-vendeur--motif-obligatoire-notification-forte))
+  et une confirmation qui explique ce qui va se passer côté client.
+
+### D-82 — Le bon de préparation s'imprime, la facture client aussi
+
+Ici l'impression a un vrai usage : quelqu'un doit **tenir le papier** —
+un ticket de cuisine pour Karim, une étiquette d'expédition pour un colis
+Standard. Même solution que la facture : feuille de style dédiée et
+`window.print()`, ce qui marche aussi bien sur une imprimante thermique de
+cuisine que sur une imprimante de bureau.
+
+### D-83 — Les statistiques sont des graphiques, et ils sont cliquables
+
+**Ta formulation** : *« il n'y a pas assez de graphes statistiques »*.
+
+Quatre graphiques, tous fournis par le composant `Chart` de PrimeVue (qui
+embarque Chart.js) — aucun graphique dessiné à la main :
+
+- le chiffre d'affaires par jour, sur la période choisie ;
+- la répartition des ventes par catégorie ;
+- les dix meilleures ventes en barres horizontales ;
+- l'évolution de la note moyenne.
+
+Un point cliqué renvoie vers les commandes du jour correspondant. Un bouton
+**Exporter en CSV** accompagne la période — un vendeur veut ces chiffres dans
+son tableur, pas sur papier.
+
+### D-84 — Changer le SIRET ou le type d'activité redéclenche une validation
+
+Ce sont les deux informations sur lesquelles l'admin a validé la boutique. Les
+laisser changer en silence viderait la validation de son sens : la modification
+est enregistrée, la boutique repasse **en attente**, et ses produits restent
+visibles pendant l'examen — on ne punit pas un commerçant pour une mise à jour
+administrative.
+
+---
+
+## L-4 et L-5 — Les gestionnaires
+
+### D-85 — Une seule interface, adaptée au type de gestionnaire
+
+Tu me demandais de trancher entre deux interfaces distinctes et une interface
+adaptative. **Une seule**, qui change ses entrées selon `type_gestionnaire` :
+ils partagent la couleur, la disposition et la moitié des écrans, et deux
+maquettes à tenir à jour finiraient par diverger.
+
+| Position | Staff vendeur | Staff entrepôt |
+|---|---|---|
+| 1 | Vue d'ensemble | Vue d'ensemble |
+| 2 | À préparer | Colis reçus |
+| 3 | Stock | Tournées |
+| 4 | Expéditions | Expéditions au départ |
+| 5 | Profil | Profil |
+
+Même position, même fonction logique : ce qui rend un écran compréhensible sans
+le réapprendre.
+
+### D-86 — Le gestionnaire d'entrepôt construit vraiment ses tournées
+
+**Ta formulation, L-5** : *« tu as fait un brouillon ; réfléchis sérieusement à
+ce qu'il doit faire, il est amené à faire quoi et comment ? »*
+
+Son métier, en quatre gestes, dans cet ordre :
+
+1. **Réceptionner** un colis déposé par un vendeur — il confirme l'arrivée
+   physique, ce qui fait passer la sous-commande de « expédiée » à « reçue » ;
+2. **Trier** par zone : les colis reçus se regroupent par zone de livraison,
+   parce que c'est la zone qui décide de la tournée ;
+3. **Monter une tournée** : il choisit une zone, l'application propose les colis
+   éligibles, il en retire ou en ajoute, et l'ordre des arrêts est **calculé**
+   par plus proche voisin ([D-44](#d-44--les-tournées-sont-optimisées-dès-le-mvp))
+   — il peut le corriger à la main, c'est lui qui connaît le terrain ;
+4. **Affecter** la tournée à un livreur rattaché à son entrepôt, ce qui la rend
+   visible sur le téléphone de celui-ci.
+
+Ce qu'il ne fait jamais : modifier une commande, un prix, ou l'ordre d'une
+tournée déjà commencée.
+
+### D-87 — Deux bouts de la même chaîne portent deux noms
+
+Le gestionnaire d'un vendeur **expédie** vers l'entrepôt ; celui de l'entrepôt
+**réceptionne**. Même colis, deux comptes, deux écrans, et un rapprochement
+automatique : un colis expédié sans réception au bout de 48 heures remonte comme
+anomalie chez les deux.
+
+---
+
+## L-6 — Le livreur
+
+### D-88 — L'application mobile existe, et c'est du Vue
+
+Ta phrase est juste : *« je n'ai rien pu tester, tu refuses de faire la partie
+mobile »*. Elle est faite, avec **Ionic Vue + Capacitor** comme
+[D-20](#d-20--mobile--ionic-vue--capacitor) le prévoyait — donc en réutilisant
+les magasins Pinia, le client d'API et les types déjà écrits, extraits dans un
+paquet `partage/`.
+
+### D-89 — Cinq onglets, la même position pour la même fonction dans les deux modes
+
+| Position | Express | Standard |
+|---|---|---|
+| 1 | Vue d'ensemble | Vue d'ensemble |
+| 2 | Mes courses | Ma tournée |
+| 3 | **+** (historique, gains, aide) | **+** (historique, gains, aide) |
+| 4 | À proximité | Prochain arrêt |
+| 5 | Profil et disponibilité | Profil et disponibilité |
+
+La bascule entre les deux est **automatique**, déduite de `mode_livraison` :
+jamais un réglage que le livreur doit penser à changer.
+
+### D-90 — « Prochain arrêt » n'est pas une liste
+
+C'est un écran plein : l'arrêt suivant, la navigation, le bouton livré ou
+absent, le contact client. Un livreur n'a pas besoin de rouvrir sa tournée
+entière dix fois par jour pour savoir où il va maintenant.
+
+### D-91 — Le livreur Standard est payé à l'arrêt
+
+Tu me laissais trancher. **À l'arrêt** : c'est plus juste — une tournée de dix
+arrêts ne vaut pas une tournée de trois — et cela reste lisible si l'écran
+affiche « 6 arrêts × 1,80 € = 10,80 € » plutôt qu'un total sec.
+
+### D-92 — Un gain est bloqué tant qu'un litige est ouvert sur sa commande
+
+Il est acquis à la confirmation de livraison, mais **suspendu** si un litige
+s'ouvre, et débloqué à la décision. Verser puis reprendre serait bien pire.
+
+---
+
+## L-7 et L-8 — L'administration
+
+### D-93 — L'admin gère, il ne fait pas que consulter
+
+**Ta formulation** : *« tu n'as pensé qu'à la consultation »*. Vérifié : aucune
+route de gestion n'existait pour les boutiques ni les livreurs. Ce qu'il peut
+faire désormais, chaque action étant tracée et notifiée :
+
+| Sur | Actions |
+|---|---|
+| Boutique | valider, refuser avec motif, **suspendre**, réactiver, exiger une nouvelle validation |
+| Livreur | valider, refuser avec motif, suspendre, réactiver, rattacher à un entrepôt |
+| Compte | suspendre, réactiver, forcer une réinitialisation de mot de passe |
+| Avis | masquer, rétablir |
+| Litige | instruire, trancher, rembourser |
+
+### D-94 — Un litige a deux parties, et chacune s'exprime
+
+**Ta formulation** : *« litige, c'est le moins réfléchi : le système, la
+logique, la synchronisation, comment on provoque un litige, comment on se
+défend, comment on rétorque »*.
+
+Le cycle, du début à la fin :
+
+1. **Ouverture** — le client décrit le problème et joint ses preuves, depuis sa
+   commande livrée. La partie mise en cause **et** l'admin sont notifiés.
+2. **Instruction** — la partie mise en cause a **48 heures** pour répondre avec
+   sa version et ses preuves. Les deux versions restent côte à côte : aucune
+   n'écrase l'autre. Sans réponse dans le délai, le dossier part à l'arbitrage
+   avec la seule version du plaignant — on ne bloque jamais indéfiniment.
+3. **Décision** — l'admin tranche avec les deux versions sous les yeux, et sa
+   décision **déclenche** l'action : remboursement total ou partiel, ou rejet
+   motivé.
+4. **Notification finale** aux deux parties, avec la justification.
+
+Effets sur le reste : le versement au vendeur ou au livreur est suspendu tant
+que le litige est ouvert ; un remboursement emprunte le **même chemin** qu'une
+annulation ; et la note moyenne n'est affectée que si le litige est tranché en
+défaveur — un signalement infondé ne doit pénaliser personne.
+
+### D-95 — Le journal d'audit ne s'écrit jamais à la main
+
+**Ta formulation** : *« aucune gestion, système et logique mauvaise, pas de
+synchronisation »*.
+
+Chaque action sensible **émet** son entrée, par le même mécanisme d'événements
+que [D-62](#d-62--toute-action-se-propage-à-ceux-quelle-concerne). Une entrée
+répond à six questions : **qui** (acteur et rôle), **quoi** (action), **sur
+quoi** (objet visé), **avant et après** (valeurs), **quand**, **pourquoi**
+(motif). Aucune n'est modifiable ni supprimable.
+
+Qui le lit : l'admin en entier ; un vendeur uniquement **ses** actions et celles
+de son personnel. Filtrable par acteur, type et période, exportable en CSV.
+Jamais imprimable — un registre n'est pas un document ponctuel.
+
+---
+
+## L-9 à L-17 — La méthode
+
+### D-96 — Le jeu de données rend visible chaque scénario
+
+**Ta formulation, L-15** : *« crée autant de données que possible pour rendre
+visible chaque scénario et chaque décision »*.
+
+Le peuplement ne cherche pas le volume mais la **couverture** : pour chaque
+scénario de `01-produit/scenarios.md` et chaque décision de ce journal qui se
+voit à l'écran, au moins une donnée l'illustre. Un fichier de correspondance
+`donnees-demo/couverture.md` dit quelle donnée illustre quel scénario, et un
+test échoue si un scénario n'a plus d'illustration.
+
+### D-97 — Aucune fonctionnalité n'est retirée pour en ajouter une autre
+
+**Ta formulation, L-14** : *« ne fais jamais moins bien que ce que tu as déjà
+fait : soit tu prends le meilleur, soit ils sont complémentaires »*.
+
+Quand une remarque conduit à refaire un écran, ce qui existait est **repris ou
+remplacé par mieux**, jamais perdu en route. Fusionner catalogue et stock
+([D-79](#d-79--le-catalogue-et-le-stock-ne-font-quun-écran)) garde les onglets,
+l'historique et la popup de correction ; ils changent de place, ils ne
+disparaissent pas.
+
+### D-98 — Devant une idée jamais vue ailleurs, on fait comme les vrais sites
+
+**Ta formulation, L-14** : *« si une idée, tu n'as jamais vu ça sur un vrai
+site, tu fais comme c'est sur les vrais sites »*.
+
+C'est la règle qui a manqué au bloc J, où j'ai inventé un tableau, une fenêtre
+et des notifications maison au lieu de prendre ceux qui existaient. Devant un
+doute d'ergonomie : regarder ce que font Amazon, Uber Eats ou Shopify, et faire
+pareil — l'originalité en interface est presque toujours une régression.

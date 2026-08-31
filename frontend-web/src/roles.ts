@@ -13,9 +13,9 @@
 //     le staff d'un vendeur prepare des commandes, celui d'un entrepot charge
 //     des tournees (D-05).
 import {
-  BarChart3, Bike, Boxes, ClipboardList, LayoutDashboard, MapPin, Package,
-  Receipt, Route, ScrollText, ShieldCheck, ShoppingBag, Star, Store, Truck,
-  Users, Wallet, Warehouse,
+  BadgeCheck, BarChart3, Bike, Boxes, ClipboardList, LayoutDashboard, MapPin,
+  Package, Receipt, Route, ScrollText, Settings, ShieldCheck, ShoppingBag,
+  Star, Store, Truck, UserRound, Users, Wallet, Warehouse,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -69,6 +69,8 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Mes commandes', icone: Receipt, route: 'mes-commandes' },
       { libelle: 'Mes adresses', icone: MapPin, route: 'mes-adresses' },
       { libelle: 'Mon compte', icone: LayoutDashboard, route: 'espace' },
+      { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
+      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
     ],
   },
   VENDEUR: {
@@ -84,6 +86,8 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Stock', icone: Boxes, route: 'vendeur-stock' },
       { libelle: 'Mon personnel', icone: Users, route: 'vendeur-personnel' },
       { libelle: 'Statistiques', icone: BarChart3, route: 'vendeur-statistiques' },
+      { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
+      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
     ],
   },
   // Staff d'un vendeur — Nadia. Elle prepare et elle compte.
@@ -100,6 +104,8 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       // Grisee, exactement comme dans la maquette : l'entree existe pour que
       // l'employe sache que la donnee existe et qu'elle ne lui est pas due.
       { libelle: 'Chiffre d affaires', icone: Wallet, interdite: true },
+      { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
+      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
     ],
   },
   // Staff d'un entrepot — Samir. Il recoit des colis et monte des tournees.
@@ -113,6 +119,8 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Colis recus', icone: Warehouse, route: 'entrepot-colis' },
       { libelle: 'Tournees', icone: Route, route: 'entrepot-tournees' },
+      { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
+      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
     ],
   },
   LIVREUR: {
@@ -126,6 +134,8 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Mes courses', icone: Bike, route: 'livreur-courses' },
       { libelle: 'Ma tournee', icone: Truck, route: 'livreur-courses' },
       { libelle: 'Mes gains', icone: Wallet, route: 'livreur-courses' },
+      { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
+      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
     ],
   },
   ADMIN: {
@@ -140,7 +150,10 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Boutiques', icone: Store, route: 'admin-boutiques' },
       { libelle: 'Utilisateurs', icone: Users, route: 'admin-utilisateurs' },
       { libelle: 'Litiges', icone: Star, route: 'admin-litiges' },
+      { libelle: 'Demandes d identite', icone: BadgeCheck, route: 'admin-demandes' },
       { libelle: "Journal d'audit", icone: ScrollText, route: 'admin-journal' },
+      { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
+      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
     ],
   },
 }

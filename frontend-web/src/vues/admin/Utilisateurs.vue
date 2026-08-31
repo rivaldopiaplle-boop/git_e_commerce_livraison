@@ -10,10 +10,14 @@ import { computed, onMounted, ref } from 'vue'
 import { EchecApi } from '../../api/client'
 import { useNotification } from '../../notifications'
 import { espaces, type CompteAdmin } from '../../api/espaces'
+import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
+
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
+import Popup from '../../composants/Popup.vue'
 import Volet from '../../composants/Volet.vue'
 
 type Ligne = CompteAdmin & { [cle: string]: unknown }
@@ -63,16 +67,30 @@ const visibles = computed(() =>
 const compteur = (role: string) =>
   repartition.value.find((entree) => entree.role === role)?.nombre ?? 0
 
-async function basculer(compte: Ligne) {
+// Suspendre exige un motif : la personne doit savoir ce qu'on lui reproche,
+// et elle en est prevenue (D-93). Reactiver n'en demande pas.
+const bascule = ref<Ligne | null>(null)
+const motif = ref('')
+
+function ouvrirBascule(compte: Ligne) {
+  bascule.value = compte
+  motif.value = ''
+  if (compte.statut_compte === 'SUSPENDU') basculer()
+}
+
+async function basculer() {
+  const compte = bascule.value
+  if (!compte) return
   occupe.value = true
   try {
-    const resultat = await espaces.admin.suspendre(compte.id)
+    const resultat = await espaces.admin.basculerCompte(compte.id, motif.value)
     compte.statut_compte = resultat.statut_compte
     notifier.succes(
       resultat.statut_compte === 'SUSPENDU'
-        ? `Le compte de ${compte.prenom} ${compte.nom} est suspendu.`
+        ? `Le compte de ${compte.prenom} ${compte.nom} est suspendu, et la personne est prévenue.`
         : `Le compte de ${compte.prenom} ${compte.nom} est réactivé.`,
     )
+    bascule.value = null
   } catch (echec) {
     notifier.echec(echec instanceof EchecApi ? echec.erreur.message : "L'action a échoué.")
   } finally {
@@ -158,7 +176,7 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
           :icone="ligne.statut_compte === 'SUSPENDU' ? RotateCcw : Ban"
           :ton="ligne.statut_compte === 'SUSPENDU' ? 'accent' : 'danger'"
           :desactive="occupe || ligne.role === 'ADMIN'"
-          @click="basculer(ligne)"
+          @click="ouvrirBascule(ligne)"
         />
       </template>
 
@@ -204,7 +222,7 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
         class="mt-4 w-full"
         :class="selection.statut_compte === 'SUSPENDU' ? 'bouton-accent' : 'bouton-neutre'"
         :disabled="occupe"
-        @click="basculer(selection)"
+        @click="ouvrirBascule(selection)"
       >
         <component :is="selection.statut_compte === 'SUSPENDU' ? RotateCcw : Ban" :size="15" />
         {{ selection.statut_compte === 'SUSPENDU' ? 'Réactiver le compte'
@@ -216,5 +234,31 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
         plateforme qui efface ses utilisateurs efface ses preuves.
       </p>
     </Volet>
+
+    <!-- Suspendre est reversible mais coupe l'acces immediatement : on
+         confirme, et on explique ce qui va se passer (D-60, D-63). -->
+    <Popup
+      v-if="bascule && bascule.statut_compte !== 'SUSPENDU'"
+      titre="Suspendre ce compte ?"
+      :explication="`${bascule.prenom} ${bascule.nom} sera deconnecte immediatement et ne pourra plus entrer. Ses commandes et ses traces restent : rien n'est efface. Vous pourrez le reactiver a tout moment.`"
+      @fermer="bascule = null"
+    >
+      <label class="flex flex-col gap-1.5">
+        <span class="etiquette">Motif <span class="text-alerte">obligatoire</span></span>
+        <Textarea
+          v-model="motif"
+          rows="3"
+          auto-resize
+          placeholder="Verification anti-fraude, signalements repetes…"
+        />
+      </label>
+
+      <template #actions>
+        <Button label="Annuler" severity="secondary" outlined size="small"
+                @click="bascule = null" />
+        <Button label="Suspendre le compte" severity="danger" size="small"
+                :disabled="occupe || !motif.trim()" @click="basculer" />
+      </template>
+    </Popup>
   </div>
 </template>

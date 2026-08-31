@@ -16,5 +16,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/tests-preparation.ts'],
     include: ['src/**/*.test.ts'],
+    // Fils d'execution plutot que processus separes : sous Windows, le pool
+    // par processus expire une fois sur trois au demarrage des ouvriers, et
+    // une suite qui echoue au hasard ne sert plus a rien.
+    pool: 'threads',
   },
 })

@@ -385,30 +385,58 @@ def litiges(requete):
 @api_view(["GET"])
 @permission_classes([EstAdmin])
 def journal_audit(requete):
-    """Le journal : qui a change quoi, quand.
+    """Le journal : qui a change quoi, quand, et pourquoi (D-95).
 
-    Les changements de statut de commande y figurent parce que ce sont eux
-    qu'on relit quand un client conteste — pas des lignes de log techniques.
+    Il reunit DEUX sources, parce que le systeme trace a deux endroits et que
+    l'ecran ne doit pas en montrer un seul :
+
+      · `JournalAudit`      les decisions — valider, suspendre, arbitrer, et
+                            tout ce qui passe par le fil d'evenements ;
+      · `HistoriqueStatut`  les changements de statut de commande, qu'on relit
+                            quand un client conteste.
+
+    Ne montrer que la seconde, comme avant, donnait un journal ou aucune
+    decision d'administration n'apparaissait — donc un journal d'audit qui
+    n'auditait rien.
     """
     from commandes.models import HistoriqueStatut
+    from engagement.models import JournalAudit
 
-    traces = (
-        HistoriqueStatut.objects.select_related("utilisateur")
-        .order_by("-date_changement")[:150]
-    )
-    return Response({"data": [
-        {
-            "id": trace.id,
+    entrees = []
+
+    for trace in JournalAudit.objects.select_related("utilisateur")[:150]:
+        apres = trace.donnees_apres or {}
+        entrees.append({
+            "id": f"audit-{trace.id}",
+            "source": "DECISION",
             "type_objet": trace.type_objet,
             "id_objet": trace.id_objet,
+            "action": trace.action,
+            "statut_avant": str((trace.donnees_avant or {}).get("statut_validation")
+                                or (trace.donnees_avant or {}).get("statut_compte") or ""),
+            "statut_apres": str(apres.get("statut_validation")
+                                or apres.get("statut_compte") or trace.action),
+            "commentaire": str(apres.get("motif", "")),
+            "date": trace.date_action,
+            "par": str(trace.utilisateur) if trace.utilisateur_id else "systeme",
+        })
+
+    for trace in HistoriqueStatut.objects.select_related("utilisateur")[:150]:
+        entrees.append({
+            "id": f"statut-{trace.id}",
+            "source": "STATUT",
+            "type_objet": trace.type_objet,
+            "id_objet": trace.id_objet,
+            "action": "CHANGEMENT_STATUT",
             "statut_avant": trace.statut_avant,
             "statut_apres": trace.statut_apres,
             "commentaire": trace.commentaire,
             "date": trace.date_changement,
             "par": str(trace.utilisateur) if trace.utilisateur_id else "systeme",
-        }
-        for trace in traces
-    ]})
+        })
+
+    entrees.sort(key=lambda entree: entree["date"], reverse=True)
+    return Response({"data": entrees[:200]})
 
 
 @api_view(["GET"])
