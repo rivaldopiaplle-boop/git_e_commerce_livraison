@@ -110,9 +110,11 @@ const routes: RouteRecordRaw[] = [
     meta: { acces: 'prive' },
   },
   {
+    // Le stock a fusionne avec le catalogue (D-79). On garde la route pour
+    // que les liens deja envoyes et les marque-pages continuent de marcher.
     path: '/espace/stock',
     name: 'vendeur-stock',
-    component: () => import('./vues/vendeur/Stock.vue'),
+    redirect: { name: 'vendeur-catalogue' },
     meta: { acces: 'prive' },
   },
   {

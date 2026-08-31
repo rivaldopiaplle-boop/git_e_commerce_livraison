@@ -12,12 +12,35 @@ export type Boutique = {
   nombre_produits: number
   distance_km: number | null
 }
+export type AvisPublic = {
+  id: number
+  note: number
+  commentaire: string
+  date: string
+  auteur: string
+  porte_sur: string
+}
+
 export type ProduitDetail = Produit & {
   description: string
   stock_disponible: number
   poids_grammes: number | null
   photos: { id: number; url: string; texte_alternatif: string }[]
   categorie: { id: number; nom: string; slug: string } | null
+  // Ce qu'un acheteur lit avant d'acheter (D-71).
+  avis: {
+    nombre: number
+    note_moyenne: number | null
+    repartition: Record<string, number>
+    avis: AvisPublic[]
+  }
+  produits_similaires: {
+    id: number
+    nom: string
+    prix_centimes: number
+    image: string
+    disponible: boolean
+  }[]
 }
 export type ReponseCatalogue = {
   data: Produit[]

@@ -4,7 +4,10 @@
 // En rupture, le bouton est GELE et double d'une alerte de retour en stock
 // (D-06) : le produit reste au catalogue, sinon on perd le client au lieu de
 // le faire patienter.
-import { ArrowLeft, Bike, Bell, Clock, MapPin, Package, ShieldCheck, ShoppingCart } from '@lucide/vue'
+import {
+  ArrowLeft, Bell, Bike, Clock, MapPin, MessageSquare, Package, ShieldCheck, ShoppingCart, Star,
+} from '@lucide/vue'
+import Rating from 'primevue/rating'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -202,6 +205,18 @@ const photos = computed(() =>
           </p>
         </div>
 
+        <!-- La note, la ou on la cherche : sous le titre du produit -->
+        <RouterLink
+          v-if="produit.avis?.nombre"
+          to="#avis"
+          class="mt-3 inline-flex items-center gap-2 text-[13px] text-encre-douce
+                 transition-colors hover:text-encre"
+        >
+          <Rating :model-value="Math.round(produit.avis?.note_moyenne ?? 0)" readonly />
+          <b class="text-encre">{{ produit.avis?.note_moyenne }}</b>
+          <span>· {{ produit.avis?.nombre }} avis</span>
+        </RouterLink>
+
         <ul class="mt-8 flex flex-col gap-3 border-t border-trait pt-6">
           <li class="flex items-center gap-3 text-[13.5px] text-encre-douce">
             <Clock :size="16" class="text-[color:var(--accent)]" />
@@ -215,5 +230,118 @@ const photos = computed(() =>
         </ul>
       </div>
     </article>
+
+    <!-- ── Ce que les clients en disent (D-71) ────────────────────────── -->
+    <section v-if="produit" id="avis" class="carte mt-8">
+      <h3 class="carte-titre">
+        <span class="flex items-center gap-2">
+          <MessageSquare :size="15" /> Avis des clients
+        </span>
+        <span v-if="produit.avis?.nombre" class="text-[11px] font-semibold text-encre-douce">
+          {{ produit.avis?.nombre }} avis, sur le produit et sur la boutique
+        </span>
+      </h3>
+
+      <div v-if="!produit.avis?.nombre" class="vide">
+        <Star :size="30" class="text-trait" />
+        <b class="vide-titre">Aucun avis pour l'instant</b>
+        <p class="vide-texte">
+          Seuls les clients ayant reçu leur commande peuvent en déposer un : c'est ce qui
+          rend ceux d'en dessous crédibles.
+        </p>
+      </div>
+
+      <template v-else>
+        <!-- La répartition : une note moyenne seule ne dit pas si l'avis est
+             partagé ou si deux extrêmes s'annulent. -->
+        <div class="flex flex-col gap-4 border-b border-trait-doux p-4 sm:flex-row sm:items-center">
+          <div class="shrink-0 text-center">
+            <b class="block text-[34px] leading-none">{{ produit.avis?.note_moyenne }}</b>
+            <Rating
+              :model-value="Math.round(produit.avis?.note_moyenne ?? 0)"
+              readonly
+              class="mt-1"
+            />
+            <span class="mt-1 block text-[11.5px] text-encre-douce">
+              {{ produit.avis?.nombre }} avis
+            </span>
+          </div>
+
+          <div class="flex flex-1 flex-col gap-1">
+            <div
+              v-for="valeur in [5, 4, 3, 2, 1]"
+              :key="valeur"
+              class="flex items-center gap-2 text-[11.5px]"
+            >
+              <span class="w-8 shrink-0 text-encre-douce">{{ valeur }} ★</span>
+              <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-trait-doux">
+                <span
+                  class="block h-full rounded-full transition-[width] duration-300"
+                  :style="{
+                    width: `${((produit.avis?.repartition?.[String(valeur)] ?? 0)
+                      / Math.max(1, produit.avis?.nombre ?? 1)) * 100}%`,
+                    background: 'var(--accent)',
+                  }"
+                />
+              </span>
+              <span class="w-6 shrink-0 text-right text-encre-douce">
+                {{ produit.avis?.repartition?.[String(valeur)] ?? 0 }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <article v-for="avis in produit.avis?.avis ?? []" :key="avis.id" class="ligne !items-start">
+          <span
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-atelier
+                   text-[11.5px] font-bold text-encre-douce"
+          >
+            {{ avis.auteur.charAt(0) }}
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="flex flex-wrap items-center gap-2">
+              <b>{{ avis.auteur }}</b>
+              <Rating :model-value="avis.note" readonly />
+              <span class="text-[11px] text-encre-douce">
+                sur {{ avis.porte_sur }} · {{ new Date(avis.date).toLocaleDateString('fr-FR') }}
+              </span>
+            </span>
+            <p v-if="avis.commentaire" class="mt-1 leading-relaxed text-encre-douce">
+              {{ avis.commentaire }}
+            </p>
+          </span>
+        </article>
+      </template>
+    </section>
+
+    <!-- ── Dans la même catégorie ─────────────────────────────────────── -->
+    <section v-if="produit?.produits_similaires?.length" class="mt-8">
+      <h3 class="mb-3 text-[15px] font-semibold">Dans la même catégorie</h3>
+      <!-- Carrousel horizontal : découverte passive, pas recherche active
+           (D-69). On n'en retient que deux ou trois en passant. -->
+      <div class="flex gap-3 overflow-x-auto pb-2">
+        <RouterLink
+          v-for="autre in produit.produits_similaires"
+          :key="autre.id"
+          :to="{ name: 'produit', params: { id: autre.id } }"
+          class="carte w-[168px] shrink-0 transition-shadow hover:shadow-md"
+        >
+          <img
+            v-if="autre.image"
+            :src="autre.image"
+            :alt="autre.nom"
+            class="aspect-4/3 w-full object-cover"
+            :class="autre.disponible ? '' : 'opacity-40 grayscale'"
+          />
+          <span class="block p-3">
+            <b class="block truncate text-[12.5px]">{{ autre.nom }}</b>
+            <span class="text-[12px] font-bold" :style="{ color: 'var(--accent)' }">
+              {{ (autre.prix_centimes / 100).toLocaleString('fr-FR', {
+                style: 'currency', currency: 'EUR' }) }}
+            </span>
+          </span>
+        </RouterLink>
+      </div>
+    </section>
   </div>
 </template>

@@ -20,6 +20,8 @@ import { useRoute } from 'vue-router'
 import { api, EchecApi } from '../../api/client'
 import { useNotification } from '../../notifications'
 import { commandes, type Commande } from '../../api/commandes'
+import Rating from 'primevue/rating'
+
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
@@ -146,6 +148,26 @@ async function envoyerAvis() {
     occupe.value = false
   }
 }
+
+/** Les cibles, groupees et expliquees.
+ *
+ *  « Il peut donner un avis sur Julien alors que le produit est pour
+ *  TechSophie » : le livreur proposé EST celui de la commande, mais l'écran
+ *  alignait les trois cibles à plat, si bien qu'un nom de personne côtoyait un
+ *  nom de boutique sans que rien n'explique le lien (D-72).
+ */
+const groupesNotables = computed(() => {
+  const par = (cible: string) => notables.value.filter((e) => e.cible === cible)
+  return [
+    { cle: 'VENDEUR', titre: 'La boutique',
+      explication: 'Celle qui a préparé votre commande.', elements: par('VENDEUR') },
+    { cle: 'PRODUIT', titre: 'Les produits reçus',
+      explication: 'Uniquement ceux de cette commande.', elements: par('PRODUIT') },
+    { cle: 'LIVREUR', titre: 'La livraison',
+      explication: 'La personne qui vous a apporté cette commande.',
+      elements: par('LIVREUR') },
+  ].filter((groupe) => groupe.elements.length)
+})
 
 const restantsANoter = computed(
   () => notables.value.filter((element) => element.note === null).length,
@@ -304,19 +326,23 @@ const quand = (date: string) => new Date(date).toLocaleDateString('fr-FR')
                    la boutique, un produit, ou le livreur."
       @fermer="avisOuvert = null"
     >
-      <div class="flex flex-wrap gap-1.5">
-        <button
-          v-for="element in notables"
-          :key="`${element.cible}-${element.id_cible}`"
-          type="button"
-          class="puce-filtre"
-          :class="choisi === element || (choisi?.cible === element.cible
-                  && choisi?.id_cible === element.id_cible) ? 'puce-filtre-active' : ''"
-          @click="choisir(element)"
-        >
-          {{ element.libelle }}
-          <Star v-if="element.note" :size="11" />
-        </button>
+      <div v-for="groupe in groupesNotables" :key="groupe.titre" class="mb-3">
+        <span class="etiquette">{{ groupe.titre }}</span>
+        <p class="mb-1.5 text-[11px] text-encre-douce">{{ groupe.explication }}</p>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="element in groupe.elements"
+            :key="`${element.cible}-${element.id_cible}`"
+            type="button"
+            class="puce-filtre"
+            :class="choisi?.cible === element.cible && choisi?.id_cible === element.id_cible
+              ? 'puce-filtre-active' : ''"
+            @click="choisir(element)"
+          >
+            {{ element.libelle }}
+            <Star v-if="element.note" :size="11" />
+          </button>
+        </div>
       </div>
 
       <template v-if="choisi">
@@ -324,20 +350,9 @@ const quand = (date: string) => new Date(date).toLocaleDateString('fr-FR')
           {{ choisi.sous_titre }} — {{ choisi.libelle }}
         </p>
 
-        <div class="mt-2 flex items-center gap-1.5">
-          <button
-            v-for="valeur in [1, 2, 3, 4, 5]"
-            :key="valeur"
-            type="button"
-            class="bouton-ligne !h-9 !w-9"
-            :class="valeur <= note ? 'bouton-ligne-accent' : ''"
-            :title="`${valeur} sur 5`"
-            @click="note = valeur"
-          >
-            <Star :size="16" />
-            <span class="sr-only">{{ valeur }} sur 5</span>
-          </button>
-          <span class="ml-2 text-[12.5px] font-bold">{{ note }} / 5</span>
+        <div class="mt-2 flex items-center gap-3">
+          <Rating v-model="note" />
+          <b class="text-[12.5px]">{{ note }} / 5</b>
         </div>
 
         <label class="mt-3 flex flex-col gap-1.5">

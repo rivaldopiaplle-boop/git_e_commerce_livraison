@@ -36,6 +36,7 @@ from .serializers import (
     ProduitEcritureSerializer,
     ProduitListeSerializer,
     ProduitVendeurSerializer,
+    url_absolue,
 )
 from .services import (
     RegleMetier,
@@ -189,6 +190,52 @@ def _facettes(produits):
     }
 
 
+def _avis_publics(produit):
+    """Les avis visibles par tout le monde sur ce produit et sa boutique.
+
+    Ils manquaient completement : un client deposait un avis que personne ne
+    voyait jamais (D-71). Un avis qu'on est seul a voir n'est pas un avis.
+
+    Les avis masques par la moderation sont ecartes ; les avis signales
+    restent visibles tant qu'un administrateur n'a pas tranche — masquer sur
+    simple signalement reviendrait a donner au vendeur un droit de veto sur ce
+    qu'on dit de lui.
+    """
+    from engagement.models import Avis, CibleAvis, StatutModeration
+
+    visibles = Avis.objects.exclude(statut_moderation=StatutModeration.MASQUE)
+    sur_le_produit = visibles.filter(cible=CibleAvis.PRODUIT, id_cible=produit.id)
+    sur_la_boutique = visibles.filter(cible=CibleAvis.VENDEUR, id_cible=produit.vendeur_id)
+
+    ensemble = (sur_le_produit | sur_la_boutique).select_related(
+        "client__utilisateur"
+    ).order_by("-date_avis")
+
+    notes = list(ensemble.values_list("note", flat=True))
+    repartition = {str(valeur): notes.count(valeur) for valeur in range(1, 6)}
+
+    return {
+        "nombre": len(notes),
+        "note_moyenne": round(sum(notes) / len(notes), 2) if notes else None,
+        "repartition": repartition,
+        "avis": [
+            {
+                "id": avis.id,
+                "note": avis.note,
+                "commentaire": avis.commentaire,
+                "date": avis.date_avis,
+                # Le prenom et l'initiale du nom : assez pour croire a un vrai
+                # client, pas assez pour l'identifier.
+                "auteur": (f"{avis.client.utilisateur.prenom} "
+                           f"{avis.client.utilisateur.nom[:1]}.").strip(),
+                "porte_sur": "le produit" if avis.cible == CibleAvis.PRODUIT
+                             else "la boutique",
+            }
+            for avis in ensemble[:30]
+        ],
+    }
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def detail_produit(requete, identifiant):
@@ -208,9 +255,26 @@ def detail_produit(requete, identifiant):
         if d is not None:
             distances[produit.id] = d
 
-    return Response({"data": ProduitDetailSerializer(
-        produit, context={"request": requete, "distances": distances}
-    ).data})
+    return Response({"data": {
+        **ProduitDetailSerializer(
+            produit, context={"request": requete, "distances": distances}
+        ).data,
+        # Ce qu'un acheteur lit AVANT d'acheter. Sans eux, la fiche ne dit
+        # que ce que le vendeur veut bien en dire (D-71).
+        "avis": _avis_publics(produit),
+        "produits_similaires": [
+            {
+                "id": autre.id,
+                "nom": autre.nom,
+                "prix_centimes": autre.prix_unitaire_centimes,
+                "image": url_absolue(autre.image_principale_url, requete),
+                "disponible": autre.stock_commandable > 0,
+            }
+            for autre in _visibles()
+            .filter(categorie=produit.categorie)
+            .exclude(pk=produit.pk)[:6]
+        ],
+    }})
 
 
 @api_view(["GET"])

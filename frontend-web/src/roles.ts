@@ -82,8 +82,10 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     navigation: [
       { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Commandes recues', icone: ClipboardList, route: 'vendeur-commandes' },
+      // Catalogue et stock ne font qu'un ecran (D-79) : ce sont deux vues
+      // du meme objet, et les separer obligeait a garder deux boutons de
+      // correction du stock pour la meme action.
       { libelle: 'Mon catalogue', icone: Package, route: 'vendeur-catalogue' },
-      { libelle: 'Stock', icone: Boxes, route: 'vendeur-stock' },
       { libelle: 'Mon personnel', icone: Users, route: 'vendeur-personnel' },
       { libelle: 'Statistiques', icone: BarChart3, route: 'vendeur-statistiques' },
       { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
@@ -99,7 +101,7 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     panneau: 'activite',
     navigation: [
       { libelle: 'A preparer', icone: ClipboardList, route: 'vendeur-commandes' },
-      { libelle: 'Stock', icone: Boxes, route: 'vendeur-stock' },
+      { libelle: 'Stock', icone: Boxes, route: 'vendeur-catalogue' },
       { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
       // Grisee, exactement comme dans la maquette : l'entree existe pour que
       // l'employe sache que la donnee existe et qu'elle ne lui est pas due.

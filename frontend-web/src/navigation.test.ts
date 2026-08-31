@@ -25,6 +25,8 @@ describe('navigation reelle avec le vrai routeur', () => {
                   image: '', photos: [], disponible: true, stock_disponible: 5,
                   distance_km: null, categorie: null,
                   boutique: { id: 1, nom: 'TechSophie', type_service: 'STANDARD', ville: 'Lyon' },
+                  avis: { nombre: 0, note_moyenne: null, repartition: {}, avis: [] },
+                  produits_similaires: [],
                 },
               }
             : { data: [], meta: { total: 0, total_avant_filtres: 0,
