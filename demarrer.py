@@ -16,13 +16,19 @@ manque : interpreteur, environnement virtuel, dependances, .env, migrations.
 
     --etat          ne demarre rien : dit ce qui tourne et ce qui repond
     --sans-web      ne lance pas le front Vue
+    --sans-mobile   ne lance pas l'application mobile
     --preparer      installe et migre, puis rend la main sans rien lancer
     --arreter       arrete les conteneurs
 
 Ports utilises : 5433 (base), 1026 et 8026 (courriels), 8000 (API), 5173
-(front). Ils sont decales de ceux du projet banque, qui occupe deja 5432,
-1025 et 8025 sur cette machine : les deux projets tournent en meme temps
-sans se marcher dessus.
+(front web), 5174 (application mobile). Ils sont decales de ceux du projet
+banque, qui occupe deja 5432, 1025 et 8025 sur cette machine : les deux
+projets tournent en meme temps sans se marcher dessus.
+
+L'application mobile s'ouvre aussi depuis un VRAI telephone : le serveur
+ecoute sur le reseau local, et l'adresse est affichee au demarrage. C'est la
+seule facon de tester ce qui n'existe que sur mobile — la geolocalisation, le
+retour tactile, la barre d'onglets du bas.
 
 Ce script ne sert qu'en developpement. En ligne, chaque morceau est deploye
 separement et supervise par son hebergeur — raison pour laquelle il tient en
@@ -39,6 +45,7 @@ import time
 RACINE = os.path.dirname(os.path.abspath(__file__))
 BACKEND = os.path.join(RACINE, "backend")
 WEB = os.path.join(RACINE, "frontend-web")
+MOBILE = os.path.join(RACINE, "frontend-mobile")
 WINDOWS = platform.system() == "Windows"
 
 PYTHON_MINIMUM = (3, 10)  # Django 5 n'accepte pas moins
@@ -329,6 +336,24 @@ def preparer_backend():
                 info(ligne.rstrip())
 
 
+def preparer_mobile():
+    """Les dependances de l'application mobile.
+
+    Elle partage le paquet `partager/` avec le front web, mais pas ses
+    dependances : Ionic et Capacitor n'ont rien a faire dans un paquet web,
+    et PrimeVue rien a faire dans une application installee.
+    """
+    etape("Application mobile Ionic")
+
+    if not os.path.isdir(os.path.join(MOBILE, "node_modules")):
+        info("Installation des dependances npm du mobile (une seule fois)…")
+        code, sortie = executer("npm install --no-fund --no-audit", cwd=MOBILE)
+        if code != 0:
+            echec(sortie[-1500:])
+            fatal("npm install a echoue cote mobile", "Lis le message ci-dessus.")
+    ok("Dependances du mobile en place")
+
+
 def preparer_web():
     etape("Front web Vue")
 
@@ -348,7 +373,27 @@ def preparer_web():
 
 # ── Lancement ────────────────────────────────────────────────────────────
 
-def lancer(avec_web):
+def adresse_reseau():
+    """L'adresse de cette machine sur le reseau local.
+
+    Une application installee sur un telephone n'a AUCUN moyen de joindre le
+    `localhost` de l'ordinateur : `localhost`, pour elle, c'est le telephone.
+    C'est le premier piege du developpement mobile, et il coute une soiree a
+    qui ne le sait pas — alors on affiche la bonne adresse.
+    """
+    import socket
+
+    try:
+        prise = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        prise.connect(("8.8.8.8", 80))
+        adresse = prise.getsockname()[0]
+        prise.close()
+        return adresse
+    except Exception:
+        return None
+
+
+def lancer(avec_web, avec_mobile=True):
     etape("Demarrage")
 
     processus = []
@@ -376,6 +421,23 @@ def lancer(avec_web):
                 ok("Front web              http://localhost:5173")
                 break
             time.sleep(1)
+
+    if avec_mobile:
+        mobile = subprocess.Popen("npm run dev", cwd=MOBILE, shell=True)
+        processus.append(("Application mobile", mobile))
+        for _ in range(40):
+            if repond("http://localhost:5174"):
+                ok("Application mobile     http://localhost:5174")
+                break
+            time.sleep(1)
+
+        adresse = adresse_reseau()
+        if adresse:
+            info("Depuis un VRAI telephone, sur le meme reseau Wi-Fi :")
+            info("    http://%s:5174" % adresse)
+            info("Pense a mettre VITE_API_URL=http://%s:8000/api/v1 dans" % adresse)
+            info("    frontend-mobile/.env — sinon le telephone cherchera l'API")
+            info("    chez lui et ne trouvera rien.")
 
     ok("Administration Django  http://localhost:8000/admin/")
     ok("Courriels captures     http://localhost:8026")
@@ -439,17 +501,20 @@ def main():
 
     node_present = verifier_outils()
     avec_web = node_present and "--sans-web" not in options
+    avec_mobile = node_present and "--sans-mobile" not in options
 
     demarrer_conteneurs()
     preparer_backend()
     if avec_web:
         preparer_web()
+    if avec_mobile:
+        preparer_mobile()
 
     if "--preparer" in options:
         print("\n" + _c("1", "Tout est pret.") + " Relance sans --preparer pour demarrer.\n")
         return
 
-    lancer(avec_web)
+    lancer(avec_web, avec_mobile)
 
 
 if __name__ == "__main__":

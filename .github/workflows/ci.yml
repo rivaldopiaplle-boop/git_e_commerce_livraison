@@ -1,8 +1,16 @@
-# Integration continue : elle tourne des la tranche 0, sur un projet presque
-# vide. C'est voulu — une chaine ajoutee "plus tard" n'est jamais ajoutee, et
-# elle est verte au moment ou elle a le moins de raisons d'etre rouge.
+# Intégration continue : elle tourne depuis la tranche 0, sur un projet
+# presque vide. C'est voulu — une chaîne ajoutée « plus tard » n'est jamais
+# ajoutée, et elle est verte au moment où elle a le moins de raisons d'être
+# rouge.
+#
+# Quatre travaux, un par morceau qui peut casser tout seul :
+#
+#   backend   ruff + pytest sur un vrai Postgres
+#   web       types + tests + build
+#   mobile    types + build (Ionic partage le paquet `partager/` avec le web)
+#   qualite   les vérifications transverses qui ne tiennent dans aucun des trois
 
-name: Verification
+name: Vérification
 
 on:
   push:
@@ -35,17 +43,26 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          # La meme version qu'en local : trois versions differentes entre le
-          # poste, l'integration et l'image Docker, c'est le "ca marchait chez
-          # moi" garanti.
+          # La même version qu'en local : trois versions différentes entre le
+          # poste, l'intégration et l'image Docker, c'est le « ça marchait
+          # chez moi » garanti.
           python-version: "3.14"
           cache: pip
 
-      - name: Installer les dependances
+      - name: Installer les dépendances
         run: pip install -r requirements-dev.txt
 
-      - name: Verifier le style et les erreurs evidentes
+      - name: Vérifier le style et les erreurs évidentes
         run: ruff check .
+
+      - name: Vérifier qu'aucune migration ne manque
+        # Un modèle modifié sans migration passe les tests en local — la base
+        # de développement a déjà la colonne — puis casse le déploiement.
+        env:
+          DATABASE_URL: postgresql://rivdinde:rivdinde@localhost:5432/rivdinde_test
+          DJANGO_SECRET_KEY: cle-de-test-sans-valeur
+          DEBUG: "true"
+        run: python manage.py makemigrations --check --dry-run
 
       - name: Lancer les tests
         env:
@@ -54,8 +71,8 @@ jobs:
           DEBUG: "true"
         run: pytest -q
 
-  frontend:
-    name: Front web — types + build
+  web:
+    name: Front web — types + tests + build
     runs-on: ubuntu-latest
 
     defaults:
@@ -67,17 +84,95 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Version a support long terme. Le poste tourne sur plus recent :
-          # compiler sur les deux verifie gratuitement qu'on ne depend
-          # d'aucune nouveaute.
+          # Version à support long terme. Le poste tourne sur plus récent :
+          # compiler sur les deux vérifie gratuitement qu'on ne dépend
+          # d'aucune nouveauté.
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend-web/package-lock.json
 
-      # `npm ci` exige un package-lock.json. Tant qu'il n'existe pas (premier
-      # commit), on retombe sur `npm install` plutot que d'echouer.
-      - name: Installer les dependances
+      - name: Installer les dépendances
         run: npm ci || npm install
+
+      - name: Vérifier les types
+        run: npm run verifier
+
+      - name: Lancer les tests
+        # Ils contiennent le garde-fou sur les jetons CSS (D-47) : sans lui,
+        # un renommage laisse des écrans sans style, en silence.
+        run: npm test
 
       - name: Compiler
         run: npm run build
+
+  mobile:
+    name: Application mobile — types + build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend-mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend-mobile/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci || npm install
+
+      - name: Vérifier les types
+        # Elle compile le paquet `partager/` en même temps : un type modifié
+        # côté web qui casserait le mobile se voit ici, pas trois semaines
+        # plus tard.
+        run: npm run verifier
+
+      - name: Compiler
+        run: npm run build
+
+  qualite:
+    name: Qualité — cohérence du dépôt
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Aucun secret ne doit être versionné
+        # La règle la plus simple à énoncer, et celle qu'on enfreint le plus
+        # facilement : un `.env` glissé dans un `git add -A`.
+        run: |
+          set -e
+          trouves=$(git ls-files | grep -E '(^|/)\.env$' || true)
+          if [ -n "$trouves" ]; then
+            echo "Des fichiers .env sont versionnés :"
+            echo "$trouves"
+            exit 1
+          fi
+          echo "Aucun .env versionné."
+
+      - name: La boîte d'entrée personnelle ne part jamais sur le dépôt
+        run: |
+          set -e
+          if git ls-files --error-unmatch plan-organisation/questions.txt 2>/dev/null; then
+            echo "questions.txt est versionné : c'est la boîte d'entrée personnelle."
+            exit 1
+          fi
+          echo "questions.txt reste local."
+
+      - name: Chaque décision du journal porte un numéro et un titre
+        # Le journal fait foi (D-27). Une entrée mal formée y devient
+        # invisible, donc inappliquée.
+        run: |
+          set -e
+          fichier=plan-organisation/00-pilotage/journal-decisions.md
+          mauvaises=$(grep -nE '^### D-[0-9]+' "$fichier" | grep -vE '^\ *[0-9]+:### D-[0-9]+ — .+' || true)
+          if [ -n "$mauvaises" ]; then
+            echo "Décisions mal formées (il faut « ### D-nn — titre ») :"
+            echo "$mauvaises"
+            exit 1
+          fi
+          echo "$(grep -cE '^### D-[0-9]+' "$fichier") décisions, toutes bien formées."

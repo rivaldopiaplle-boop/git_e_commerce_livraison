@@ -1,0 +1,13 @@
+{
+  "name": "@rivdinde/partage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ce que le front web et le front mobile ont en commun : les types du domaine, le client d'API, et les règles d'affichage.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api/index.ts",
+    "./metier": "./src/metier/index.ts",
+    "./types": "./src/types/index.ts"
+  }
+}

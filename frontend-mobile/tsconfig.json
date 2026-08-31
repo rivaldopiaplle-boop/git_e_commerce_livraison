@@ -11,9 +11,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client", "node"],
+    "types": ["vite/client"],
     "baseUrl": ".",
-    "paths": { "@partage/*": ["../partager/src/*"], "@partage": ["../partager/src/index.ts"] }
+    "paths": {
+      "@partage/*": ["../partager/src/*"],
+      "@partage": ["../partager/src/index.ts"],
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts", "../partager/src/**/*.ts"]
 }

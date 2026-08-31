@@ -46,3 +46,10 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+
+# L'application mobile
+frontend-mobile/node_modules/
+frontend-mobile/dist/
+frontend-mobile/.env
+frontend-mobile/android/
+frontend-mobile/ios/
