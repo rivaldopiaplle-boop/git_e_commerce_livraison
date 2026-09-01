@@ -1,0 +1,42 @@
+# Garder la vitrine éveillée le jour d'une démonstration.
+#
+# Le service gratuit de Render s'endort après quinze minutes sans trafic et met
+# une minute à repartir. Un recruteur qui ouvre le lien pendant ce temps voit
+# une page blanche et n'insiste pas.
+#
+# Cette tâche est **volontairement désactivée** : la laisser tourner en continu
+# consommerait le quota mensuel d'heures gratuites en trois semaines, et la
+# vitrine serait morte le jour où elle compte. On l'active à la main la veille
+# d'un entretien, on la coupe le lendemain.
+#
+#   Onglet Actions → Réveil de la vitrine → Run workflow
+#
+# Pour l'automatiser vraiment, décommentez le bloc `schedule` ci-dessous.
+
+name: Réveil de la vitrine
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "*/10 * * * *"
+
+jobs:
+  reveiller:
+    name: Appeler la sonde de santé
+    runs-on: ubuntu-latest
+    steps:
+      - name: Réveiller l'API
+        run: |
+          set -e
+          adresse="${{ vars.URL_API_VITRINE }}"
+          if [ -z "$adresse" ]; then
+            echo "Variable de dépôt URL_API_VITRINE absente."
+            echo "Réglages → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+          echo "Appel de $adresse/sante"
+          # --max-time 90 : un réveil à froid dépasse largement le délai par
+          # défaut de curl, et l'échec ne voudrait alors rien dire.
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$adresse/sante")
+          echo "Réponse : $code"
+          [ "$code" = "200" ]

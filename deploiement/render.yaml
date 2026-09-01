@@ -1,0 +1,47 @@
+# Le déploiement de l'API sur Render, décrit dans le dépôt plutôt que cliqué
+# dans une interface (D-19).
+#
+# Pourquoi ce fichier existe : une configuration cliquée n'est reproductible
+# par personne, pas même par celui qui l'a faite six mois plus tard. Ici, tout
+# ce qui n'est pas un secret est versionné, relu, et rejouable.
+#
+#   https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: rivdinde-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/v1/sante
+
+    envVars:
+      # Engendrée par Render à la première mise en ligne, jamais écrite ici.
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+
+      - key: DEBUG
+        value: "false"
+
+      # La base vit chez Neon (D-19) : Render n'offre Postgres gratuitement
+      # que 90 jours, ce qui condamnerait la démonstration à date fixe.
+      - key: DATABASE_URL
+        sync: false
+
+      - key: DJANGO_ALLOWED_HOSTS
+        value: rivdinde-api.onrender.com
+
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://rivdinde.vercel.app
+
+      # Cloudinary : le disque de Render est éphémère, une photo téléversée y
+      # disparaîtrait au premier redéploiement (D-24).
+      - key: CLOUDINARY_URL
+        sync: false
+
+      # Le peuplement de démonstration ne s'exécute jamais par accident : il
+      # faut poser cette variable sciemment (voir seed_demo).
+      - key: DEMO_AUTORISEE
+        value: "0"
