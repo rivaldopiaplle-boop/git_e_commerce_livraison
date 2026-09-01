@@ -5,7 +5,7 @@ Un contrat qui n'est pas respecte par le code n'est plus un contrat.
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from . import views, vues_espaces, vues_gestion, vues_profil
+from . import views, vues_compteurs, vues_espaces, vues_gestion, vues_profil
 
 urlpatterns = [
     path("auth/inscription/client", views.inscription_client, name="inscription-client"),
@@ -35,6 +35,8 @@ urlpatterns += [
     path("moi/notifications/lues", vues_espaces.marquer_notifications_lues, name="notifs-lues"),
 
     # Vendeur
+    # Les pastilles de la barre laterale, en un seul appel.
+    path("moi/compteurs", vues_compteurs.mes_compteurs, name="mes-compteurs"),
     path("vendeurs/personnel", vues_espaces.mon_personnel, name="mon-personnel"),
     # Le vendeur creait des comptes sans jamais pouvoir en retirer un :
     # un employe qui partait gardait son acces indefiniment.

@@ -8,9 +8,10 @@
 //   · sidebar et navbar ne defilent jamais, seul le contenu defile ;
 //   · une seule structure, du catalogue au tableau de bord.
 import {
-  Bell, ChevronsLeft, Lock, LogIn, LogOut, Search, ShoppingCart, UserRound,
+  Bell, ChevronRight, ChevronsLeft, Lock, LogIn, LogOut, Search, ShoppingCart,
+  UserRound,
 } from '@lucide/vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { espaces, type Notification } from '../api/espaces'
@@ -22,10 +23,12 @@ import PanneauLateral from './PanneauLateral.vue'
 import { descriptionDuRole } from '../roles'
 import { useAuthentification } from '../stores/authentification'
 import { useCatalogue } from '../stores/catalogue'
+import { useCompteurs } from '../stores/compteurs'
 import { usePanier } from '../stores/panier'
 
 const session = useAuthentification()
 const catalogue = useCatalogue()
+const compteurs = useCompteurs()
 const panier = usePanier()
 const route = useRoute()
 const routeur = useRouter()
@@ -79,6 +82,64 @@ const titre = computed(
   () => role.value.navigation[entreeActive.value]?.libelle ?? role.value.espace,
 )
 
+// Le groupe de l'ecran courant : c'est le premier niveau du fil d'Ariane.
+// « Espace vendeur » tout seul ne disait pas OU on se trouvait dans l'espace.
+const groupeActif = computed(
+  () => role.value.navigation[entreeActive.value]?.groupe ?? '',
+)
+
+/**
+ * La navigation, decoupee en sections.
+ *
+ * Neuf entrees a plat ne se lisent pas : l'oeil parcourt la liste entiere a
+ * chaque fois. On suit l'ordre du tableau sans le retrier — c'est `roles.ts`
+ * qui decide, et les entrees d'un meme groupe y sont d'un seul tenant.
+ */
+const sections = computed(() => {
+  const groupes: { titre: string; entrees: typeof role.value.navigation }[] = []
+  for (const entree of role.value.navigation) {
+    const titreGroupe = entree.groupe ?? ''
+    const dernier = groupes[groupes.length - 1]
+    if (dernier && dernier.titre === titreGroupe) dernier.entrees.push(entree)
+    else groupes.push({ titre: titreGroupe, entrees: [entree] })
+  }
+  return groupes
+})
+
+/** Ce qui attend sur une entree. Zero ne s'affiche pas : le serveur ne l'envoie pas. */
+const enAttente = (nomDeRoute?: string) =>
+  nomDeRoute ? (compteurs.valeurs[nomDeRoute] ?? 0) : 0
+
+/** Le total d'une section, pour que la sidebar repliee le montre quand meme. */
+const enAttenteDansLaSection = (entrees: typeof role.value.navigation) =>
+  entrees.reduce((somme, entree) => somme + enAttente(entree.route), 0)
+
+// Les pastilles se rafraichissent a la connexion et a chaque changement
+// d'ecran — au plus une fois toutes les vingt secondes, le magasin s'en
+// charge. Agir sur un ecran fait donc descendre la pastille du menu.
+watch(
+  [() => session.estConnecte, () => route.name],
+  ([connecte]) => {
+    if (connecte) compteurs.rafraichir()
+    else compteurs.reinitialiser()
+  },
+  { immediate: true },
+)
+
+// « / » met le curseur dans la recherche, comme partout ailleurs. On ne
+// detourne pas la touche quand la personne est deja en train d'ecrire.
+const champRecherche = ref<HTMLInputElement | null>(null)
+function raccourciRecherche(evenement: KeyboardEvent) {
+  const cible = evenement.target as HTMLElement | null
+  const enTrainDEcrire = cible
+    && ['INPUT', 'TEXTAREA', 'SELECT'].includes(cible.tagName)
+  if (evenement.key !== '/' || enTrainDEcrire) return
+  evenement.preventDefault()
+  champRecherche.value?.focus()
+}
+onMounted(() => window.addEventListener('keydown', raccourciRecherche))
+onBeforeUnmount(() => window.removeEventListener('keydown', raccourciRecherche))
+
 // La recherche pilote le catalogue. Depuis un autre ecran, chercher y ramene.
 const recherche = ref(catalogue.recherche)
 watch(recherche, (valeur) => {
@@ -114,40 +175,86 @@ watch(
         <span v-if="!sidebarRepliee" class="text-[13.5px] font-bold">RivDinde</span>
       </RouterLink>
 
-      <nav class="flex flex-1 flex-col gap-0.5 overflow-hidden p-2.5">
-        <component
-          :is="entree.route ? 'RouterLink' : 'button'"
-          v-for="(entree, index) in role.navigation"
-          :key="entree.libelle"
-          :to="entree.route ? { name: entree.route } : undefined"
-          :type="entree.route ? undefined : 'button'"
-          :disabled="entree.interdite || entree.prochainement"
-          :title="
-            entree.interdite
-              ? entree.libelle + ' — reserve au proprietaire de la boutique'
-              : entree.prochainement
-                ? entree.libelle + ' — bientot'
-                : entree.libelle
-          "
-          class="flex w-full items-center gap-3 rounded-[9px] px-3 py-2.5 text-left text-[13px]
-                 font-semibold whitespace-nowrap transition-colors duration-150"
-          :class="
-            index === entreeActive
-              ? 'text-[color:var(--accent)]'
-              : entree.interdite || entree.prochainement
-                ? 'cursor-not-allowed text-encre-douce/40'
-                : 'text-encre-douce hover:text-encre'
-          "
-          :style="
-            index === entreeActive
-              ? { background: 'var(--accent-doux)' }
-              : undefined
-          "
-        >
-          <component :is="entree.icone" :size="17" class="shrink-0" />
-          <span v-if="!sidebarRepliee" class="truncate">{{ entree.libelle }}</span>
-          <Lock v-if="entree.interdite && !sidebarRepliee" :size="12" class="ml-auto shrink-0" />
-        </component>
+      <nav class="flex flex-1 flex-col overflow-y-auto p-2.5">
+        <div v-for="section in sections" :key="section.titre" class="mb-1 flex flex-col gap-0.5">
+          <!-- Le titre de section disparait avec la sidebar repliee, mais un
+               trait reste : sans lui, les icones forment une colonne indistincte. -->
+          <p
+            v-if="!sidebarRepliee && section.titre"
+            class="mt-2 px-3 pb-1 text-[10px] font-bold tracking-[0.07em] text-encre-douce
+                   uppercase"
+          >
+            {{ section.titre }}
+          </p>
+          <div
+            v-else-if="section.titre"
+            class="my-2 flex items-center justify-center"
+            :title="section.titre"
+          >
+            <span class="h-px w-6 bg-trait" />
+            <!-- Repliee, la sidebar doit quand meme dire qu'il y a du travail
+                 dans une section : replier ne doit pas rendre aveugle. -->
+            <span
+              v-if="enAttenteDansLaSection(section.entrees)"
+              class="ml-1 h-[5px] w-[5px] rounded-full"
+              :style="{ background: role.accent }"
+            />
+          </div>
+
+          <component
+            :is="entree.route ? 'RouterLink' : 'button'"
+            v-for="entree in section.entrees"
+            :key="entree.libelle"
+            :to="entree.route ? { name: entree.route } : undefined"
+            :type="entree.route ? undefined : 'button'"
+            :disabled="entree.interdite || entree.prochainement"
+            :title="
+              entree.interdite
+                ? entree.libelle + ' — reserve au proprietaire de la boutique'
+                : entree.prochainement
+                  ? entree.libelle + ' — bientot'
+                  : enAttente(entree.route)
+                    ? entree.libelle + ' — ' + enAttente(entree.route) + ' en attente'
+                    : entree.libelle
+            "
+            class="flex w-full items-center gap-3 rounded-[9px] px-3 py-2.5 text-left text-[13px]
+                   font-semibold whitespace-nowrap transition-colors duration-150"
+            :class="
+              entree.route === route.name
+                ? 'text-[color:var(--accent)]'
+                : entree.interdite || entree.prochainement
+                  ? 'cursor-not-allowed text-encre-douce/40'
+                  : 'text-encre-douce hover:text-encre'
+            "
+            :style="
+              entree.route === route.name
+                ? { background: 'var(--accent-doux)' }
+                : undefined
+            "
+          >
+            <span class="relative shrink-0">
+              <component :is="entree.icone" :size="17" />
+              <!-- Repliee, le nombre ne tient pas : un point suffit a dire
+                   qu'il se passe quelque chose derriere cette icone. -->
+              <span
+                v-if="sidebarRepliee && enAttente(entree.route)"
+                class="absolute -top-1 -right-1 h-[7px] w-[7px] rounded-full border-[1.5px]
+                       border-panneau"
+                :style="{ background: role.accent }"
+              />
+            </span>
+            <span v-if="!sidebarRepliee" class="truncate">{{ entree.libelle }}</span>
+            <span
+              v-if="!sidebarRepliee && enAttente(entree.route)"
+              class="ml-auto min-w-[19px] rounded-full px-1.5 py-px text-center text-[10.5px]
+                     font-bold text-papier"
+              :style="{ background: role.accent }"
+            >
+              {{ enAttente(entree.route) }}
+            </span>
+            <Lock v-if="entree.interdite && !sidebarRepliee" :size="12" class="ml-auto shrink-0" />
+          </component>
+        </div>
       </nav>
 
       <div class="border-t border-trait-doux p-2.5">
@@ -175,11 +282,17 @@ watch(
                border-b border-trait bg-papier px-[18px]"
       >
         <div class="min-w-0">
+          <!-- Un fil d'Ariane, pas un simple nom d'espace : le seul mot
+               « Espace vendeur » ne disait pas OU on se trouvait dedans. -->
           <p
-            class="text-[10px] font-bold tracking-[0.08em] uppercase"
+            class="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase"
             :style="{ color: role.accent }"
           >
-            {{ role.espace }}
+            <span>{{ role.espace }}</span>
+            <template v-if="groupeActif">
+              <ChevronRight :size="10" class="opacity-60" />
+              <span class="opacity-80">{{ groupeActif }}</span>
+            </template>
           </p>
           <h1 class="truncate text-[14px] font-bold">{{ titre }}</h1>
         </div>
@@ -192,12 +305,21 @@ watch(
           >
             <Search :size="14" class="text-encre-douce" />
             <input
+              ref="champRecherche"
               v-model="recherche"
               type="search"
               placeholder="Rechercher…"
-              class="w-[200px] bg-transparent text-[12.5px] text-encre placeholder:text-encre-douce
+              class="w-[180px] bg-transparent text-[12.5px] text-encre placeholder:text-encre-douce
                      focus:outline-none"
             />
+            <!-- Le raccourci se DIT : un raccourci que personne ne connait
+                 n'existe pas. -->
+            <kbd
+              class="rounded border border-trait bg-papier px-1.5 text-[10px] font-semibold
+                     text-encre-douce"
+            >
+              /
+            </kbd>
           </div>
 
           <button

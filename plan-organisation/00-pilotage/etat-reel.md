@@ -342,3 +342,34 @@ reste du projet passe par les jetons de la maquette. Le badge du mode de
 livraison s'écrivait `text-amber-300` sur `bg-amber-500/15` : **du clair sur du
 clair**, exactement la maladie du bloc J. Les quatre écrans publics sont
 convertis ([D-113](journal-decisions.md)).
+
+
+---
+
+## La coquille : ce qu'elle dit maintenant
+
+| Élément | Avant | Maintenant |
+|---|---|---|
+| Barre latérale | 9 entrées à plat | 3 sections nommées, **pastilles** sur ce qui attend |
+| Barre latérale repliée | des icônes muettes | un point sur les icônes et les sections concernées |
+| Barre haute | « Espace vendeur » | fil d'Ariane `Espace vendeur › Vendre › Commandes reçues` |
+| Recherche | un champ | le raccourci `/`, **écrit dans le champ** |
+
+Les compteurs viennent d'un seul appel, `GET /moi/compteurs`, indexé par nom
+de route. C'est ce qui garde la barre latérale bête : elle affiche
+`compteurs[entree.route]` sans rien savoir des métiers.
+
+### Ce que chaque rôle compte
+
+| Rôle | Pastilles |
+|---|---|
+| Client | commandes à payer, litiges en cours |
+| Vendeur | commandes à préparer, produits sous le seuil, litiges sans réponse |
+| Personnel vendeur | commandes à préparer, stock — **jamais les litiges** ([D-04](journal-decisions.md)) |
+| Gestionnaire entrepôt | colis reçus, tournées prêtes sans livreur |
+| Livreur | courses en cours |
+| Admin | validations, litiges **arbitrables**, demandes d'identité |
+
+Le cloisonnement est vérifié par 10 tests : un vendeur ne compte que ses
+commandes, et l'administrateur ne compte que les litiges qu'il a le droit de
+trancher ([D-103](journal-decisions.md)).

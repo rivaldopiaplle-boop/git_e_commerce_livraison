@@ -501,3 +501,30 @@ actif, et le vendeur n'avait aucun moyen de le voir.
 `basculer` exige un `motif` pour suspendre (400 `motif_requis`) : la personne
 le lira, et le journal d'audit le gardera. Une tentative sur le personnel d'une
 autre boutique répond **404** — un 403 confirmerait que ce compte existe.
+
+
+---
+
+## Les compteurs de la barre latérale (D-114)
+
+| Méthode | Chemin | Rôle |
+|---|---|---|
+| GET | `/moi/compteurs` | tout compte connecté |
+
+Un dictionnaire **indexé par nom de route du front**, ce qui permet à la barre
+latérale d'afficher `compteurs[entree.route]` sans rien savoir des métiers :
+
+```json
+{ "data": { "vendeur-commandes": 3, "vendeur-catalogue": 2, "vendeur-litiges": 1 } }
+```
+
+**Un zéro n'est jamais envoyé.** Une pastille à zéro n'est pas une pastille, et
+le front n'a donc rien à filtrer. Un compte sans rien en attente reçoit `{}`.
+
+Les clés dépendent du rôle, et suivent exactement le cloisonnement des écrans
+qu'elles annoncent. Deux cas qui ne se devinent pas : le **personnel** d'un
+vendeur reçoit les commandes et le stock mais jamais les litiges
+([D-04](../00-pilotage/journal-decisions.md)), et l'**administrateur** ne
+compte que les litiges réellement arbitrables — annoncer un dossier où le
+vendeur a encore la parole afficherait un travail interdit
+([D-103](../00-pilotage/journal-decisions.md)).

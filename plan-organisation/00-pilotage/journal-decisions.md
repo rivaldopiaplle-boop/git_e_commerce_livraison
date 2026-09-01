@@ -1495,3 +1495,65 @@ Un vrai défaut se cachait dedans, et c'était **exactement la maladie du bloc
 J** : le badge du mode de livraison s'écrivait `text-amber-300` sur un fond
 `bg-amber-500/15`. Du clair sur du clair, illisible. Il passe par `badge` et
 `badge-attente`, comme tous les autres badges du projet.
+
+
+### D-114 — La barre latérale dit ce qui attend, elle ne liste pas des écrans
+
+**Ta remarque, L-3** : la barre latérale et la barre haute ne disent rien.
+C'était juste — elle listait des noms d'écrans, et il fallait ouvrir chacun
+pour découvrir qu'il y avait trois commandes à préparer et deux litiges en
+souffrance.
+
+`GET /moi/compteurs` répond en **un seul appel**, avec un dictionnaire indexé
+par **nom de route**. C'est ce qui garde la barre latérale bête : elle affiche
+`compteurs[entree.route]` sans rien savoir des métiers, et un écran de plus
+dans le menu ne demande rien au serveur tant qu'il n'a rien à compter.
+
+Trois règles sur ce qui mérite une pastille :
+
+- **seulement ce qui appelle une action.** « 137 produits au catalogue » n'est
+  pas une pastille, c'est une statistique. Une pastille qui ne descend jamais à
+  zéro cesse d'être lue au bout de deux jours ;
+- **un zéro ne s'envoie pas.** Le serveur l'omet, et le front n'a donc rien à
+  filtrer ;
+- **elle descend quand le travail est fait.** Les compteurs se rafraîchissent à
+  chaque changement d'écran, au plus une fois toutes les vingt secondes.
+
+Le cloisonnement des pastilles suit celui des écrans qu'elles annoncent : un
+vendeur ne compte que ses commandes, et **le personnel ne reçoit pas les
+litiges** — ils se répondent par le propriétaire de la boutique
+([D-04](#d-04--le-vendeur-nest-pas-son-gestionnaire)). L'administrateur, lui,
+ne compte que les litiges **réellement arbitrables** : afficher un dossier où
+le vendeur a encore la parole annoncerait un travail qu'il n'a pas le droit de
+faire ([D-103](#d-103--un-litige-refuse-dêtre-tranché-avant-que-le-vendeur-ait-parlé)).
+
+### D-115 — Neuf entrées à plat ne se lisent pas : la barre latérale a des sections
+
+L'œil parcourt une liste de neuf entrées en entier, à chaque fois. Trois
+groupes de trois se balayent d'un coup.
+
+La règle du regroupement est la même pour tous les rôles : **ce qu'on fait**,
+puis **ce qu'on pilote**, puis **son compte** — ce dernier toujours en bas, où
+tout le monde le cherche. `roles.ts` porte le groupe de chaque entrée, et les
+entrées d'un même groupe y sont d'un seul tenant : la barre latérale suit
+l'ordre du tableau, elle ne le retrie pas.
+
+Deux détails qui décident si c'est utilisable :
+
+- **repliée, la barre reste informative.** Le nombre ne tient plus, mais un
+  point subsiste sur l'icône et sur le séparateur de section. Replier ne doit
+  pas revenir à se rendre aveugle ;
+- **l'infobulle nomme le nombre** — « Commandes reçues — 3 en attente ». Une
+  pastille sans explication laisse deviner ce qu'elle compte.
+
+### D-116 — La barre haute porte un fil d'Ariane et annonce son raccourci
+
+« Espace vendeur » tout seul ne disait pas **où** on se trouvait dedans. La
+barre haute affiche désormais `Espace vendeur › Vendre` au-dessus du nom de
+l'écran.
+
+Et la touche `/` met le curseur dans la recherche, comme sur GitHub, Slack ou
+Linear. Elle est **écrite dans le champ**, en petit : un raccourci que personne
+ne connaît n'existe pas. Il ne se déclenche jamais pendant qu'on écrit
+ailleurs — détourner `/` au milieu d'une phrase serait pire que de ne rien
+offrir.

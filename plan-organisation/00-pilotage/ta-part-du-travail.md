@@ -96,6 +96,23 @@ Les quatre vues sont, elles aussi, **dérivées de la photo source** : une vraie
 boutique photographie sous plusieurs angles, ce qu'aucun peuplement ne peut
 inventer.
 
+## La barre latérale et la barre haute — le dernier point de ta liste
+
+C'était le sixième et dernier point de l'ordre que tu m'as donné en L-11.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **22** | **`karim@exemple.fr`.** La barre latérale a maintenant des **sections** — « Ma boutique », « Vendre », « Mon compte » — et surtout des **pastilles** : tu vois qu'il y a 1 commande à préparer et 2 produits sous le seuil d'alerte **sans ouvrir les écrans** | 3 min | D-114, D-115 |
+| **23** | **Clique « Réduire » en bas de la barre.** Repliée, les nombres ne tiennent plus — mais un point reste sur les icônes concernées. Replier ne doit pas te rendre aveugle | 2 min | D-115 |
+| **24** | **Regarde en haut à gauche** : « Espace vendeur › Vendre » puis le nom de l'écran. Avant, il n'y avait que « Espace vendeur », qui ne disait pas où tu étais | 1 min | D-116 |
+| **25** | **Appuie sur `/`** n'importe où : le curseur va dans la recherche. Le raccourci est écrit dans le champ | 1 min | D-116 |
+| **26** | **Fais descendre une pastille** : prépare la commande qui attend chez Karim, reviens sur un autre écran. Le compteur baisse | 3 min | D-114 |
+
+Ce qui **ne** mérite pas de pastille, et pourquoi je n'en ai pas mis partout :
+une pastille qui ne descend jamais à zéro cesse d'être lue au bout de deux
+jours. « 137 produits au catalogue » n'est pas une pastille, c'est une
+statistique.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---
