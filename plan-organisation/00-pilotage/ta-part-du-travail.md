@@ -169,6 +169,25 @@ partout. La longueur protège mieux, et c'est ce que recommandent l'ANSSI et le
 NIST depuis 2017. Django refuse en plus les mots de passe trop courants, ce
 qu'une règle de forme ne sait pas faire.
 
+## Tes adresses servent enfin à quelqu'un
+
+Tu demandais (L-2) : *« mes adresses : ces informations ne sont pas utilisées
+par le vendeur, l'entrepôt, le gestionnaire ni le livreur, pourquoi ? »*.
+C'était vrai : tu saisissais une adresse et des instructions, et **personne ne
+les voyait ensuite**. Karim ne savait même pas dans quelle ville partait son
+colis.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **35** | **`karim@exemple.fr` → Commandes reçues.** Une colonne **Destination** : ville et code postal. Pas la rue — il prépare un colis, il n'a pas à connaître ton étage | 2 min | D-123 |
+| **36** | **`rachid@exemple.fr` → Tournées.** Lui voit les **rues**, parce qu'il ordonne les arrêts. Mais pas tes instructions de porte | 2 min | D-123 |
+| **37** | **`julien@exemple.fr` → Mes courses.** Lui voit **tout** : rue, complément, « code portail 4512, 3e étage », et les coordonnées pour ouvrir un itinéraire | 2 min | D-123 |
+
+Le cloisonnement n'est pas de la pudeur administrative : une adresse complète
+diffusée à toute la chaîne est une donnée personnelle exposée sans nécessité.
+Huit tests le verrouillent **dans les deux sens** — chacun reçoit ce dont il a
+besoin, et personne ne reçoit plus.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

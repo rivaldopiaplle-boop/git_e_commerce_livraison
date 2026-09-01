@@ -1699,3 +1699,34 @@ comme du NIST depuis 2017.
 
 Django, côté serveur, refuse en plus les mots de passe trop communs — ce qu'une
 règle de forme ne sait pas faire.
+
+
+### D-123 — Le cloisonnement d'une adresse s'écrit une fois, pas trois
+
+[D-74](#d-74--ladresse-de-livraison-suit-la-commande-jusquau-livreur) décrivait
+qui voit quoi d'une adresse. En l'appliquant, un détail a changé la mise en
+œuvre : **une seule fonction**, `coeur/adresses.py`, appelée par toutes les
+vues. Trois cloisonnements écrits séparément finissent toujours par diverger,
+et c'est celui qui en dit le plus qui fait foi.
+
+Le partage réel, vérifié en direct sur les trois rôles :
+
+| Qui | Ce qu'il reçoit | Pourquoi pas plus |
+|---|---|---|
+| Vendeur, son personnel | ville, code postal | il prépare un colis, il n'a pas à connaître l'étage de quelqu'un |
+| Gestionnaire d'entrepôt | + rue, zone | il **ordonne** des arrêts ; sans les rues, il ordonne au hasard |
+| Livreur | + complément, instructions, coordonnées | c'est lui qui sonne à la porte |
+| Admin | tout | il arbitre, avec les deux versions |
+
+**Une nuance par rapport à la rédaction d'origine de D-74** : l'entrepôt voit
+la **rue**. D-74 lui donnait ville, code postal et zone, ce qui rendait le
+travail impossible — monter une tournée sans les rues reviendrait à ordonner
+les arrêts au hasard. Il ne voit toujours pas les **instructions** : elles ne
+servent qu'à celui qui se présente devant la porte.
+
+Le rôle vient du **contexte du sérialiseur**, posé par la vue. Sans cela, la
+même sérialisation servait le livreur et le gestionnaire d'entrepôt, et le
+second recevait « code portail 4512, 3e étage ».
+
+Huit tests verrouillent le cloisonnement **dans les deux sens** : chacun reçoit
+ce dont il a besoin, et personne ne reçoit plus.

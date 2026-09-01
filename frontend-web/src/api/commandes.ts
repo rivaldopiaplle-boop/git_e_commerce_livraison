@@ -29,6 +29,10 @@ export type SousCommande = {
   type_service?: string
   date_commande?: string
   suites_possibles?: string[]
+  /** Ou part le colis (D-74). Le vendeur n'a droit qu'a la ville et au code
+   *  postal : il prepare un colis, il n'a pas a connaitre l'etage de
+   *  quelqu'un. Le livreur, lui, recoit l'adresse complete. */
+  destination?: { ville: string; code_postal: string } | null
 }
 
 export type Commande = {

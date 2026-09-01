@@ -10,7 +10,7 @@
 // n'a pas à connaître la machine à états, il affiche ce qu'on lui donne.
 // C'est ce qui garantit qu'un vendeur ne saute jamais une étape.
 import {
-  AlertTriangle, Bike, Check, ClipboardList, Eye, Package, X,
+  AlertTriangle, Bike, Check, ClipboardList, Eye, MapPin, Package, X,
 } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
@@ -94,6 +94,9 @@ const suiteNormale = (sous: Ligne) =>
 const colonnes: Colonne<Ligne>[] = [
   { cle: 'numero', titre: 'Commande', largeur: 180 },
   { cle: 'articles', titre: 'Contenu' },
+  // Ou part le colis (D-74) : le vendeur ne le savait meme pas. Ville et code
+  // postal, pas la rue — il prepare, il ne livre pas.
+  { cle: 'destination', titre: 'Destination', largeur: 150, masquerSous: 'lg' },
   { cle: 'montant', titre: 'Votre part', largeur: 110, aligne: 'droite', masquerSous: 'md',
     champTri: 'montant_vendeur_centimes' },
   { cle: 'statut', titre: 'État', largeur: 120, aligne: 'centre' },
@@ -145,6 +148,16 @@ const euros = (centimes: number) =>
           {{ ligne.lignes.reduce((total, l) => total + l.quantite, 0) }} article(s) —
           {{ ligne.lignes.map((l) => l.nom_produit_capture).join(', ') }}
         </span>
+      </template>
+      <template #col-destination="{ ligne }">
+        <span v-if="ligne.destination" class="flex min-w-0 items-center gap-1.5">
+          <MapPin :size="13" class="shrink-0 text-encre-douce" />
+          <span class="truncate">
+            {{ ligne.destination.ville }}
+            <span class="text-encre-douce">{{ ligne.destination.code_postal }}</span>
+          </span>
+        </span>
+        <span v-else class="text-trait">&mdash;</span>
       </template>
       <template #col-montant="{ ligne }">
         <b>{{ euros(ligne.montant_vendeur_centimes) }}</b>

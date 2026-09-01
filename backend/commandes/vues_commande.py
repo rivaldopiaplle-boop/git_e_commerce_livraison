@@ -6,6 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from coeur.adresses import VENDEUR, adresse_pour
 from comptes.models import Adresse, AdresseClient
 from comptes.permissions import EstClient, EstVendeurOuSonPersonnel
 
@@ -206,7 +207,7 @@ def commandes_recues(requete):
 
     sous_commandes = (
         SousCommande.objects.filter(vendeur_id=identifiant)
-        .select_related("commande", "vendeur")
+        .select_related("commande", "vendeur", "commande__adresse_livraison")
         .prefetch_related("lignes")
         .order_by("-commande__date_commande")
     )
@@ -219,6 +220,10 @@ def commandes_recues(requete):
             "date_commande": sous.commande.date_commande,
             "statut_commande": sous.commande.statut_actuel,
             "suites_possibles": SUITE_PREPARATION.get(sous.statut_preparation, []),
+            # Ou part le colis (D-74). Le vendeur ne savait meme pas dans quelle
+            # ville il expediait : ni la rue ni les instructions, il prepare un
+            # colis, il n'a pas a connaitre l'etage de quelqu'un.
+            "destination": adresse_pour(VENDEUR, sous.commande.adresse_livraison),
         }
         for sous in sous_commandes
     ]})

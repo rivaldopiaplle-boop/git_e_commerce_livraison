@@ -1,20 +1,19 @@
 """Ce que les ecrans de logistique lisent : colis, tournees, courses."""
 from rest_framework import serializers
 
+from coeur.adresses import LIVREUR, adresse_pour
+
 from .models import ArretTournee, Livraison, Tournee
 
 
-def _adresse(adresse):
-    if adresse is None:
-        return None
-    return {
-        "id": adresse.id,
-        "libelle": adresse.libelle,
-        "rue": adresse.rue,
-        "code_postal": adresse.code_postal,
-        "ville": adresse.ville,
-        "instructions": adresse.instructions_livraison,
-    }
+def _adresse(adresse, role=LIVREUR):
+    """L'adresse telle que ce role a le droit de la lire (D-74).
+
+    Le defaut est le livreur : c'est lui qui sonne a la porte, et cette
+    fonction sert d'abord ses ecrans. L'entrepot passe `ENTREPOT` — il a besoin
+    des rues pour ORDONNER ses arrets, pas des instructions de porte.
+    """
+    return adresse_pour(role, adresse)
 
 
 class LivraisonSerializer(serializers.ModelSerializer):
@@ -49,7 +48,12 @@ class LivraisonSerializer(serializers.ModelSerializer):
         return f"{utilisateur.prenom} {utilisateur.nom}".strip()
 
     def get_adresse(self, livraison):
-        return _adresse(livraison.adresse_livraison)
+        # Le role vient du CONTEXTE, pose par la vue. La meme serialisation
+        # sert le livreur et le gestionnaire d'entrepot, et sans cela le
+        # second recevrait les instructions de porte du client (D-74).
+        return _adresse(
+            livraison.adresse_livraison, self.context.get("role_adresse", LIVREUR)
+        )
 
     def get_boutiques(self, livraison):
         return [

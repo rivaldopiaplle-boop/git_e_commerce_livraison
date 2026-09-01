@@ -16,6 +16,7 @@ from django.db.models import Count, Sum
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
+from coeur.adresses import ENTREPOT
 from commandes.models import SousCommande, StatutPreparation
 from comptes.models import StatutCompte
 from comptes.permissions import EstGestionnaire, EstLivreur
@@ -94,7 +95,11 @@ def tournees_entrepot(requete):
         .order_by("-date_creation")
     )
     return Response({"data": {
-        "tournees": TourneeSerializer(tournees, many=True).data,
+        # Le gestionnaire d'entrepot ordonne des arrets : il lui faut les rues,
+        # pas les instructions de porte du client (D-74).
+        "tournees": TourneeSerializer(
+            tournees, many=True, context={"role_adresse": ENTREPOT}
+        ).data,
         "a_affecter": tournees.filter(
             statut__in=[StatutTournee.BROUILLON, StatutTournee.PRETE]
         ).count(),

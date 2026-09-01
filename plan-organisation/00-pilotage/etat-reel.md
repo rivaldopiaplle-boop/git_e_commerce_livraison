@@ -447,3 +447,29 @@ Trois choses à ne pas perdre de vue :
 Reste à convertir : les formulaires de popup (adresse, création de compte
 employé, réponse à un litige). Ils valident encore à la main, mais ils sont
 courts et leurs règles sont dans `validation.ts`, prêtes à servir.
+
+
+---
+
+## L'adresse de livraison suit enfin la chaîne
+
+Le client saisissait une adresse et des instructions, et **personne ne les
+voyait ensuite**. Le vendeur ne savait même pas dans quelle ville partait son
+colis.
+
+`coeur/adresses.py` porte le cloisonnement, en une seule fonction appelée par
+toutes les vues. Vérifié en direct sur les trois rôles :
+
+| Rôle | Ce que l'API lui renvoie vraiment |
+|---|---|
+| Vendeur | `{ville: "Lyon", code_postal: "69002"}` |
+| Entrepôt | `+ rue: "22 rue Sebastien Gryphe", zone: "Lyon et couronne"` |
+| Livreur | `+ complement, instructions, latitude, longitude` |
+
+Le rôle vient du **contexte du sérialiseur**, posé par la vue : sans cela la
+même sérialisation servait le livreur et le gestionnaire d'entrepôt, et le
+second recevait les instructions de porte du client.
+
+Une nuance assumée par rapport à [D-74](journal-decisions.md) : l'entrepôt voit
+la **rue**, que D-74 ne lui donnait pas. Monter une tournée sans les rues
+reviendrait à ordonner les arrêts au hasard ([D-123](journal-decisions.md)).
