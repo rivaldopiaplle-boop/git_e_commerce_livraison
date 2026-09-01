@@ -420,8 +420,30 @@ d'un nouveau paquet échouait**. Corrigé, et un test compare désormais la
 contrainte déclarée par l'adaptateur à la version installée, sans coder aucun
 numéro en dur ([D-120](journal-decisions.md)).
 
-### Ce qui reste ouvert, et qu'il ne faut pas oublier
+### La validation des formulaires, enfin branchée
 
-`vee-validate` et `zod` sont installés mais **encore inutilisés** : les
-formulaires valident à la main. C'est précisément le reproche du bloc K, et il
-n'est qu'à moitié réparé.
+`vee-validate` et `zod` étaient installés et **utilisés nulle part** — le
+reproche exact du bloc K. `src/validation.ts` porte désormais les règles, et
+deux écrans s'en servent : connexion et inscription.
+
+| Ce qui change | Avant | Maintenant |
+|---|---|---|
+| Quand l'erreur apparaît | au retour du serveur | quand on quitte le champ |
+| Un formulaire invalide | partait quand même | ne part pas |
+| Où se pose l'erreur serveur | bandeau général | **sous le champ concerné** |
+| La règle du mot de passe | 10 ici, 8 là, rien ailleurs | une seule définition |
+
+Trois choses à ne pas perdre de vue :
+
+- **le serveur reste seul juge.** Ces règles doublent les siennes pour le
+  confort ; une validation qui n'existe que dans le navigateur ne protège de
+  rien ;
+- **`ChampTexte` marche des deux façons** — piloté par le formulaire avec un
+  `nom`, `v-model` ordinaire sinon. La migration se fait écran par écran ;
+- **la connexion ne vérifie pas la longueur du mot de passe** : il existe déjà,
+  et lui reprocher sa forme quand quelqu'un essaie d'entrer est une façon de le
+  perdre.
+
+Reste à convertir : les formulaires de popup (adresse, création de compte
+employé, réponse à un litige). Ils valident encore à la main, mais ils sont
+courts et leurs règles sont dans `validation.ts`, prêtes à servir.

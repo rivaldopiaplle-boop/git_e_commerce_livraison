@@ -149,9 +149,25 @@ Sur les graphiques, tu avais raison et j'avais tort par écrit : j'avais mis un
 commentaire dans le fichier disant « un graphe de trente valeurs ne mérite pas
 une dépendance ». C'était faux, et c'était contraire à ta règle d'or n°5.
 
-**Une chose reste à moitié faite, je te la dis** : `vee-validate` et `zod` sont
-installés mais les formulaires ne s'en servent pas encore — ils valident à la
-main. C'est ce que tu me reprochais au bloc K, et ce n'est pas encore réglé.
+## Les formulaires valident enfin dans le navigateur
+
+Je t'ai dit plus haut que `vee-validate` et `zod` étaient installés sans servir.
+C'est réglé dans la foulée : c'était ton reproche du bloc K, et le laisser en
+l'état aurait été le refaire.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **31** | **Va sur la connexion, tape `nimportequoi` dans l'adresse e-mail, puis clique ailleurs.** L'erreur apparaît **tout de suite**, avant tout envoi | 1 min | D-121 |
+| **32** | **Essaie de valider quand même** : le formulaire ne part pas. Il n'y a plus de vérification manuelle à oublier | 1 min | D-121 |
+| **33** | **Inscription → mets un mot de passe de cinq lettres.** Il te dit dix caractères minimum au moment où tu quittes le champ | 1 min | D-121 |
+| **34** | **Inscris-toi avec une adresse déjà prise.** Le message du serveur se pose **sous le champ e-mail**, pas dans un bandeau où il faudrait deviner quoi corriger | 2 min | D-121 |
+
+Un choix que je te signale parce qu'il surprend : **je n'exige ni majuscule ni
+chiffre ni symbole**, seulement dix caractères. Les règles de composition
+poussent aux mots de passe du genre `Passe1234!`, que les gens réutilisent
+partout. La longueur protège mieux, et c'est ce que recommandent l'ANSSI et le
+NIST depuis 2017. Django refuse en plus les mots de passe trop courants, ce
+qu'une règle de forme ne sait pas faire.
 
 Mot de passe commun : **`Demonstration!2026`**.
 

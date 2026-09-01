@@ -1,6 +1,11 @@
 <script setup lang="ts">
+// L'inscription valide desormais AVANT d'envoyer, avec vee-validate + zod
+// (D-26). Elle validait a la main : un mot de passe trop court se decouvrait
+// apres l'aller-retour reseau, ce qui est exactement ce qui fait abandonner
+// une creation de compte.
 import { ArrowLeft, Bike, KeyRound, Mail, Store, User, UserPlus } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { useForm } from 'vee-validate'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { EchecApi } from '../api/client'
@@ -9,6 +14,7 @@ import ChampTexte from '../composants/ChampTexte.vue'
 import LogoRivDinde from '../composants/LogoRivDinde.vue'
 import PanneauMarque from '../composants/PanneauMarque.vue'
 import { useAuthentification } from '../stores/authentification'
+import { schemaBoutique, schemaInscription } from '../validation'
 
 type Profil = 'client' | 'vendeur' | 'livreur'
 
@@ -30,13 +36,30 @@ const PROFILS: { cle: Profil; libelle: string; icone: typeof User }[] = [
   { cle: 'livreur', libelle: 'Livreur', icone: Bike },
 ]
 
-const champs = ref({
-  prenom: '', nom: '', email: '', mot_de_passe: '',
-  nom_boutique: '', type_activite: 'EXPRESS',
-  mode_livraison: 'EXPRESS', vehicule: 'VELO',
+// Le vendeur a un champ de plus, obligatoire : le schema suit le profil
+// choisi. Un seul schema avec un champ « parfois requis » serait plus court a
+// ecrire et impossible a lire six mois plus tard.
+const schema = computed(() =>
+  profil.value === 'vendeur' ? schemaBoutique : schemaInscription,
+)
+
+const { handleSubmit, errors, values, setFieldError, resetForm } = useForm({
+  validationSchema: schema,
+  initialValues: { prenom: '', nom: '', email: '', mot_de_passe: '', nom_boutique: '' },
 })
+
+// Les listes deroulantes n'ont pas de regle a verifier : elles partent d'une
+// liste fermee, et un `v-model` ordinaire suffit.
+const choixVendeur = ref({ type_activite: 'EXPRESS' })
+const choixLivreur = ref({ mode_livraison: 'EXPRESS', vehicule: 'VELO' })
+
 const erreur = ref('')
-const details = ref<Record<string, string[]>>({})
+
+// Changer de profil efface le message d'erreur du profil precedent : le lire
+// encore apres avoir change d'onglet n'a aucun sens.
+watch(profil, () => {
+  erreur.value = ''
+})
 
 // Dit avant l'envoi, pas apres : un vendeur doit savoir qu'il sera verifie
 // avant de pouvoir travailler (D-02).
@@ -46,20 +69,21 @@ const avertissement = computed(() =>
     : 'Votre compte sera cree, puis verifie par un administrateur avant activation.',
 )
 
-async function valider() {
+// `handleSubmit` ne se declenche QUE si le schema passe. Il n'y a donc plus de
+// verification manuelle a oublier, et le formulaire ne part jamais incomplet.
+const valider = handleSubmit(async (saisie) => {
   erreur.value = ''
-  details.value = {}
   const commun = {
-    email: champs.value.email,
-    mot_de_passe: champs.value.mot_de_passe,
-    nom: champs.value.nom,
-    prenom: champs.value.prenom,
+    email: saisie.email,
+    mot_de_passe: saisie.mot_de_passe,
+    nom: saisie.nom,
+    prenom: saisie.prenom,
   }
   const specifique =
     profil.value === 'vendeur'
-      ? { nom_boutique: champs.value.nom_boutique, type_activite: champs.value.type_activite }
+      ? { nom_boutique: saisie.nom_boutique, ...choixVendeur.value }
       : profil.value === 'livreur'
-        ? { mode_livraison: champs.value.mode_livraison, vehicule: champs.value.vehicule }
+        ? { ...choixLivreur.value }
         : {}
 
   try {
@@ -70,12 +94,22 @@ async function valider() {
   } catch (echec) {
     if (echec instanceof EchecApi) {
       erreur.value = echec.erreur.message
-      details.value = echec.erreur.details
+      // Le serveur sait des choses que le navigateur ignore — « cette adresse
+      // est deja prise ». On pose son message SUR le champ concerne plutot que
+      // dans un bandeau general, ou il faudrait deviner quoi corriger.
+      for (const [champ, messages] of Object.entries(echec.erreur.details ?? {})) {
+        if (Array.isArray(messages) && messages.length) {
+          setFieldError(champ as never, messages[0])
+        }
+      }
     } else {
       erreur.value = "L'inscription n'a pas abouti."
     }
   }
-}
+})
+
+/** Rien de saisi : le bouton reste inutile tant que le formulaire est vide. */
+const vide = computed(() => !values.email && !values.nom && !values.prenom)
 </script>
 
 <template>
@@ -130,41 +164,31 @@ async function valider() {
 
         <div class="flex flex-col gap-4">
           <div class="flex gap-3">
-            <ChampTexte v-model="champs.prenom" label="Prenom" :icone="User" requis class="flex-1" />
-            <ChampTexte v-model="champs.nom" label="Nom" requis class="flex-1" />
+            <ChampTexte nom="prenom" label="Prénom" :icone="User" class="flex-1" />
+            <ChampTexte nom="nom" label="Nom" class="flex-1" />
           </div>
 
           <ChampTexte
-            v-model="champs.email"
+            nom="email"
             label="Adresse e-mail"
             type="email"
             :icone="Mail"
             autocomplete="email"
-            requis
-            :erreur="details.email?.[0]"
           />
           <ChampTexte
-            v-model="champs.mot_de_passe"
+            nom="mot_de_passe"
             label="Mot de passe"
             type="password"
             :icone="KeyRound"
             autocomplete="new-password"
-            aide="Dix caracteres au minimum, et pas un mot de passe courant."
-            requis
-            :minlength="10"
-            :erreur="details.mot_de_passe?.[0]"
+            aide="Dix caractères au minimum. La longueur protège mieux que les symboles."
           />
 
           <template v-if="profil === 'vendeur'">
-            <ChampTexte
-              v-model="champs.nom_boutique"
-              label="Nom de la boutique"
-              :icone="Store"
-              requis
-            />
+            <ChampTexte nom="nom_boutique" label="Nom de la boutique" :icone="Store" />
             <label class="flex flex-col gap-1.5">
               <span class="text-[13px] font-medium text-encre-douce">Type d'activite</span>
-              <select v-model="champs.type_activite" class="champ-clair">
+              <select v-model="choixVendeur.type_activite" class="champ-clair">
                 <option value="EXPRESS">Express — restauration, livraison immediate</option>
                 <option value="STANDARD">Standard — colis, passage par entrepot</option>
               </select>
@@ -174,14 +198,14 @@ async function valider() {
           <template v-if="profil === 'livreur'">
             <label class="flex flex-col gap-1.5">
               <span class="text-[13px] font-medium text-encre-douce">Mode de livraison</span>
-              <select v-model="champs.mode_livraison" class="champ-clair">
+              <select v-model="choixLivreur.mode_livraison" class="champ-clair">
                 <option value="EXPRESS">Express — une course a la fois</option>
                 <option value="STANDARD">Standard — tournees depuis un entrepot</option>
               </select>
             </label>
             <label class="flex flex-col gap-1.5">
               <span class="text-[13px] font-medium text-encre-douce">Vehicule</span>
-              <select v-model="champs.vehicule" class="champ-clair">
+              <select v-model="choixLivreur.vehicule" class="champ-clair">
                 <option value="VELO">Velo</option>
                 <option value="SCOOTER">Scooter</option>
                 <option value="VOITURE">Voiture</option>

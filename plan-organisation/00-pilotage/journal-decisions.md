@@ -1652,3 +1652,50 @@ compare à la version installée. Il ne code aucun numéro en dur : le jour où
 `zod` sont déclarés mais **encore inutilisés** — les formulaires valident à la
 main. C'est précisément ce que tu m'as reproché au bloc K, et ce n'est qu'à
 moitié réparé tant qu'un formulaire ne s'en sert pas vraiment.
+
+
+### D-121 — Les formulaires valident dans le navigateur, avec vee-validate et zod
+
+`vee-validate` et `zod` étaient **déclarés dans `package.json` et utilisés
+nulle part**. C'est exactement ce que tu m'as reproché au bloc K : *« tu
+n'utilises pas les équivalents de MUI, hot, hook »*. Les brancher sans s'en
+servir n'était qu'une façon plus discrète de ne pas les utiliser.
+
+Ce que ça change, et pourquoi ça valait le détour :
+
+- **l'erreur s'affiche quand on quitte le champ**, pas après un aller-retour
+  réseau. Découvrir « le mot de passe est trop court » après avoir cliqué
+  « Créer mon compte » est ce qui fait abandonner une inscription ;
+- **une seule définition par règle** (`src/validation.ts`). Le mot de passe
+  faisait dix caractères ici, huit là, et rien du tout ailleurs ;
+- **un formulaire invalide ne part plus** : `handleSubmit` ne déclenche
+  l'envoi que si le schéma passe. Il n'y a plus de vérification manuelle à
+  oublier ;
+- **le message du serveur se pose sur le bon champ.** « Cette adresse est déjà
+  prise » sous le champ e-mail, pas dans un bandeau général où il faudrait
+  deviner quoi corriger.
+
+Trois choix qui ne se devinent pas :
+
+1. **Le serveur reste seul juge.** Ces règles doublent les siennes pour le
+   confort ; elles ne les remplacent pas. Une validation qui n'existe que dans
+   le navigateur ne protège de rien.
+2. **`ChampTexte` fonctionne des deux façons** : piloté par le formulaire quand
+   on lui donne un `nom`, `v-model` ordinaire sinon. La migration se fait écran
+   par écran — un composant qui casserait les quinze formulaires existants d'un
+   coup n'est pas une amélioration.
+3. **La connexion ne vérifie pas la longueur du mot de passe.** Il existe
+   déjà ; reprocher sa forme à quelqu'un qui essaie d'entrer est une façon de
+   le perdre.
+
+### D-122 — Le mot de passe se mesure en longueur, pas en symboles
+
+Dix caractères, et **ni majuscule ni chiffre ni symbole exigés**.
+
+Les règles de composition poussent aux mots de passe du genre `Passe1234!`,
+que les gens réutilisent partout parce qu'ils sont les seuls dont ils se
+souviennent. La longueur protège mieux, et c'est la recommandation de l'ANSSI
+comme du NIST depuis 2017.
+
+Django, côté serveur, refuse en plus les mots de passe trop communs — ce qu'une
+règle de forme ne sait pas faire.

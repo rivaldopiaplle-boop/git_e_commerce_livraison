@@ -3,6 +3,7 @@
 // blanc sur un fond sombre qui avait disparu du theme, et il ne restait donc
 // rien de lisible a l'ecran.
 import { ArrowLeft, KeyRound, LogIn, Mail, ShieldAlert } from '@lucide/vue'
+import { useForm } from 'vee-validate'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -12,12 +13,19 @@ import ChampTexte from '../composants/ChampTexte.vue'
 import LogoRivDinde from '../composants/LogoRivDinde.vue'
 import PanneauMarque from '../composants/PanneauMarque.vue'
 import { useAuthentification } from '../stores/authentification'
+import { schemaConnexion } from '../validation'
 
 const session = useAuthentification()
 const routeur = useRouter()
 
-const email = ref('')
-const motDePasse = ref('')
+// vee-validate + zod (D-26). A la connexion, le schema ne verifie QUE la forme
+// de l'adresse et la presence du mot de passe : reprocher sa longueur a
+// quelqu'un qui essaie d'entrer avec un mot de passe existant est une facon de
+// le perdre.
+const { handleSubmit, resetForm } = useForm({
+  validationSchema: schemaConnexion,
+  initialValues: { email: '', mot_de_passe: '' },
+})
 const erreur = ref('')
 
 // Les comptes de demonstration, cliquables : changer de role prend deux clics.
@@ -34,15 +42,17 @@ const COMPTES = [
 ]
 
 function remplir(compte: (typeof COMPTES)[number]) {
-  email.value = compte.email
-  motDePasse.value = 'Demonstration!2026'
+  // `resetForm` plutot que deux `setFieldValue` : il remet aussi les champs a
+  // l'etat « pas encore touche », donc aucune erreur d'un essai precedent ne
+  // reste affichee sous un champ qu'on vient de remplir pour la personne.
+  resetForm({ values: { email: compte.email, mot_de_passe: 'Demonstration!2026' } })
   erreur.value = ''
 }
 
-async function valider() {
+const valider = handleSubmit(async (saisie) => {
   erreur.value = ''
   try {
-    await session.connecter(email.value, motDePasse.value)
+    await session.connecter(saisie.email, saisie.mot_de_passe)
     // Un client retourne au catalogue, ou il commande ; les autres roles
     // entrent dans leur espace de travail.
     await routeur.push({
@@ -51,7 +61,8 @@ async function valider() {
   } catch (echec) {
     erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Connexion impossible.'
   }
-}
+})
+
 </script>
 
 <template>
@@ -83,20 +94,18 @@ async function valider() {
 
         <div class="flex flex-col gap-4">
           <ChampTexte
-            v-model="email"
+            nom="email"
             label="Adresse e-mail"
             type="email"
             :icone="Mail"
             autocomplete="email"
-            requis
           />
           <ChampTexte
-            v-model="motDePasse"
+            nom="mot_de_passe"
             label="Mot de passe"
             type="password"
             :icone="KeyRound"
             autocomplete="current-password"
-            requis
           />
         </div>
 
