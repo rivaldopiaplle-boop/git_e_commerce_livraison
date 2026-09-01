@@ -60,48 +60,71 @@ const euros = (centimes: number) =>
   (centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 const nombre = (cle: string) => Number(donnees.value[cle] ?? 0)
 
-type Indicateur = { cle: string; libelle: string; alerte?: boolean; argent?: boolean }
+/**
+ * Un indicateur du tableau de bord.
+ *
+ * `route` n'est pas facultatif par confort : **un KPI qui ne mene nulle part
+ * est un element mort qui trompe l'oeil.** Tu l'as dit deux fois (L-2, L-3) :
+ * si quelque chose a l'air interactif, il doit l'etre. Un chiffre sans suite
+ * est une decoration.
+ */
+type Indicateur = {
+  cle: string
+  libelle: string
+  route: string
+  /** Ce que l'ecran d'arrivee doit montrer en priorite. */
+  filtre?: Record<string, string>
+  alerte?: boolean
+  argent?: boolean
+}
 
 // Chaque role a ses propres indicateurs : afficher les memes pour tout le
 // monde reviendrait a n'en afficher pour personne.
 const INDICATEURS: Record<string, Indicateur[]> = {
   VENDEUR: [
-    { cle: 'a_preparer', libelle: 'Commandes a preparer' },
-    { cle: 'produits_en_ligne', libelle: 'Produits en ligne' },
-    { cle: 'stock_bas', libelle: 'Sous le seuil d alerte', alerte: true },
-    { cle: 'ruptures', libelle: 'En rupture', alerte: true },
-    { cle: 'revenu_centimes', libelle: 'Encaisse, commission deduite', argent: true },
+    { cle: 'a_preparer', libelle: 'Commandes a preparer', route: 'vendeur-commandes' },
+    { cle: 'produits_en_ligne', libelle: 'Produits en ligne', route: 'vendeur-catalogue' },
+    { cle: 'stock_bas', libelle: 'Sous le seuil d alerte', route: 'vendeur-catalogue',
+      filtre: { onglet: 'alertes' }, alerte: true },
+    { cle: 'ruptures', libelle: 'En rupture', route: 'vendeur-catalogue',
+      filtre: { onglet: 'ruptures' }, alerte: true },
+    { cle: 'revenu_centimes', libelle: 'Encaisse, commission deduite',
+      route: 'vendeur-statistiques', argent: true },
   ],
   GESTIONNAIRE: [
-    { cle: 'a_preparer', libelle: 'Commandes a preparer' },
-    { cle: 'en_preparation', libelle: 'En cours de preparation' },
-    { cle: 'stock_bas', libelle: 'Sous le seuil d alerte', alerte: true },
-    { cle: 'ruptures', libelle: 'En rupture', alerte: true },
+    { cle: 'a_preparer', libelle: 'Commandes a preparer', route: 'vendeur-commandes' },
+    { cle: 'en_preparation', libelle: 'En cours de preparation', route: 'vendeur-commandes' },
+    { cle: 'stock_bas', libelle: 'Sous le seuil d alerte', route: 'vendeur-catalogue',
+      filtre: { onglet: 'alertes' }, alerte: true },
+    { cle: 'ruptures', libelle: 'En rupture', route: 'vendeur-catalogue',
+      filtre: { onglet: 'ruptures' }, alerte: true },
   ],
   GESTIONNAIRE_ENTREPOT: [
-    { cle: 'colis_recus', libelle: 'Colis a receptionner' },
-    { cle: 'boutiques_deposantes', libelle: 'Boutiques deposantes' },
-    { cle: 'tournees_a_preparer', libelle: 'Tournees a preparer', alerte: true },
-    { cle: 'tournees_en_cours', libelle: 'Tournees sur la route' },
-    { cle: 'livreurs_rattaches', libelle: 'Livreurs rattaches' },
+    { cle: 'colis_recus', libelle: 'Colis a receptionner', route: 'entrepot-colis' },
+    { cle: 'boutiques_deposantes', libelle: 'Boutiques deposantes', route: 'entrepot-colis' },
+    { cle: 'tournees_a_preparer', libelle: 'Tournees a preparer', route: 'entrepot-tournees',
+      alerte: true },
+    { cle: 'tournees_en_cours', libelle: 'Tournees sur la route', route: 'entrepot-tournees' },
+    { cle: 'livreurs_rattaches', libelle: 'Livreurs rattaches', route: 'entrepot-tournees' },
   ],
   LIVREUR: [
-    { cle: 'en_cours', libelle: 'Courses en cours' },
-    { cle: 'livrees', libelle: 'Livraisons reussies' },
-    { cle: 'echouees', libelle: 'Livraisons echouees', alerte: true },
-    { cle: 'gains_centimes', libelle: 'Gains cumules', argent: true },
+    { cle: 'en_cours', libelle: 'Courses en cours', route: 'livreur-courses' },
+    { cle: 'livrees', libelle: 'Livraisons reussies', route: 'livreur-courses' },
+    { cle: 'echouees', libelle: 'Livraisons echouees', route: 'livreur-courses', alerte: true },
+    { cle: 'gains_centimes', libelle: 'Gains cumules', route: 'livreur-courses', argent: true },
   ],
   ADMIN: [
-    { cle: 'a_valider', libelle: 'En attente de validation', alerte: true },
-    { cle: 'boutiques_actives', libelle: 'Boutiques actives' },
-    { cle: 'commandes_en_cours', libelle: 'Commandes en cours' },
-    { cle: 'produits_en_ligne', libelle: 'Produits en ligne' },
-    { cle: 'utilisateurs', libelle: 'Comptes' },
+    { cle: 'a_valider', libelle: 'En attente de validation', route: 'admin-validations',
+      alerte: true },
+    { cle: 'boutiques_actives', libelle: 'Boutiques actives', route: 'admin-boutiques' },
+    { cle: 'commandes_en_cours', libelle: 'Commandes en cours', route: 'admin-journal' },
+    { cle: 'produits_en_ligne', libelle: 'Produits en ligne', route: 'vitrine' },
+    { cle: 'utilisateurs', libelle: 'Comptes', route: 'admin-utilisateurs' },
   ],
   CLIENT: [
-    { cle: 'en_cours', libelle: 'Commandes en cours' },
-    { cle: 'livrees', libelle: 'Commandes livrees' },
-    { cle: 'commandes', libelle: 'Commandes au total' },
+    { cle: 'en_cours', libelle: 'Commandes en cours', route: 'mes-commandes' },
+    { cle: 'livrees', libelle: 'Commandes livrees', route: 'mes-commandes' },
+    { cle: 'commandes', libelle: 'Commandes au total', route: 'mes-commandes' },
   ],
 }
 
@@ -199,17 +222,24 @@ const ICONES: Record<string, unknown> = {
 
     <template v-else-if="onglet === 'travail'">
       <div v-if="indicateurs.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div
+        <!-- Chaque KPI est un LIEN. Un chiffre sans suite est une decoration
+             qui trompe l'oeil : si ca a l'air cliquable, ca doit l'etre. -->
+        <RouterLink
           v-for="indicateur in indicateurs"
           :key="indicateur.cle"
-          class="kpi"
+          :to="{ name: indicateur.route, query: indicateur.filtre }"
+          class="kpi kpi-cliquable"
           :class="indicateur.alerte && nombre(indicateur.cle) ? 'kpi-alerte' : ''"
+          :title="indicateur.libelle + ' — ouvrir le detail'"
         >
           <div class="kpi-nombre">
             {{ indicateur.argent ? euros(nombre(indicateur.cle)) : nombre(indicateur.cle) }}
           </div>
-          <div class="kpi-libelle">{{ indicateur.libelle }}</div>
-        </div>
+          <div class="kpi-libelle flex items-center gap-1">
+            {{ indicateur.libelle }}
+            <ArrowRight :size="11" class="kpi-fleche" />
+          </div>
+        </RouterLink>
       </div>
 
       <!-- Ce qui attend une action -->

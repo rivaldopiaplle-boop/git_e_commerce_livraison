@@ -1557,3 +1557,98 @@ Linear. Elle est **écrite dans le champ**, en petit : un raccourci que personne
 ne connaît n'existe pas. Il ne se déclenche jamais pendant qu'on écrit
 ailleurs — détourner `/` au milieu d'une phrase serait pire que de ne rien
 offrir.
+
+
+### D-117 — PrimeVue reste en version 4, parce que la 5 affiche un bandeau rouge
+
+**C'est le défaut le plus grave trouvé aujourd'hui, et il était invisible dans
+les tests.** PrimeVue 5 exige une clé de licence. Sans elle, il injecte
+lui-même dans la page un `<div>` en position fixe, en bas à droite, fond rouge,
+texte blanc : **« Invalid PrimeUI License »** — sur tous les écrans, et le code
+part dans le build de production.
+
+Vérifié, pas supposé : le message est bien présent dans
+`dist/assets/index-*.js`, et la fonction qui l'injecte s'appelle dès qu'aucune
+clé n'est configurée.
+
+Pour un projet montré à des recruteurs, c'est rédhibitoire.
+
+La version **4** offre exactement les mêmes composants — `DataTable`, `Dialog`,
+`Chart`, `Toast`, `Rating` — **sous licence MIT**, sans clé et sans expiration.
+[D-26](#d-26--tailwind-primevue-et-lucide) demandait « l'équivalent de MUI » :
+la 4 le remplit entièrement. Le paquet de thèmes change de nom au passage
+(`@primeuix/themes` → `@primevue/themes`), et rien d'autre ne bouge.
+
+La licence Community de la 5 est gratuite pour un étudiant, mais elle demande
+une clé à renouveler chaque année. Une clé qui expire dans un dépôt qu'on
+montre, c'est un bandeau rouge qui apparaît un matin sans prévenir.
+
+Trois tests verrouillent la décision, dont un qui lit la bibliothèque installée
+et échoue si la chaîne « Invalid PrimeUI License » y réapparaît — une version
+qui changerait de nom de paquet passerait les deux autres, pas celui-là.
+
+### D-118 — Un indicateur de tableau de bord est un lien, toujours
+
+**Ta remarque, dite deux fois (L-2 puis L-3)** : *« la dashboard n'est pas
+cliquable, n'est pas jolie »*.
+
+Un KPI qui ne mène nulle part est un **élément mort qui trompe l'œil**. La
+règle, désormais dans le type lui-même : `Indicateur.route` n'est pas
+facultatif. On ne peut plus ajouter un chiffre au tableau de bord sans dire où
+il mène.
+
+Deux précisions qui font la différence entre « ça marche » et « c'est
+utilisable » :
+
+- **le lien emmène sur le bon onglet**, pas seulement sur le bon écran. « 2
+  produits sous le seuil » ouvre la liste des alertes, pas le catalogue entier
+  où il faudrait les rechercher ;
+- **ça se voit** : curseur, légère élévation au survol, et une flèche qui se
+  révèle. Un lien que rien ne signale n'est pas un lien.
+
+### D-119 — Les graphiques passent sur la bibliothèque, comme tout le reste
+
+**Ta remarque, L-3** : *« il n'y a pas assez de graphe statistique »*.
+
+Elle était juste, et pour une raison que j'avais écrite noir sur blanc dans le
+fichier : j'avais dessiné la courbe **à la main**, en `<div>` de hauteur
+variable, en me justifiant par « un graphe de trente valeurs ne mérite pas une
+dépendance ». C'était faux, et c'est exactement ce que ta règle d'or n°5
+interdit. Ça marchait pour trente barres et pour rien d'autre : ni axe, ni
+échelle lisible, ni infobulle, ni adaptation à la largeur.
+
+Trois graphiques, sur `Chart` de PrimeVue (donc `chart.js`) :
+
+| Graphique | Ce qu'il répond |
+|---|---|
+| Chiffre d'affaires par jour, **avec les commandes en second axe** | un montant qui monte parce qu'on a vendu un article cher ne veut pas dire la même chose qu'un montant qui monte parce qu'on a vendu dix fois plus |
+| Part de chaque produit dans le chiffre d'affaires | ce qui fait vraiment vivre la boutique |
+| Répartition des notes | ce qu'une moyenne cache : 4/5 avec dix 5 et deux 1, ce n'est pas 4/5 partout |
+
+`src/graphiques.ts` porte les réglages communs. Trois graphiques réglés
+séparément finissent toujours par se contredire — couleurs, grille, format des
+infobulles.
+
+Le classement chiffré **reste** sous l'anneau : un anneau donne une proportion,
+il ne donne ni le montant exact ni la quantité vendue
+([D-97](#d-97--aucune-fonctionnalité-nest-retirée-pour-en-ajouter-une-autre)).
+
+### D-120 — Une dépendance déclarée doit être installable
+
+`@vee-validate/zod` exige `zod` 3 ; le projet avait `zod` 4. Rien ne le
+signalait : le fichier de verrou datait d'avant, l'application se construisait,
+les tests passaient. Mais **tout `npm install` d'un nouveau paquet échouait**
+avec `ERESOLVE` — et on croit alors que c'est la nouvelle dépendance qui pose
+problème.
+
+Aucune version de `@vee-validate/zod` ne supporte encore `zod` 4 : c'est donc
+`zod` qui redescend en 3.25, la version que l'adaptateur attend.
+
+Un test lit maintenant la contrainte de pair déclarée par l'adaptateur et la
+compare à la version installée. Il ne code aucun numéro en dur : le jour où
+`@vee-validate/zod` supportera `zod` 4, il passera tout seul.
+
+**Reste à faire, et je le note plutôt que de le taire** : `vee-validate` et
+`zod` sont déclarés mais **encore inutilisés** — les formulaires valident à la
+main. C'est précisément ce que tu m'as reproché au bloc K, et ce n'est qu'à
+moitié réparé tant qu'un formulaire ne s'en sert pas vraiment.

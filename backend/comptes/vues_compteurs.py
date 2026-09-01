@@ -29,7 +29,6 @@ from .models import Role, StatutValidation
 
 def _pour_client(profil):
     from commandes.models import Commande, StatutCommande
-    from engagement.models import Litige, StatutLitige
 
     return {
         # Une commande creee et jamais payee immobilise du stock (D-15) : c'est
@@ -39,9 +38,6 @@ def _pour_client(profil):
         ).count(),
         "paiement": Commande.objects.filter(
             client=profil, statut_actuel=StatutCommande.EN_ATTENTE_PAIEMENT
-        ).count(),
-        "mes-litiges": Litige.objects.filter(
-            client=profil, statut__in=[StatutLitige.OUVERT, StatutLitige.EN_COURS]
         ).count(),
     }
 
@@ -103,7 +99,7 @@ def _pour_livreur(livreur):
 
 def _pour_admin():
     from comptes.models import Livreur, Vendeur
-    from engagement.models import Avis, Litige, StatutLitige, StatutModeration
+    from engagement.models import Litige, StatutLitige
 
     from .models import DemandeModification, StatutDemande
 
@@ -125,9 +121,6 @@ def _pour_admin():
         ),
         "admin-demandes": DemandeModification.objects.filter(
             statut=StatutDemande.EN_ATTENTE
-        ).count(),
-        "admin-avis": Avis.objects.filter(
-            statut_moderation=StatutModeration.SIGNALE
         ).count(),
     }
 

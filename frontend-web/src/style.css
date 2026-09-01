@@ -111,6 +111,19 @@
   }
   .kpi-nombre { @apply text-[21px] font-extrabold; }
   .kpi-libelle { @apply mt-0.5 text-[11px] font-semibold text-encre-douce; }
+  /* Un KPI cliquable doit AVOIR L'AIR cliquable : curseur, elevation au
+     survol, et une fleche qui se revele. Un chiffre sans suite est une
+     decoration qui trompe l'oeil. */
+  .kpi-cliquable {
+    @apply block cursor-pointer transition-all duration-150
+           hover:-translate-y-0.5 hover:border-encre-douce hover:shadow-md;
+  }
+  .kpi-fleche {
+    @apply opacity-0 transition-opacity duration-150;
+  }
+  .kpi-cliquable:hover .kpi-fleche,
+  .kpi-cliquable:focus-visible .kpi-fleche { @apply opacity-100; }
+
   .kpi-alerte { @apply border-avis-trait bg-avis-voile; }
   .kpi-alerte .kpi-nombre { @apply text-avis; }
 

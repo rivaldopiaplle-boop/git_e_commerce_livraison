@@ -373,3 +373,55 @@ de route. C'est ce qui garde la barre latérale bête : elle affiche
 Le cloisonnement est vérifié par 10 tests : un vendeur ne compte que ses
 commandes, et l'administrateur ne compte que les litiges qu'il a le droit de
 trancher ([D-103](journal-decisions.md)).
+
+
+---
+
+## Le tableau de bord, les graphiques, et un bandeau rouge
+
+### Le défaut le plus grave, et il ne se voyait dans aucun test
+
+**PrimeVue 5 exige une clé de licence.** Sans elle, il injecte dans la page un
+`<div>` fixe en bas à droite, fond rouge : « Invalid PrimeUI License ». Vérifié
+dans le build de production, pas supposé.
+
+Le projet est repassé en **PrimeVue 4 (MIT)** : mêmes composants, aucune clé,
+aucune expiration ([D-117](journal-decisions.md)). Le build y gagne 42 Ko au
+passage. Trois tests verrouillent la décision, dont un qui lit la bibliothèque
+installée et échoue si le message y réapparaît.
+
+### Le tableau de bord
+
+Chaque indicateur est désormais un **lien**, et `Indicateur.route` n'est pas
+facultatif dans le type : on ne peut plus ajouter un chiffre sans dire où il
+mène ([D-118](journal-decisions.md)). Les alertes emmènent sur le bon
+**onglet**, pas seulement sur le bon écran.
+
+### Les graphiques
+
+Trois, sur `Chart` de PrimeVue, là où il n'y avait qu'une courbe dessinée à la
+main en `<div>` de hauteur variable :
+
+| Graphique | Type | Ce qu'il répond |
+|---|---|---|
+| Chiffre d'affaires par jour | courbe, deux axes | montant **et** nombre de commandes |
+| Part de chaque produit | anneau | ce qui fait vivre la boutique |
+| Répartition des notes | barres horizontales | ce qu'une moyenne cache |
+
+`src/graphiques.ts` porte les réglages communs — couleurs, grille, format des
+infobulles. Trois graphiques réglés séparément finissent toujours par se
+contredire.
+
+### Une dépendance qui ne s'installait plus
+
+`@vee-validate/zod` exige `zod` 3, le projet avait `zod` 4. L'application se
+construisait — le fichier de verrou datait d'avant — mais **tout `npm install`
+d'un nouveau paquet échouait**. Corrigé, et un test compare désormais la
+contrainte déclarée par l'adaptateur à la version installée, sans coder aucun
+numéro en dur ([D-120](journal-decisions.md)).
+
+### Ce qui reste ouvert, et qu'il ne faut pas oublier
+
+`vee-validate` et `zod` sont installés mais **encore inutilisés** : les
+formulaires valident à la main. C'est précisément le reproche du bloc K, et il
+n'est qu'à moitié réparé.

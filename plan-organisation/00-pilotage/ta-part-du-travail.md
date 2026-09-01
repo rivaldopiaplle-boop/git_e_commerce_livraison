@@ -113,6 +113,46 @@ une pastille qui ne descend jamais à zéro cesse d'être lue au bout de deux
 jours. « 137 produits au catalogue » n'est pas une pastille, c'est une
 statistique.
 
+## ⚠ Un bandeau rouge s'affichait sur toutes tes pages
+
+Je te le mets en avant parce que c'est le défaut le plus grave que j'ai trouvé
+aujourd'hui, et qu'il ne se voyait dans aucun test.
+
+**PrimeVue 5 exige une clé de licence.** Sans elle, il insère lui-même dans la
+page un rectangle rouge « **Invalid PrimeUI License** », fixé en bas à droite,
+sur **tous** les écrans — et le code partait dans le build de production. Sur
+un projet que tu montres à des recruteurs, c'est rédhibitoire.
+
+Le projet est repassé en **PrimeVue 4**, qui est sous licence **MIT** : mêmes
+composants (tableaux, popups, graphes, toasts, notation), aucune clé, aucune
+expiration. Trois tests empêchent le retour en arrière, dont un qui lit la
+bibliothèque installée et échoue si le message y réapparaît.
+
+La licence Community de la 5 est gratuite pour un étudiant, mais elle demande
+une clé à renouveler chaque année. Une clé qui expire dans un dépôt qu'on
+montre, c'est un bandeau rouge qui apparaît un matin sans prévenir. **Si tu
+préfères quand même la 5 avec une clé, dis-le-moi** : c'est ton appel, pas le
+mien.
+
+---
+
+## Le tableau de bord et les graphiques
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **27** | **`karim@exemple.fr` → Tableau de bord.** **Clique n'importe quel chiffre** : ils mènent tous quelque part maintenant. Tu disais deux fois que la dashboard n'était pas cliquable | 3 min | D-118 |
+| **28** | **Clique « 2 sous le seuil d'alerte »** : tu arrives sur l'onglet des **alertes**, pas sur le catalogue entier où il faudrait les chercher | 2 min | D-118 |
+| **29** | **→ Statistiques.** Trois vrais graphiques au lieu de mes barres faites à la main : le chiffre d'affaires jour par jour **avec les commandes en second axe**, la part de chaque produit, et la répartition des notes | 4 min | D-119 |
+| **30** | **Survole la courbe** : l'infobulle donne le montant en euros ET le nombre de commandes. Mes barres n'avaient ni axe, ni échelle, ni infobulle | 2 min | D-119 |
+
+Sur les graphiques, tu avais raison et j'avais tort par écrit : j'avais mis un
+commentaire dans le fichier disant « un graphe de trente valeurs ne mérite pas
+une dépendance ». C'était faux, et c'était contraire à ta règle d'or n°5.
+
+**Une chose reste à moitié faite, je te la dis** : `vee-validate` et `zod` sont
+installés mais les formulaires ne s'en servent pas encore — ils valident à la
+main. C'est ce que tu me reprochais au bloc K, et ce n'est pas encore réglé.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

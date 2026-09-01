@@ -12,8 +12,8 @@
 // `--accent`, la couleur du rôle connecté (règle d'or n°8). Un tableau, une
 // fenêtre et un toast prennent donc automatiquement le bleu du vendeur, le
 // vert du client ou le rouge de l'admin.
-import { definePreset } from '@primeuix/themes'
-import Aura from '@primeuix/themes/aura'
+import { definePreset } from '@primevue/themes'
+import Aura from '@primevue/themes/aura'
 
 export const themeRivDinde = definePreset(Aura, {
   semantic: {
