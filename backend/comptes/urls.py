@@ -36,6 +36,10 @@ urlpatterns += [
 
     # Vendeur
     path("vendeurs/personnel", vues_espaces.mon_personnel, name="mon-personnel"),
+    # Le vendeur creait des comptes sans jamais pouvoir en retirer un :
+    # un employe qui partait gardait son acces indefiniment.
+    path("vendeurs/personnel/<int:identifiant>/basculer",
+         vues_gestion.basculer_employe, name="basculer-employe"),
     path("vendeurs/statistiques", vues_espaces.statistiques_vendeur, name="statistiques-vendeur"),
     path("vendeurs/avis", vues_espaces.avis_recus, name="avis-recus"),
 

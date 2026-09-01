@@ -186,3 +186,16 @@ Le signalement côté client n'a pas d'écran à lui : il s'ouvre en popup depui
 `Mes commandes`, sur la ligne de la commande concernée. Un formulaire de
 contact générique obligerait le client à ressaisir son numéro de commande, et
 c'est exactement ce qu'on lui reproche quand on est à sa place.
+
+
+## Les quatre dernières listes — état final
+
+| Écran | Route | Ce qu'elle gagne à la conversion |
+|---|---|---|
+| Validations | `/espace/validations` | boutons-symboles, recherche, tri |
+| Litiges (admin) | `/espace/litiges` | **l'arbitrage**, qui n'existait pas |
+| Mon personnel | `/espace/personnel` | **suspendre un employé**, qui n'existait pas |
+| Mes adresses | `/mes-adresses` | **corriger**, et une confirmation avant d'effacer |
+
+Toutes les listes de tous les rôles passent désormais par `Liste.vue`. C'était
+la demande du bloc K-1, et elle est close.

@@ -38,6 +38,18 @@ Le jeu de démonstration te pose **les cinq états** d'un litige côte à côte 
 délai en cours, délai dépassé, boutique entendue, résolu avec remboursement,
 rejeté. Tu n'as rien à fabriquer à la main pour les voir.
 
+## Les quatre dernières listes — c'est fini
+
+Tu m'avais demandé les boutons-symboles **sur toutes les listes de tous les
+rôles**. Il en restait quatre au bloc K ; les quatre y sont.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **11** | **`karim@exemple.fr` → Mon personnel.** C'est maintenant la liste du projet, et surtout : tu peux **suspendre un employé**. Tu ne pouvais pas — quelqu'un qui partait gardait son accès au stock pour toujours | 4 min | D-106 |
+| **12** | **Suspends `rachid@exemple.fr`, puis essaie de te connecter avec.** La porte est vraiment fermée, pas juste le menu masqué | 2 min | D-106 |
+| **13** | **Léa → Mes adresses.** Tu peux enfin **corriger** une adresse au lieu de l'effacer et la retaper, et **retirer** demande confirmation — avant, un seul clic suffisait | 3 min | D-107 |
+| **14** | **Regarde la barre latérale de chaque rôle** : « Commandes reçues », « Vue d'ensemble », « Tournées », « Demandes d'identité ». Elles étaient toutes écrites sans accents | 1 min | D-105 |
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

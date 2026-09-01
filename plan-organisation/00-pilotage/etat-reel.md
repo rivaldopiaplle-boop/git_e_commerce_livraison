@@ -236,3 +236,35 @@ manque se dit à l'écran de peuplement.
   remboursement commercial sans réclamation. Rien ne le demande aujourd'hui ;
 - **les pièces jointes** : `preuves_urls` accepte des URL, mais aucun écran ne
   téléverse encore de photo. C'est le prolongement naturel du dossier.
+
+
+---
+
+## Les quatre dernières listes, converties
+
+Tu demandais les boutons-symboles **sur toutes les listes de tous les rôles**
+(bloc K-1). Le relevé du bloc K en laissait quatre : validations, litiges,
+personnel, adresses. Les quatre passent désormais par `Liste.vue` — recherche,
+tri, pagination, état vide rédigé, boutons-symboles encadrés.
+
+La conversion n'a pas été qu'un habillage : **deux vrais défauts** sont
+apparus en la faisant, et c'est en général ce qui arrive quand on regarde un
+écran de près.
+
+| Écran | Ce qui manquait vraiment | Corrigé par |
+|---|---|---|
+| **Litiges (admin)** | l'arbitrage n'existait pas — l'écran ne savait que lire | [D-94](journal-decisions.md), [D-103](journal-decisions.md) |
+| **Litiges (vendeur)** | l'écran n'existait pas du tout | [D-104](journal-decisions.md) |
+| **Mon personnel** | on créait des comptes sans jamais pouvoir en retirer un | [D-106](journal-decisions.md) |
+| **Mes adresses** | on effaçait sans confirmation, et on ne pouvait pas corriger | [D-107](journal-decisions.md) |
+
+### Le décompte des tests
+
+| | Bloc K | Aujourd'hui |
+|---|---|---|
+| Backend | 89 | **136** |
+| Front web | 50 | **57** |
+
+Les 47 tests de plus portent tous sur ce qui vient d'être écrit : le paiement
+et sa réservation (18 + 7), le cycle du litige (21), la gestion du personnel
+(8).

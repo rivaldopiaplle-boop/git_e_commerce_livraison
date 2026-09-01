@@ -1325,3 +1325,45 @@ une constante TypeScript.
 Dans le même passage, l'icône des litiges de l'administrateur était `Star` —
 le symbole des avis. Le même symbole pour deux choses différentes fait hésiter
 à chaque fois ; c'est `Scale`, la balance, qui désigne l'arbitrage.
+
+
+### D-106 — On suspend un employé, on ne le supprime jamais
+
+Le vendeur créait des comptes pour ses employés et **n'avait aucun moyen d'en
+retirer un**. Un employé qui partait gardait son accès aux commandes et au
+stock de la boutique, indéfiniment. C'est le genre de trou qu'on ne remarque
+que le jour où il coûte cher.
+
+`POST /vendeurs/personnel/{id}/basculer` **suspend** — il ne supprime pas. Les
+ajustements de stock que cette personne a signés doivent rester attribuables
+([D-13](#d-13--retirer-un-produit-le-masque-on-ne-supprime-jamais),
+[D-95](#d-95--toute-action-sensible-laisse-une-trace)) ; un compte effacé
+laisserait un journal d'audit plein de trous.
+
+Trois choses qui vont avec, et qui sont la même exigence que pour les
+suspensions d'administrateur ([D-93](#d-93--ladministration-administre-elle-ne-fait-pas-que-lire)) :
+
+- **la suspension exige un motif** — la personne le lira, et le journal le
+  gardera ;
+- **elle bloque vraiment la connexion** (403 `compte_bloque`), pas seulement
+  une entrée de menu ;
+- **un vendeur ne touche qu'à son propre personnel**, et une tentative sur une
+  autre boutique répond **404** — un 403 confirmerait que ce compte existe.
+
+### D-107 — Effacer se confirme, corriger existe
+
+Le carnet d'adresses était la dernière des quatre listes faites à la main, et
+il portait deux défauts que la conversion a mis au jour :
+
+1. **on retirait une adresse d'un seul clic**, sans confirmation. Une adresse
+   effacée par erreur se ressaisit en entier, et rien ne la rattrape. La règle
+   vaut au-delà de cet écran : **toute action irréversible passe par une
+   popup** qui dit ce qu'on va perdre ;
+2. **on ne pouvait pas modifier une adresse**, seulement l'effacer et la
+   retaper. L'API savait déjà le faire ; l'écran ne s'en servait pas. Une
+   correction n'est pas une suppression suivie d'une création — et elle ne
+   promet pas la même chose : les commandes déjà passées gardent l'adresse
+   telle qu'elle était le jour de la livraison.
+
+La même popup sert à créer et à corriger. C'est le même formulaire, et deux
+formulaires jumeaux finissent toujours par diverger.

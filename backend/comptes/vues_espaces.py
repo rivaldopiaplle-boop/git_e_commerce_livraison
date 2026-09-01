@@ -133,6 +133,12 @@ def mon_personnel(requete):
                 "id": gestionnaire.id,
                 "utilisateur": UtilisateurSerializer(gestionnaire.utilisateur).data,
                 "date_embauche": gestionnaire.date_embauche,
+                # L'ecran doit pouvoir dire d'un coup d'oeil qui peut encore
+                # entrer. Sans ce champ, un compte suspendu ressemblait a un
+                # compte actif, et le vendeur n'avait aucun moyen de le voir.
+                "statut_compte": gestionnaire.utilisateur.statut_compte,
+                "actif": gestionnaire.utilisateur.statut_compte == StatutCompte.ACTIF,
+                "derniere_connexion": gestionnaire.utilisateur.last_login,
             }
             for gestionnaire in personnel
         ],

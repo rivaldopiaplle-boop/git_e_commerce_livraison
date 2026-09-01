@@ -482,3 +482,22 @@ que le serveur applique, et l'écran s'en sert pour griser son bouton.
 | `motivation_requise` | décision sans motif | 400 |
 | `montant_invalide` | remboursement supérieur au reste remboursable | 400 |
 | `litige_clos` | dossier déjà tranché | 409 |
+
+
+---
+
+## Le personnel d'une boutique (D-04, D-106)
+
+| Méthode | Chemin | Rôle | Ce qu'elle fait |
+|---|---|---|---|
+| GET | `/vendeurs/personnel` | V | ses employés, leurs droits, et **qui peut encore entrer** |
+| POST | `/vendeurs/gestionnaires` | V | crée un compte pour un employé |
+| POST | `/vendeurs/personnel/{id}/basculer` | V | suspend ou réactive — **jamais de suppression** |
+
+La charge utile de la liste porte désormais `statut_compte`, `actif` et
+`derniere_connexion`. Sans eux, un compte suspendu ressemblait à un compte
+actif, et le vendeur n'avait aucun moyen de le voir.
+
+`basculer` exige un `motif` pour suspendre (400 `motif_requis`) : la personne
+le lira, et le journal d'audit le gardera. Une tentative sur le personnel d'une
+autre boutique répond **404** — un 403 confirmerait que ce compte existe.

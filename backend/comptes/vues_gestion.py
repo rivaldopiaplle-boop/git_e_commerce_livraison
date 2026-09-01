@@ -13,6 +13,7 @@ Chaque action ici :
     personne recoit une decision sans savoir quoi corriger ;
   · **se rejoue en sens inverse** — on suspend, on ne supprime jamais (D-61).
 """
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -20,8 +21,15 @@ from rest_framework.response import Response
 
 from coeur.evenements import Evenement, emettre
 
-from .models import Livreur, StatutCompte, StatutValidation, Utilisateur, Vendeur
-from .permissions import EstAdmin
+from .models import (
+    Gestionnaire,
+    Livreur,
+    StatutCompte,
+    StatutValidation,
+    Utilisateur,
+    Vendeur,
+)
+from .permissions import EstAdmin, EstVendeur
 
 
 def _motif(requete):
@@ -307,4 +315,68 @@ def basculer_compte(requete, identifiant):
         "id": compte.id,
         "statut_compte": compte.statut_compte,
         "date_decision": timezone.now(),
+    }})
+
+
+@api_view(["POST"])
+@permission_classes([EstVendeur])
+@transaction.atomic
+def basculer_employe(requete, identifiant):
+    """Suspendre ou reactiver un compte de son propre personnel — D-04.
+
+    Le vendeur cree deja des comptes pour ses employes, mais il n'avait aucun
+    moyen d'en retirer un. Un employe qui part gardait donc son acces aux
+    commandes et au stock de la boutique, indefiniment. C'est le genre de trou
+    qu'on ne remarque que le jour ou il coute cher.
+
+    **Suspendre plutot que supprimer** : les ajustements de stock qu'il a
+    signes doivent rester attribuables (D-13, D-95). Un compte efface
+    laisserait un journal d'audit plein de trous.
+    """
+    vendeur = getattr(requete.user, "profil_vendeur", None)
+    employe = (
+        Gestionnaire.objects.filter(pk=identifiant, vendeur=vendeur)
+        .select_related("utilisateur")
+        .first()
+    )
+    if employe is None:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    compte = employe.utilisateur
+    avant = compte.statut_compte
+    suspendre = avant == StatutCompte.ACTIF
+
+    if suspendre and not str(requete.data.get("motif", "")).strip():
+        return Response(
+            {"erreur": {
+                "code": "motif_requis",
+                "message": "Dites pourquoi ce compte est suspendu : la personne le lira, "
+                           "et le journal le gardera.",
+                "details": {},
+            }},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    compte.statut_compte = StatutCompte.SUSPENDU if suspendre else StatutCompte.ACTIF
+    compte.save(update_fields=["statut_compte"])
+
+    motif = str(requete.data.get("motif", "")).strip()
+    emettre(Evenement(
+        nom="EMPLOYE_SUSPENDU" if suspendre else "EMPLOYE_REACTIVE",
+        type_objet="UTILISATEUR", id_objet=compte.id,
+        titre=("Votre acces a la boutique est suspendu" if suspendre
+               else "Votre acces a la boutique est retabli"),
+        message=motif or "Vous pouvez de nouveau preparer les commandes et ajuster le stock.",
+        lien="/espace",
+        avant={"statut_compte": avant},
+        apres={"statut_compte": compte.statut_compte},
+        motif=motif,
+        acteur=requete.user,
+        destinataires=[compte],
+    ))
+
+    return Response({"data": {
+        "id": employe.id,
+        "statut_compte": compte.statut_compte,
+        "actif": compte.statut_compte == StatutCompte.ACTIF,
     }})
