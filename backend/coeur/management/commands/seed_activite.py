@@ -675,35 +675,114 @@ class Command(BaseCommand):
                               "statut_moderation": StatutModeration.SIGNALE},
                 )
 
-        # Deux litiges : un ouvert que l'admin doit arbitrer, un deja resolu
-        # pour que l'ecran sache afficher les deux moities de son travail.
-        annulee = next(
-            (c for c in commandes if c.statut_actuel == StatutCommande.ANNULEE), None
-        )
-        if annulee:
-            Litige.objects.get_or_create(
-                commande=annulee, client=annulee.client,
-                defaults={
-                    "motif": MotifLitige.INCOMPLET,
-                    "description": "Deux articles manquants sur les trois commandes.",
-                    "statut": StatutLitige.OUVERT,
-                },
+        # Les CINQ etats d'un litige, pour que chaque case de la procedure
+        # (D-94) soit visible a l'ecran sans avoir a la fabriquer a la main :
+        #
+        #   1. ouvert, le delai court        -> le vendeur doit repondre,
+        #                                       l'admin ne peut PAS trancher
+        #   2. ouvert, delai depasse         -> l'admin tranche sans la
+        #                                       seconde version
+        #   3. en cours, vendeur entendu     -> pret a etre arbitre
+        #   4. resolu, remboursement partiel -> la vente tient encore
+        #   5. rejete                        -> le versement a repris son cours
+        #
+        # On pioche dans les commandes dont l'histoire est FINIE : un litige ne
+        # s'ouvre pas sur une livraison en cours. Une premiere version prenait
+        # les commandes livrees par leur rang dans la liste, et le cinquieme
+        # etat disparaissait silencieusement des qu'il y en avait moins de
+        # quatre. Le compte est desormais verifie, et un manque se dit.
+        maintenant = timezone.now()
+        terminees = [
+            commande for commande in commandes
+            if commande.statut_actuel in (
+                StatutCommande.LIVREE,
+                StatutCommande.ECHEC_LIVRAISON,
+                StatutCommande.ANNULEE,
+                StatutCommande.REMBOURSEE,
             )
-        echouee = next(
-            (c for c in commandes if c.statut_actuel == StatutCommande.ECHEC_LIVRAISON), None
-        )
-        if echouee:
-            Litige.objects.get_or_create(
-                commande=echouee, client=echouee.client,
-                defaults={
-                    "motif": MotifLitige.NON_RECU,
-                    "description": "Deux passages annonces, aucun avis dans la boite.",
-                    "statut": StatutLitige.RESOLU,
-                    "resolution": "Remboursement integral accorde, colis retourne au vendeur.",
-                    "montant_rembourse_centimes": echouee.montant_total_centimes,
-                    "date_resolution": timezone.now() - datetime.timedelta(hours=20),
-                },
+        ]
+
+        etats = [
+            {
+                "motif": MotifLitige.INCOMPLET,
+                "description": "Deux articles manquants sur les trois commandes.",
+                "statut": StatutLitige.OUVERT,
+                "date_limite_reponse": maintenant + datetime.timedelta(hours=31),
+            },
+            {
+                "motif": MotifLitige.ENDOMMAGE,
+                "description": "Le bocal est arrive brise, tout le contenu s'est "
+                               "repandu dans le carton.",
+                "statut": StatutLitige.OUVERT,
+                # Le delai est passe : l'administrateur peut trancher seul.
+                "date_limite_reponse": maintenant - datetime.timedelta(hours=6),
+            },
+            {
+                "motif": MotifLitige.NON_CONFORME,
+                "description": "J'ai recu un modele different de celui de la fiche "
+                               "produit.",
+                "statut": StatutLitige.EN_COURS,
+                "date_limite_reponse": maintenant + datetime.timedelta(hours=12),
+                "reponse_vendeur": "La photo de la fiche a ete mise a jour la semaine "
+                                   "derniere, l'ancienne reference n'est plus en stock.",
+                "date_reponse_vendeur": maintenant - datetime.timedelta(hours=3),
+            },
+            {
+                "motif": MotifLitige.INCOMPLET,
+                "description": "Il manquait un article sur les quatre de ma commande.",
+                "statut": StatutLitige.RESOLU,
+                "date_limite_reponse": maintenant - datetime.timedelta(days=3),
+                "reponse_vendeur": "Effectivement, une reference etait en rupture au "
+                                   "moment de la preparation.",
+                "date_reponse_vendeur": maintenant - datetime.timedelta(days=3, hours=4),
+                "resolution": "Article manquant confirme par la boutique : "
+                              "remboursement de la seule ligne concernee.",
+                # Partiel : la vente tient encore, la commande reste LIVREE.
+                "montant_rembourse_centimes": 1500,
+                "date_resolution": maintenant - datetime.timedelta(days=2),
+            },
+            {
+                "motif": MotifLitige.NON_RECU,
+                "description": "Je n'ai rien recu ce jour-la.",
+                "statut": StatutLitige.REJETE,
+                "date_limite_reponse": maintenant - datetime.timedelta(days=5),
+                "reponse_vendeur": "Preuve de remise signee par le client a 18h12, "
+                                   "photo du colis devant la porte a l'appui.",
+                "date_reponse_vendeur": maintenant - datetime.timedelta(days=5, hours=6),
+                "resolution": "Preuve de remise signee : la reclamation ne peut pas "
+                              "prosperer.",
+                "date_resolution": maintenant - datetime.timedelta(days=4),
+            },
+        ]
+
+        if len(terminees) < len(etats):
+            self.stdout.write(self.style.WARNING(
+                f"  {len(etats) - len(terminees)} etat(s) de litige sans commande "
+                f"terminee ou se poser : l'ecran d'arbitrage sera incomplet."
+            ))
+
+        for commande, details in zip(terminees, etats, strict=False):
+            details = dict(details)
+            if details.get("montant_rembourse_centimes"):
+                details["montant_rembourse_centimes"] = min(
+                    details["montant_rembourse_centimes"], commande.montant_total_centimes
+                )
+            dossier, cree = Litige.objects.get_or_create(
+                commande=commande, client=commande.client, defaults=details,
             )
+            if not cree:
+                continue
+            # Le versement au vendeur suit l'etat du dossier, sinon l'ecran des
+            # paiements raconterait une autre histoire que celui des litiges.
+            if dossier.statut in (StatutLitige.OUVERT, StatutLitige.EN_COURS):
+                etat = "BLOQUE"
+            elif dossier.montant_rembourse_centimes:
+                etat = "REMBOURSE"
+            else:
+                etat = "TRANSFERE"
+            RepartitionVendeur.objects.filter(
+                sous_commande__commande=commande
+            ).update(statut=etat)
 
         # Des notifications, lues et non lues : une cloche qui n'a jamais
         # rien a montrer ne prouve rien.

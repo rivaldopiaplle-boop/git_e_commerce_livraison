@@ -439,3 +439,46 @@ pas une page masquée (scénario 14.1).
 - **`PATCH /produits/{id}/stock`** accepte `nouvelle_quantite` en plus de
   `quantite`, et déduit l'écart (D-49). `GET /vendeurs/tableau-de-bord`
   n'inclut plus `revenu_centimes` quand l'appelant est un gestionnaire (D-50).
+
+
+---
+
+## Le litige — écrit et en service (D-94, D-103, D-104)
+
+| Méthode | Chemin | Rôle | Ce qu'elle fait |
+|---|---|---|---|
+| POST | `/commandes/{id}/litiges` | C | ouvre le dossier, gèle le versement, notifie la boutique |
+| GET | `/mes-litiges` | C | ses propres dossiers |
+| GET | `/vendeurs/litiges` | V, G | les litiges portant sur ses commandes, ce qui attend une réponse en tête |
+| POST | `/litiges/{id}/reponse` | V | sa version des faits — **une seule fois** |
+| GET | `/admin/litiges` | A | tous les dossiers, avec `a_arbitrer` |
+| POST | `/admin/litiges/{id}/arbitrer` | A | tranche : `REMBOURSER` (total ou partiel) ou `REFUSER` |
+
+### La forme d'un dossier est la même pour les trois rôles
+
+Elle vient d'une seule fonction, `engagement.vues_litiges._en_dictionnaire`.
+Trois représentations divergentes du même objet finissent toujours par se
+contredire, et c'est l'écran qui ment. Les champs qui pilotent l'interface :
+
+```json
+{ "reponse_vendeur": "…", "date_reponse_vendeur": null,
+  "date_limite_reponse": "2026-09-03T10:00:00Z",
+  "delai_expire": false, "arbitrable": false }
+```
+
+`arbitrable` évite à l'écran de refaire le calcul : il vaut vrai quand le
+vendeur a répondu **ou** que le délai est passé. C'est exactement la condition
+que le serveur applique, et l'écran s'en sert pour griser son bouton.
+
+### Les refus
+
+| Code | Quand | Statut |
+|---|---|---|
+| `commande_non_contestable` | la commande est encore en cours | 409 |
+| `litige_deja_ouvert` | un dossier court déjà sur cette commande | 409 |
+| `description_trop_courte` | moins de 20 caractères | 400 |
+| `deja_repondu` | le vendeur a déjà donné sa version | 409 |
+| `vendeur_pas_encore_entendu` | le délai court encore | 409 |
+| `motivation_requise` | décision sans motif | 400 |
+| `montant_invalide` | remboursement supérieur au reste remboursable | 400 |
+| `litige_clos` | dossier déjà tranché | 409 |

@@ -14,6 +14,7 @@ urlpatterns = [
     path("api/v1/", include("commandes.urls")),
     path("api/v1/", include("livraisons.urls")),
     path("api/v1/", include("paiements.urls")),
+    path("api/v1/", include("engagement.urls")),
 ]
 
 # En developpement, Django sert lui-meme les images televersees. En ligne,

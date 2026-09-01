@@ -108,6 +108,14 @@ const routes: RouteRecordRaw[] = [
     meta: { acces: 'prive' },
   },
   {
+    path: '/espace/litiges-boutique',
+    name: 'vendeur-litiges',
+    component: () => import('./vues/vendeur/LitigesVendeur.vue'),
+    // L'ecran manquait, et son absence etait le trou le plus grave de la
+    // procedure : le vendeur n'avait aucun moyen de donner sa version (D-94).
+    meta: { acces: 'prive' },
+  },
+  {
     path: '/espace/profil',
     name: 'profil',
     component: () => import('./vues/Profil.vue'),

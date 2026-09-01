@@ -103,8 +103,17 @@ export type Litige = {
   date_resolution: string | null
   client: string
   commande: string
+  id_commande: number
   montant_commande_centimes: number
   boutiques: string[]
+  // L'instruction contradictoire (D-94) : la version du vendeur, son delai,
+  // et le fait de savoir si le dossier peut etre tranche.
+  reponse_vendeur: string
+  date_reponse_vendeur: string | null
+  date_limite_reponse: string | null
+  delai_expire: boolean
+  arbitrable: boolean
+  pour: string
 }
 
 export type CompteAdmin = {
@@ -145,6 +154,9 @@ export const espaces = {
     modifierAdresse: (id: number, donnees: Partial<Adresse>) =>
       api.patch<Adresse[]>(`/moi/adresses/${id}`, donnees),
     retirerAdresse: (id: number) => api.supprimer<Adresse[]>(`/moi/adresses/${id}`),
+    litiges: () => api.get<Litige[]>('/mes-litiges'),
+    ouvrirLitige: (commande: number, corps: { motif: string; description: string }) =>
+      api.post<Litige>(`/commandes/${commande}/litiges`, corps),
   },
 
   vendeur: {
@@ -155,6 +167,9 @@ export const espaces = {
     creerGestionnaire: (donnees: object) => api.post<never>('/vendeurs/gestionnaires', donnees),
     statistiques: () => api.get<Statistiques>('/vendeurs/statistiques'),
     avis: () => api.get<unknown[]>('/vendeurs/avis'),
+    litiges: () => api.get<Litige[]>('/vendeurs/litiges'),
+    repondreLitige: (id: number, reponse: string) =>
+      api.post<Litige>(`/litiges/${id}/reponse`, { reponse }),
   },
 
   entrepot: {
@@ -211,7 +226,18 @@ export const espaces = {
     boutiques: () => api.get<Record<string, unknown>[]>('/admin/boutiques'),
     livreurs: () => api.get<Record<string, unknown>[]>('/admin/livreurs'),
     litiges: () =>
-      api.get<{ litiges: Litige[]; ouverts: number; resolus: number }>('/admin/litiges'),
+      api.get<{
+        litiges: Litige[]
+        ouverts: number
+        en_cours: number
+        resolus: number
+        // Ce qui attend vraiment une decision : le vendeur a parle, ou son
+        // delai est passe. Le reste attend encore la seconde version.
+        a_arbitrer: number
+      }>('/admin/litiges'),
+    arbitrer: (id: number, corps: { decision: string; motivation: string;
+                                    montant_centimes?: number }) =>
+      api.post<Litige>(`/admin/litiges/${id}/arbitrer`, corps),
     journal: () => api.get<Trace[]>('/admin/journal'),
   },
 

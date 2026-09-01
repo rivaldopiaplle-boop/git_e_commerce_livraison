@@ -12,7 +12,8 @@
 // La frise de suivi reste, mais dans le volet : elle n'a de sens que pour la
 // commande qu'on regarde, pas pour les quinze à la fois.
 import {
-  Bike, CheckCircle2, CreditCard, Eye, FileText, Package, Receipt, Star,
+  AlertTriangle, Bike, CheckCircle2, CreditCard, Eye, FileText, Package, Receipt,
+  ShieldAlert, Star,
 } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -20,6 +21,7 @@ import { useRoute } from 'vue-router'
 import { api, EchecApi } from '../../api/client'
 import { useNotification } from '../../notifications'
 import { commandes, type Commande } from '../../api/commandes'
+import { espaces } from '../../api/espaces'
 import Rating from 'primevue/rating'
 
 import ActionLigne from '../../composants/ActionLigne.vue'
@@ -45,6 +47,22 @@ const chargement = ref(true)
 const selection = ref<Ligne | null>(null)
 
 const avisOuvert = ref<Ligne | null>(null)
+
+// Le litige (D-94). Un client qui recoit un colis incomplet doit pouvoir le
+// dire depuis la commande concernee, pas depuis un formulaire de contact
+// generique ou il devrait tout ressaisir.
+const litigeOuvert = ref<Ligne | null>(null)
+const motifLitige = ref('INCOMPLET')
+const recitLitige = ref('')
+const MOTIFS = [
+  { cle: 'NON_RECU', libelle: 'Je n’ai jamais recu ma commande' },
+  { cle: 'INCOMPLET', libelle: 'Il manque des articles' },
+  { cle: 'ENDOMMAGE', libelle: 'Un produit est arrive abime' },
+  { cle: 'NON_CONFORME', libelle: 'Ce n’est pas ce que j’avais commande' },
+]
+// On ne conteste pas une livraison qui n'a pas eu lieu : le suivi repond a
+// « ou est ma commande ? », un litige non.
+const CONTESTABLES = ['LIVREE', 'ECHEC_LIVRAISON']
 const notables = ref<ElementNotable[]>([])
 const choisi = ref<ElementNotable | null>(null)
 const note = ref(5)
@@ -115,6 +133,36 @@ async function ouvrirAvis(commande: Ligne) {
   choisi.value = donnees.elements[0] ?? null
   note.value = choisi.value?.note ?? 5
   commentaire.value = choisi.value?.commentaire ?? ''
+}
+
+function ouvrirLitige(commande: Ligne) {
+  litigeOuvert.value = commande
+  motifLitige.value = 'INCOMPLET'
+  recitLitige.value = ''
+  erreur.value = ''
+}
+
+async function envoyerLitige() {
+  if (!litigeOuvert.value) return
+  erreur.value = ''
+  occupe.value = true
+  try {
+    await espaces.client.ouvrirLitige(litigeOuvert.value.id, {
+      motif: motifLitige.value,
+      description: recitLitige.value,
+    })
+    notifier.succes(
+      'Votre signalement est enregistré',
+      'La boutique a 48 heures pour répondre, puis un administrateur tranchera.',
+    )
+    litigeOuvert.value = null
+  } catch (echec) {
+    erreur.value = echec instanceof EchecApi ? echec.erreur.message
+      : "Le signalement n'a pas été pris."
+    notifier.echec(erreur.value)
+  } finally {
+    occupe.value = false
+  }
 }
 
 function choisir(element: ElementNotable) {
@@ -275,6 +323,15 @@ const AVANT_PAIEMENT = ['EN_ATTENTE_PAIEMENT', 'ANNULEE']
           :desactive="ligne.statut_actuel !== 'LIVREE'"
           @click="ouvrirAvis(ligne)"
         />
+        <ActionLigne
+          :titre="CONTESTABLES.includes(ligne.statut_actuel)
+            ? 'Signaler un problème sur cette commande'
+            : 'Un signalement s’ouvre une fois la commande arrivée à son terme'"
+          :icone="ShieldAlert"
+          ton="danger"
+          :desactive="!CONTESTABLES.includes(ligne.statut_actuel)"
+          @click="ouvrirLitige(ligne)"
+        />
       </template>
 
       <template #vide>
@@ -424,6 +481,65 @@ const AVANT_PAIEMENT = ['EN_ATTENTE_PAIEMENT', 'ANNULEE']
         >
           <Star :size="15" />
           {{ choisi?.note ? 'Modifier mon avis' : 'Publier mon avis' }}
+        </button>
+      </template>
+    </Popup>
+
+    <!-- Le signalement d'un problème (D-94) -->
+    <Popup
+      v-if="litigeOuvert"
+      :titre="`Signaler un problème — ${litigeOuvert.numero_commande}`"
+      explication="La boutique aura 48 heures pour donner sa version, puis un
+                   administrateur tranchera avec les deux récits sous les yeux."
+      @fermer="litigeOuvert = null"
+    >
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+          <span class="etiquette">Que s'est-il passé ?</span>
+          <label
+            v-for="motif in MOTIFS"
+            :key="motif.cle"
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-[12.5px]
+                   transition-colors"
+            :class="motifLitige === motif.cle ? 'border-[color:var(--accent)] bg-atelier'
+                                              : 'border-trait hover:bg-atelier'"
+          >
+            <input v-model="motifLitige" type="radio" :value="motif.cle" name="motif-litige" />
+            {{ motif.libelle }}
+          </label>
+        </div>
+
+        <label class="flex flex-col gap-1.5">
+          <span class="etiquette">Racontez, en quelques phrases</span>
+          <textarea
+            v-model="recitLitige"
+            rows="4"
+            class="champ-clair"
+            placeholder="Ce que vous avez reçu, ce qui manquait, dans quel état."
+          />
+          <span class="text-[11px] text-encre-douce">
+            C'est ce texte que la boutique et l'administrateur liront pour trancher.
+          </span>
+        </label>
+
+        <p v-if="erreur" class="bandeau bandeau-erreur">
+          <AlertTriangle :size="15" class="mt-px shrink-0" />
+          {{ erreur }}
+        </p>
+      </div>
+
+      <template #actions>
+        <button type="button" class="bouton-neutre !py-2" @click="litigeOuvert = null">
+          Annuler
+        </button>
+        <button
+          type="button"
+          class="bouton-accent !py-2"
+          :disabled="occupe || recitLitige.trim().length < 20"
+          @click="envoyerLitige"
+        >
+          <ShieldAlert :size="15" />
+          {{ occupe ? 'Envoi…' : 'Envoyer mon signalement' }}
         </button>
       </template>
     </Popup>

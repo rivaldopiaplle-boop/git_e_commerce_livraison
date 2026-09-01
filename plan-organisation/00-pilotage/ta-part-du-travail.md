@@ -8,20 +8,35 @@
 
 ---
 
-# ⬛ À FAIRE MAINTENANT — mis à jour le 1er septembre
+# ⬛ À FAIRE MAINTENANT — mis à jour le 1er septembre (2ᵉ lot)
 
-Le **paiement existe**, avec son simulateur : c'est la pièce qui manquait entre
-« passer commande » et « suivre ma commande ». Il y avait aussi un vrai défaut
-derrière, expliqué plus bas.
+Deux gros morceaux depuis ce matin : **le paiement**, et **le cycle complet du
+litige** — celui que tu appelais *« le moins réfléchi »* au bloc L-8. Il est
+maintenant écrit de bout en bout, avec ses trois rôles.
+
+## Le paiement
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
 | **1** | **`python demarrer.py`**, puis Ctrl+Maj+R | 2 min | — |
-| **2** | **Léa → panier → « Continuer vers le paiement »**. Tu arrives sur un écran de paiement, pas sur le suivi : une commande créée n'est pas une commande payée | 2 min | D-101 |
-| **3** | **Regarde le total, puis clique « Payer »**. Le bandeau bleu te dit franchement que c'est simulé : aucune carte n'est demandée | 2 min | D-18 |
-| **4** | **Refais l'opération, mais clique « Renoncer »** cette fois. Retourne au catalogue : le produit est **immédiatement** re-commandable | 3 min | D-100 |
-| **5** | **Dans « Mes commandes », clique l'icône de document** sur une commande payée, puis **Imprimer** (ou Ctrl+P). La barre latérale, la barre haute et les boutons disparaissent de la feuille | 3 min | D-102 |
-| **6** | **Laisse une commande impayée et reviens dans « Mes commandes »** : un bandeau te rappelle qu'elle attend, avec un bouton pour finir | 2 min | D-101 |
+| **2** | **Léa → panier → « Continuer vers le paiement »**, puis **Payer** | 3 min | D-101 |
+| **3** | **Refais-le, mais clique « Renoncer »**. Le produit est **immédiatement** re-commandable | 3 min | D-100 |
+| **4** | **Icône de document** sur une commande payée → **Imprimer**. Barre latérale, barre haute et boutons disparaissent de la feuille | 3 min | D-102 |
+
+## Le litige, dans les trois rôles — fais-le dans cet ordre
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **5** | **Léa → Mes commandes → icône bouclier rouge** sur une commande livrée. Choisis un motif, raconte, envoie | 3 min | D-94 |
+| **6** | **`karim@exemple.fr` → Litiges** (nouvelle entrée dans la barre latérale). Le bandeau te dit combien de dossiers attendent **ta** version, et la colonne « Votre réponse » compte les heures restantes | 4 min | D-104 |
+| **7** | **Donne ta version**, puis va sur `admin@exemple.fr` → **Litiges** | 3 min | — |
+| **8** | **Essaie d'arbitrer le dossier « Réponse attendue avant… »** : le bouton est **gris**, et l'infobulle te dit jusqu'à quand la boutique a la parole | 2 min | D-103 |
+| **9** | **Arbitre celui dont le délai est dépassé** : lui, tu peux le trancher sans la seconde version, et la popup te le dit franchement | 3 min | D-103 |
+| **10** | **Rembourse partiellement** un dossier : coche « rembourser une partie seulement ». La commande reste **livrée** — un article manquant sur cinq ne renverse pas toute la vente | 3 min | — |
+
+Le jeu de démonstration te pose **les cinq états** d'un litige côte à côte :
+délai en cours, délai dépassé, boutique entendue, résolu avec remboursement,
+rejeté. Tu n'as rien à fabriquer à la main pour les voir.
 
 Mot de passe commun : **`Demonstration!2026`**.
 

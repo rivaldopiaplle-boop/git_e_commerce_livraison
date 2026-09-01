@@ -342,8 +342,14 @@ def suspendre(requete, identifiant):
 @api_view(["GET"])
 @permission_classes([EstAdmin])
 def litiges(requete):
-    """Les litiges, ouverts d'abord : c'est ce qui attend un arbitrage."""
+    """Les litiges, ouverts d'abord : c'est ce qui attend un arbitrage.
+
+    La forme d'un dossier vient de `engagement.vues_litiges` et non d'ici :
+    trois representations divergentes du meme objet — une par role — finissent
+    toujours par se contredire, et c'est l'ecran qui ment.
+    """
     from engagement.models import Litige, StatutLitige
+    from engagement.vues_litiges import _en_dictionnaire
 
     dossiers = (
         Litige.objects.select_related("client__utilisateur", "commande")
@@ -354,31 +360,17 @@ def litiges(requete):
         dossiers = dossiers.filter(statut=statut)
 
     return Response({"data": {
-        "litiges": [
-            {
-                "id": dossier.id,
-                "motif": dossier.motif,
-                "libelle_motif": dossier.get_motif_display(),
-                "description": dossier.description,
-                "statut": dossier.statut,
-                "libelle_statut": dossier.get_statut_display(),
-                "resolution": dossier.resolution,
-                "montant_rembourse_centimes": dossier.montant_rembourse_centimes,
-                "date_ouverture": dossier.date_ouverture,
-                "date_resolution": dossier.date_resolution,
-                "client": f"{dossier.client.utilisateur.prenom} "
-                          f"{dossier.client.utilisateur.nom}".strip(),
-                "commande": dossier.commande.numero_commande,
-                "montant_commande_centimes": dossier.commande.montant_total_centimes,
-                "boutiques": [
-                    sous.vendeur.nom_boutique
-                    for sous in dossier.commande.sous_commandes.all()
-                ],
-            }
-            for dossier in dossiers[:100]
-        ],
+        "litiges": [_en_dictionnaire(dossier, pour="admin") for dossier in dossiers[:100]],
         "ouverts": Litige.objects.filter(statut=StatutLitige.OUVERT).count(),
+        "en_cours": Litige.objects.filter(statut=StatutLitige.EN_COURS).count(),
         "resolus": Litige.objects.filter(statut=StatutLitige.RESOLU).count(),
+        # Ce qui attend vraiment une decision : le vendeur a parle, ou son
+        # delai est passe. Le reste attend encore la seconde version.
+        "a_arbitrer": sum(
+            1 for d in Litige.objects.filter(
+                statut__in=[StatutLitige.OUVERT, StatutLitige.EN_COURS]
+            ) if d.arbitrable
+        ),
     }})
 
 

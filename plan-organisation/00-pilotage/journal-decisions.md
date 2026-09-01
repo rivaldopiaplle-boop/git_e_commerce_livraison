@@ -1267,3 +1267,61 @@ document à imprimer la classe `feuille`. Une facture imprimée avec un bouton
 
 La même mécanique servira au bon de préparation du vendeur
 ([D-82](#d-82--le-bon-de-préparation-simprime)).
+
+
+### D-103 — Un litige refuse d'être tranché avant que le vendeur ait parlé
+
+[D-94](#d-94--un-litige-a-deux-parties-et-chacune-sexprime) décrivait la
+procédure contradictoire. En l'écrivant, un choix restait à faire : que se
+passe-t-il si l'administrateur veut trancher tout de suite ?
+
+**Le serveur refuse**, avec `vendeur_pas_encore_entendu` et l'échéance dans le
+message. Sans ce refus, la procédure contradictoire n'aurait été qu'un décor :
+rien n'empêche un administrateur pressé de rendre une décision en trente
+secondes, et c'est exactement ce qui arrive quand le seul garde-fou est la
+bonne volonté.
+
+Le pendant est tout aussi nécessaire : **passé le délai, on tranche**. Un
+vendeur silencieux ne doit pas pouvoir bloquer un client indéfiniment. L'écran
+le dit alors franchement — *« la boutique n'a pas donné sa version dans le
+délai imparti, votre décision repose sur les seuls éléments du client, et cela
+figurera au dossier »*.
+
+Deux conséquences qui ne se devinent pas :
+
+- **une décision est toujours motivée**, y compris favorable au client. Les
+  deux parties la liront, et elle doit s'expliquer six mois plus tard ;
+- **le versement au vendeur est gelé** dès l'ouverture (`RepartitionVendeur`
+  en `BLOQUE`) et ne repart qu'à la décision. Verser puis reprendre n'est pas
+  une opération qui existe.
+
+### D-104 — L'écran de litige du vendeur existe, sinon la procédure est un mensonge
+
+Le trou le plus grave n'était pas dans le code de la procédure mais dans son
+absence d'écran : un client pouvait ouvrir un litige, un administrateur pouvait
+le trancher, et **le vendeur n'avait aucun endroit où donner sa version**.
+
+Une place de marché qui condamne sans entendre est une place de marché qu'on
+quitte. `/espace/litiges-boutique` répare cela, et son ordre de tri n'est pas
+décoratif : ce qui attend une réponse passe devant, avec le nombre d'heures
+restantes. Quelqu'un qui a quarante-huit heures pour répondre n'a que faire des
+dossiers déjà clos.
+
+Le vendeur ne répond **qu'une fois**. Ce n'est pas une messagerie : un échange
+sans fin retarderait la décision, et c'est la décision que les deux parties
+attendent.
+
+### D-105 — Les libellés de la barre latérale s'écrivent en français
+
+« Commandes recues », « Vue d ensemble », « Tournees », « Demandes d identite ».
+La barre latérale est la surface la plus vue du projet, et elle était écrite
+sans accents ni apostrophes.
+
+C'est le genre de détail qui ne casse rien et qui décide pourtant de
+l'impression qu'un recruteur emporte. Corrigé partout, et la règle vaut pour
+tout texte visible : **le français s'écrit avec ses accents**, y compris dans
+une constante TypeScript.
+
+Dans le même passage, l'icône des litiges de l'administrateur était `Star` —
+le symbole des avis. Le même symbole pour deux choses différentes fait hésiter
+à chaque fois ; c'est `Scale`, la balance, qui désigne l'arbitrage.

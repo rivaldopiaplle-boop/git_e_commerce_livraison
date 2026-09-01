@@ -85,11 +85,39 @@ class Litige(models.Model):
     date_ouverture = models.DateTimeField(auto_now_add=True)
     date_resolution = models.DateTimeField(null=True, blank=True)
 
+    # L'instruction contradictoire (D-94). Un litige tranche sur la seule
+    # parole du client serait injuste ; un litige qui attend indefiniment la
+    # reponse du vendeur serait une impasse. D'ou un delai, ecrit en base : au
+    # dela, l'administrateur tranche avec ce qu'il a, et c'est dit a l'ecran.
+    reponse_vendeur = models.TextField(blank=True)
+    date_reponse_vendeur = models.DateTimeField(null=True, blank=True)
+    date_limite_reponse = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-date_ouverture"]
 
     def __str__(self):
         return f"Litige {self.pk} — {self.get_motif_display()}"
+
+    @property
+    def delai_expire(self):
+        """Le vendeur a-t-il laisse passer son tour ?"""
+        from django.utils import timezone
+
+        return bool(
+            self.date_limite_reponse
+            and not self.date_reponse_vendeur
+            and timezone.now() > self.date_limite_reponse
+        )
+
+    @property
+    def arbitrable(self):
+        """On tranche quand les deux versions sont la, ou quand le delai est passe.
+
+        Trancher avant que le vendeur ait pu repondre, alors que le delai
+        court encore, reviendrait a lui refuser la parole.
+        """
+        return bool(self.date_reponse_vendeur) or self.delai_expire
 
 
 class CanalNotification(models.TextChoices):

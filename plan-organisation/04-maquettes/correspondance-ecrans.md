@@ -80,7 +80,7 @@ base neuve.
 | Utilisateurs | `/espace/utilisateurs` | `Utilisateurs.vue` | `GET /admin/utilisateurs`, `POST .../suspendre` | 1 | **fait** |
 | Vue commande complète | `/admin/commandes/:id` | `VueAdminCommande` | `GET /commandes/{id}` et tout son historique | 1 | à faire |
 | Entrepôts | `/admin/entrepots` | `VueAdminEntrepots` | `POST /admin/entrepots`, `.../gestionnaires` | 1 | à faire |
-| Litiges | `/espace/litiges` | `Litiges.vue` | `GET /admin/litiges` — l'arbitrage suppose un paiement à rembourser | 2 | **fait** (lecture) |
+| Litiges (admin) | `/espace/litiges` | `Litiges.vue` | `GET /admin/litiges`, `POST /admin/litiges/{id}/arbitrer` | 2 | **fait**, arbitrage compris |
 | Journal d'audit | `/espace/journal` | `Journal.vue` | `GET /admin/journal` | 1 | **fait** |
 
 ## Mobile client — accent vert
@@ -169,3 +169,20 @@ La facture réutilise la mécanique d'impression du navigateur
 `barre-haute`, `volet-droit` disparaissent de la feuille. Le bon de préparation
 du vendeur ([D-82](../00-pilotage/journal-decisions.md)) s'écrira avec les
 mêmes classes.
+
+
+## Ajouté avec le cycle du litige
+
+| Écran | Route | Vue | Endpoints | État |
+|---|---|---|---|---|
+| Litiges (vendeur) | `/espace/litiges-boutique` | `LitigesVendeur.vue` | `GET /vendeurs/litiges`, `POST /litiges/{id}/reponse` | **fait** |
+
+Cet écran manquait au tableau d'origine, et son absence était le trou le plus
+grave de la procédure : un client pouvait ouvrir un litige, un administrateur
+pouvait le trancher, et **la boutique n'avait aucun endroit où donner sa
+version** ([D-104](../00-pilotage/journal-decisions.md)).
+
+Le signalement côté client n'a pas d'écran à lui : il s'ouvre en popup depuis
+`Mes commandes`, sur la ligne de la commande concernée. Un formulaire de
+contact générique obligerait le client à ressaisir son numéro de commande, et
+c'est exactement ce qu'on lui reproche quand on est à sa place.

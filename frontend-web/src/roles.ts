@@ -15,7 +15,7 @@
 import {
   BadgeCheck, BarChart3, Bike, Boxes, ClipboardList, LayoutDashboard, MapPin,
   Package, Receipt, Route, ScrollText, Settings, ShieldCheck, ShoppingBag,
-  Star, Store, Truck, UserRound, Users, Wallet, Warehouse,
+  Scale, Store, Truck, UserRound, Users, Wallet, Warehouse,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -70,7 +70,7 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Mes adresses', icone: MapPin, route: 'mes-adresses' },
       { libelle: 'Mon compte', icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
-      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
+      { libelle: 'Paramètres', icone: Settings, route: 'parametres' },
     ],
   },
   VENDEUR: {
@@ -81,15 +81,19 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     panneau: 'activite',
     navigation: [
       { libelle: 'Tableau de bord', icone: LayoutDashboard, route: 'espace' },
-      { libelle: 'Commandes recues', icone: ClipboardList, route: 'vendeur-commandes' },
+      { libelle: 'Commandes reçues', icone: ClipboardList, route: 'vendeur-commandes' },
       // Catalogue et stock ne font qu'un ecran (D-79) : ce sont deux vues
       // du meme objet, et les separer obligeait a garder deux boutons de
       // correction du stock pour la meme action.
       { libelle: 'Mon catalogue', icone: Package, route: 'vendeur-catalogue' },
       { libelle: 'Mon personnel', icone: Users, route: 'vendeur-personnel' },
+      // Un vendeur doit pouvoir repondre a ce qu'on lui reproche (D-94) :
+      // une place de marche qui condamne sans entendre est une place de
+      // marche qu'on quitte.
+      { libelle: 'Litiges', icone: Scale, route: 'vendeur-litiges' },
       { libelle: 'Statistiques', icone: BarChart3, route: 'vendeur-statistiques' },
       { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
-      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
+      { libelle: 'Paramètres', icone: Settings, route: 'parametres' },
     ],
   },
   // Staff d'un vendeur — Nadia. Elle prepare et elle compte.
@@ -100,14 +104,14 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     plateforme: 'web',
     panneau: 'activite',
     navigation: [
-      { libelle: 'A preparer', icone: ClipboardList, route: 'vendeur-commandes' },
+      { libelle: 'À préparer', icone: ClipboardList, route: 'vendeur-commandes' },
       { libelle: 'Stock', icone: Boxes, route: 'vendeur-catalogue' },
-      { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
+      { libelle: "Vue d'ensemble", icone: LayoutDashboard, route: 'espace' },
       // Grisee, exactement comme dans la maquette : l'entree existe pour que
       // l'employe sache que la donnee existe et qu'elle ne lui est pas due.
-      { libelle: 'Chiffre d affaires', icone: Wallet, interdite: true },
+      { libelle: "Chiffre d'affaires", icone: Wallet, interdite: true },
       { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
-      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
+      { libelle: 'Paramètres', icone: Settings, route: 'parametres' },
     ],
   },
   // Staff d'un entrepot — Samir. Il recoit des colis et monte des tournees.
@@ -118,11 +122,11 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     plateforme: 'web',
     panneau: 'activite',
     navigation: [
-      { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
-      { libelle: 'Colis recus', icone: Warehouse, route: 'entrepot-colis' },
-      { libelle: 'Tournees', icone: Route, route: 'entrepot-tournees' },
+      { libelle: "Vue d'ensemble", icone: LayoutDashboard, route: 'espace' },
+      { libelle: 'Colis reçus', icone: Warehouse, route: 'entrepot-colis' },
+      { libelle: 'Tournées', icone: Route, route: 'entrepot-tournees' },
       { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
-      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
+      { libelle: 'Paramètres', icone: Settings, route: 'parametres' },
     ],
   },
   LIVREUR: {
@@ -132,12 +136,12 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
     plateforme: 'mobile',
     panneau: 'activite',
     navigation: [
-      { libelle: 'Vue d ensemble', icone: LayoutDashboard, route: 'espace' },
+      { libelle: "Vue d'ensemble", icone: LayoutDashboard, route: 'espace' },
       { libelle: 'Mes courses', icone: Bike, route: 'livreur-courses' },
-      { libelle: 'Ma tournee', icone: Truck, route: 'livreur-courses' },
+      { libelle: 'Ma tournée', icone: Truck, route: 'livreur-courses' },
       { libelle: 'Mes gains', icone: Wallet, route: 'livreur-courses' },
       { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
-      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
+      { libelle: 'Paramètres', icone: Settings, route: 'parametres' },
     ],
   },
   ADMIN: {
@@ -151,11 +155,11 @@ export const ROLES: Record<RoleAffiche, DescriptionRole> = {
       { libelle: 'Validations', icone: ShieldCheck, route: 'admin-validations' },
       { libelle: 'Boutiques', icone: Store, route: 'admin-boutiques' },
       { libelle: 'Utilisateurs', icone: Users, route: 'admin-utilisateurs' },
-      { libelle: 'Litiges', icone: Star, route: 'admin-litiges' },
-      { libelle: 'Demandes d identite', icone: BadgeCheck, route: 'admin-demandes' },
+      { libelle: 'Litiges', icone: Scale, route: 'admin-litiges' },
+      { libelle: "Demandes d'identité", icone: BadgeCheck, route: 'admin-demandes' },
       { libelle: "Journal d'audit", icone: ScrollText, route: 'admin-journal' },
       { libelle: 'Mon profil', icone: UserRound, route: 'profil' },
-      { libelle: 'Parametres', icone: Settings, route: 'parametres' },
+      { libelle: 'Paramètres', icone: Settings, route: 'parametres' },
     ],
   },
 }

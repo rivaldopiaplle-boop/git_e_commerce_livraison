@@ -26,6 +26,7 @@
 | **D-12** confirmation par le serveur | `POST /paiements/confirmation`, ouverte et idempotente | 3 tests |
 | **D-15** réservation à la commande, jamais au panier | `commandes/reservation.py`, seul auteur du compteur | 18 tests |
 | **D-18** services externes derrière une interface | `PaiementSimule`, `AssistantSimule`, bascule par variable | 15 tests |
+| **D-94** litige contradictoire | ouverture, réponse sous 48 h, arbitrage motivé, remboursement | 21 tests |
 | **D-19** rien de durable sur le disque | Cloudinary actif, repli local documenté | manuel |
 | **D-21** adresse partagée | `ADRESSE` reliée client / vendeur / entrepôt, carnet d'adresses client | smoke API |
 | **D-24** photos | vérification du contenu réel, EXIF retiré, WebP | 6 tests |
@@ -109,7 +110,6 @@ validation, 2 entrepôts, 25 produits, puis `seed_activite` ajoute :
 |---|---|
 | **Le vrai Stripe** | Le parcours de paiement est **complet** avec le simulateur : intention, réservation, capture, répartition par vendeur, facture, remboursement du stock en cas de refus. `PaiementStripe` reste volontairement non implémenté : du code qu'on ne peut ni lancer ni tester donne une fausse impression d'avancement, et il faudrait le réécrire face à l'API réelle |
 | **L'algorithme de tournée** | Les arrêts sont ordonnés en base ; le plus proche voisin ([D-44](journal-decisions.md)) s'écrira avec la tranche livraison |
-| **Arbitrage d'un litige** | Le paiement existe désormais, donc le remboursement est écrivable : c'est le prochain morceau ([D-94](journal-decisions.md)) |
 | **Envoi réel des notifications** | Elles existent en base et s'affichent dans la cloche et le panneau droit ; l'e-mail et le push viendront avec le service de notification |
 | **Géocodage d'une adresse saisie** | Nominatim décidé ([D-25](journal-decisions.md)), pas encore appelé : les adresses de démonstration sont déjà géocodées |
 
@@ -182,3 +182,57 @@ Corrigé au-delà du cas :
 Une phrase : **le compteur revient toujours à sa valeur de départ**, quel que
 soit le chemin — capture, refus, abandon, double abandon, webhook rejoué,
 retour du client sur une commande abandonnée, ou stock parti entre-temps.
+
+
+---
+
+## Le cycle du litige, écrit en entier
+
+Tu l'appelais *« le moins réfléchi »* au bloc L-8. Il l'était : l'écran
+d'arbitrage était en lecture seule, et il ne pouvait pas être autre chose —
+rembourser suppose un paiement à rembourser. Le paiement existe, donc le cycle
+existe.
+
+### Les quatre temps, et où ils vivent
+
+| Temps | Route | Qui | Effet en base |
+|---|---|---|---|
+| Ouverture | `POST /commandes/{id}/litiges` | client | `LITIGE` **OUVERT**, échéance à +48 h, `REPARTITION_VENDEUR` → **BLOQUE**, vendeur notifié |
+| Réponse | `POST /litiges/{id}/reponse` | vendeur | `reponse_vendeur`, statut **EN_COURS**, client notifié |
+| Arbitrage | `POST /admin/litiges/{id}/arbitrer` | admin | **RESOLU** ou **REJETE**, `REMBOURSEMENT` écrit, versement débloqué |
+| Notification | — | — | les **deux** parties reçoivent la même décision |
+
+### Les trois garde-fous, et l'abus que chacun répare
+
+1. **On ne tranche pas avant que le vendeur ait pu répondre** (409
+   `vendeur_pas_encore_entendu`). Sans ce refus, la procédure contradictoire
+   n'est qu'un décor. Passé le délai, on tranche quand même : un vendeur
+   silencieux ne bloque pas un client indéfiniment.
+2. **Une décision est toujours motivée**, y compris favorable au client (400
+   `motivation_requise`). Elle doit s'expliquer six mois plus tard.
+3. **On ne rembourse pas plus que ce qui a été payé**, remboursements
+   antérieurs compris (400 `montant_invalide`).
+
+### Ce qui manquait le plus, et qui n'était pas du code
+
+**L'écran du vendeur n'existait pas.** Un client pouvait ouvrir un litige, un
+administrateur pouvait le trancher, et la boutique n'avait aucun endroit où
+donner sa version. `/espace/litiges-boutique` répare cela
+([D-104](journal-decisions.md)).
+
+### Ce que le jeu de démonstration montre
+
+Les **cinq états** côte à côte, sans rien à fabriquer à la main : délai en
+cours, délai dépassé, boutique entendue, résolu avec remboursement partiel,
+rejeté — et le versement au vendeur cohérent avec chacun (`BLOQUE`,
+`REMBOURSE`, `TRANSFERE`). Une première version les posait par rang dans la
+liste des commandes livrées, et le cinquième état disparaissait en silence dès
+qu'il y en avait moins de quatre ; le compte est désormais vérifié, et un
+manque se dit à l'écran de peuplement.
+
+### Ce qui reste
+
+- **`POST /paiements/{id}/rembourser` en direct** (hors litige) : un
+  remboursement commercial sans réclamation. Rien ne le demande aujourd'hui ;
+- **les pièces jointes** : `preuves_urls` accepte des URL, mais aucun écran ne
+  téléverse encore de photo. C'est le prolongement naturel du dossier.
