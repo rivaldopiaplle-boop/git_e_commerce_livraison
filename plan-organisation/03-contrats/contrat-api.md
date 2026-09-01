@@ -264,17 +264,62 @@ déduit les boutons à afficher sans les coder en dur.
 
 ## 7. Paiement
 
-| Méthode | Chemin | Rôle |
-|---|---|---|
-| POST | `/paiements/intention` | C |
-| GET | `/paiements/{id}` | C, A |
-| POST | `/paiements/{id}/rembourser` | A |
-| POST | `/webhooks/stripe` | — (signature Stripe) |
+**Écrit et en service**, avec le simulateur ([D-18](../00-pilotage/journal-decisions.md)).
+Les chemins définitifs sont ceux-ci — ils diffèrent du brouillon initial, qui
+plaçait l'intention sous `/paiements/` alors qu'elle appartient à une commande.
 
-La création de l'intention **réserve le stock** pour environ 10 minutes (R-03).
-Le webhook est la seule source de vérité (R-19) : il n'est pas authentifié par
-JWT mais par la signature Stripe, et il est **idempotent** — un même événement
-reçu deux fois ne produit qu'un effet.
+| Méthode | Chemin | Rôle | Ce qu'elle fait |
+|---|---|---|---|
+| POST | `/commandes/{id}/paiement` | C | ouvre l'intention, vérifie que la réservation tient |
+| POST | `/commandes/{id}/paiement/abandonner` | C | renonce, et rend le stock **tout de suite** |
+| POST | `/paiements/confirmation` | — | la confirmation **serveur** — ce que Stripe appellerait un webhook |
+| GET | `/commandes/{id}/facture` | C | la facture, pour l'écran imprimable |
+
+### Ce que renvoie l'ouverture
+
+```json
+{ "data": { "reference": "pi_sim_5703040625c3aba5",
+            "secret_client": "pi_sim_5703040625c3aba5_secret",
+            "montant_centimes": 2670,
+            "statut": "AUTORISE",
+            "simule": true,
+            "reservation_expire_dans_minutes": 10,
+            "identifiant_paiement": 42 } }
+```
+
+`simule` n'est pas décoratif : l'écran s'en sert pour **dire** que rien n'est
+débité. Un faux formulaire de carte bancaire serait malhonnête.
+
+### Les trois garanties
+
+1. **La réservation est posée à la création de la commande**, pas à l'ajout au
+   panier et pas à l'ouverture du paiement
+   ([D-15](../00-pilotage/journal-decisions.md),
+   [D-99](../00-pilotage/journal-decisions.md)). Ouvrir deux fois le paiement
+   ne réserve qu'une fois ; revenir après un abandon la repose.
+2. **La confirmation est ouverte et idempotente** (R-19,
+   [D-12](../00-pilotage/journal-decisions.md)) : en production c'est Stripe
+   qui appelle, et Stripe n'a pas de jeton de session — la sécurité vient de la
+   signature du message. Rejouée, elle répond `deja_traite: true` et ne
+   décrémente rien une seconde fois.
+3. **Un refus rend le stock** et laisse la commande payable. Le simulateur
+   refuse toute référence se terminant par `99`, ce qui rend le chemin d'erreur
+   testable — sans quoi il ne le serait jamais.
+
+### Les refus
+
+| Code | Quand | Statut |
+|---|---|---|
+| `stock_insuffisant` | le stock est parti pendant la préparation ; `details.produits` nomme quoi, combien demandé, combien reste | 409 |
+| `deja_payee` | la commande n'attend plus de paiement | 409 |
+| `paiement_inconnu` | référence inconnue à la confirmation | 404 |
+| — | commande d'un autre client : **404**, jamais 403 — un 403 confirmerait qu'elle existe | 404 |
+
+### Reste à écrire
+
+`POST /paiements/{id}/rembourser` (admin), qui viendra avec l'arbitrage des
+litiges ([D-94](../00-pilotage/journal-decisions.md)) : rembourser suppose un
+litige tranché, pas seulement un paiement.
 
 ---
 

@@ -1183,3 +1183,87 @@ C'est la règle qui a manqué au bloc J, où j'ai inventé un tableau, une fenê
 et des notifications maison au lieu de prendre ceux qui existaient. Devant un
 doute d'ergonomie : regarder ce que font Amazon, Uber Eats ou Shopify, et faire
 pareil — l'originalité en interface est presque toujours une régression.
+
+
+---
+
+## Le paiement, écrit en fin de bloc L
+
+### D-99 — La réservation de stock n'a qu'un seul auteur
+
+Le stock était réservé **deux fois** pour une même commande : une fois à sa
+création par `commandes/decoupage.py`, une seconde fois à l'ouverture du
+paiement par `paiements/views.py`. Il n'était relâché qu'une fois. Chaque
+commande payée laissait donc derrière elle une réserve fantôme, et après
+quelques essais un produit parfaitement disponible s'affichait « épuisé » sans
+que rien ne l'explique.
+
+La leçon est plus large que le défaut : **un compteur partagé ne doit avoir
+qu'un seul auteur.** D'où `commandes/reservation.py`, seul module autorisé à
+écrire `stock_reserve`, et le drapeau `Commande.stock_reserve_pose` qui rend
+les trois opérations rejouables sans dégât :
+
+| Opération | Quand | Effet si elle est rejouée |
+|---|---|---|
+| `poser` | création de la commande, et retour du client après un abandon | rien |
+| `relacher` | paiement refusé, abandonné, réservation expirée | rien |
+| `consommer` | paiement capturé — la réserve devient une vente | rien |
+
+C'est exactement ce qu'exige un webhook de paiement
+([D-12](#d-12--la-confirmation-de-paiement-vient-du-serveur)) : les
+fournisseurs réessaient quand ils doutent d'avoir été reçus, et une
+confirmation rejouée ne doit pas vendre deux fois le même article.
+
+### D-100 — Une réservation expire au bout de dix minutes
+
+`DUREE_MINUTES = 10` était déclaré mais rien ne l'appliquait. Un client qui
+fermait son onglet immobilisait ses articles pour toujours.
+
+Dix minutes est le délai qu'affichent les billetteries : assez pour payer sans
+se presser, assez court pour ne pas geler une vente. L'expiration est appliquée
+par `python manage.py liberer_reservations`, appelée **au démarrage du projet**
+par `demarrer.py` et par la commande de peuplement.
+
+Pas de tâche planifiée : elle demanderait un service de plus à héberger, pour
+un projet qui doit tenir sur une offre gratuite
+([D-19](#d-19--trois-hébergeurs-gratuits-un-par-métier)). Le jour où le trafic
+le justifierait, la même fonction s'appellerait depuis un `cron` sans changer
+d'une ligne.
+
+### D-101 — L'écran de paiement règle toutes les commandes en attente
+
+Un panier multi-boutique donne plusieurs commandes
+([D-10](#d-10--un-panier-mixte-donne-plusieurs-commandes)) mais le client, lui,
+ne veut payer **qu'une fois**. `/paiement` ne prend donc aucun identifiant dans
+son URL : il ouvre l'intention de chaque commande en attente, affiche un seul
+total, et confirme tout d'un coup.
+
+L'effet secondaire est le plus utile : un client parti en cours de route
+retrouve exactement la même page en revenant, sans avoir à retrouver un lien.
+C'est ce que font les vrais sites avec leur « terminez votre commande »
+([D-98](#d-98--devant-une-idée-jamais-vue-ailleurs-on-fait-comme-les-vrais-sites)).
+
+Trois choix s'y voient :
+
+- **la simulation est annoncée**, pas déguisée. Un faux formulaire de carte
+  bancaire serait plus impressionnant trente secondes et malhonnête ensuite ;
+- **renoncer est un vrai bouton** : sans lui, le stock resterait immobilisé dix
+  minutes alors que l'acheteur a déjà quitté la page ;
+- **ce qui manque est nommé** — quel produit, combien demandé, combien reste —
+  et pas seulement « stock insuffisant ».
+
+### D-102 — La facture s'imprime par le navigateur
+
+`window.print()` et une feuille de style `@media print`. Aucune bibliothèque de
+PDF, aucun travail serveur : le navigateur propose lui-même « Enregistrer au
+format PDF », et le résultat suit la langue et le format de papier de la
+personne qui imprime.
+
+La règle d'impression tient en une phrase : **tout ce qui sert à naviguer
+disparaît.** La barre latérale, la barre haute et le panneau droit portent pour
+cela les classes `barre-laterale`, `barre-haute` et `volet-droit`, et le
+document à imprimer la classe `feuille`. Une facture imprimée avec un bouton
+« Imprimer » dessus est le genre de détail qui trahit un travail bâclé.
+
+La même mécanique servira au bon de préparation du vendeur
+([D-82](#d-82--le-bon-de-préparation-simprime)).

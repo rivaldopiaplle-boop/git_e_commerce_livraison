@@ -200,4 +200,39 @@
   }
   .vide-titre { @apply mt-3 text-[13.5px] font-bold text-encre; }
   .vide-texte { @apply mx-auto mt-1 max-w-[46ch] text-[12px] text-encre-douce; }
+
+  /* ── L'impression : facture et bon de preparation (D-78, D-82) ───── */
+  /* `feuille` marque le document a imprimer, `sans-impression` tout ce qui
+     sert a naviguer. La regle d'impression tient en une phrase : une facture
+     imprimee ne porte ni bouton, ni menu, ni barre laterale. */
+  .feuille { @apply border-0 shadow-none; }
+  .sans-impression { @apply flex; }
+}
+
+@media print {
+  /* La coquille d'application disparait : seul le document reste. */
+  .sans-impression,
+  .barre-laterale,
+  .barre-haute,
+  .volet-droit {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .feuille {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* Une ligne de facture coupee en deux par un saut de page est illisible. */
+  tr,
+  article {
+    break-inside: avoid;
+  }
 }

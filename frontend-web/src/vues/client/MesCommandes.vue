@@ -12,7 +12,7 @@
 // La frise de suivi reste, mais dans le volet : elle n'a de sens que pour la
 // commande qu'on regarde, pas pour les quinze à la fois.
 import {
-  Bike, CheckCircle2, Eye, Package, Receipt, Star,
+  Bike, CheckCircle2, CreditCard, Eye, FileText, Package, Receipt, Star,
 } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -174,16 +174,42 @@ const restantsANoter = computed(
 )
 
 const quand = (date: string) => new Date(date).toLocaleDateString('fr-FR')
+
+// Une commande creee n'est pas une commande payee, et tant qu'elle ne l'est
+// pas elle immobilise du stock (D-15). Le rappeler en haut de l'ecran est ce
+// qui evite qu'un client croie avoir termine.
+const impayees = computed(() =>
+  liste.value.filter((c) => c.statut_actuel === 'EN_ATTENTE_PAIEMENT'),
+)
+
+/** La facture n'existe qu'apres la capture : avant, le bouton ne promet rien. */
+const AVANT_PAIEMENT = ['EN_ATTENTE_PAIEMENT', 'ANNULEE']
 </script>
 
 <template>
   <div class="mx-auto max-w-[1020px] animate-[apparition_0.2s_ease-out]">
-    <p v-if="route.query.creees" class="bandeau bandeau-info mb-4">
+    <p v-if="route.query.payees" class="bandeau bandeau-info mb-4">
       <CheckCircle2 :size="15" class="mt-px shrink-0" />
-      {{ route.query.creees }} commande{{ Number(route.query.creees) > 1 ? 's' : '' }} créée{{
-        Number(route.query.creees) > 1 ? 's' : ''
-      }}. Vous suivez chacune ci-dessous.
+      {{ route.query.payees }} commande{{ Number(route.query.payees) > 1 ? 's' : '' }} payée{{
+        Number(route.query.payees) > 1 ? 's' : ''
+      }}. Les boutiques ont été prévenues, vous suivez chacune ci-dessous.
     </p>
+
+    <!-- Ce qui attend un paiement, en haut et cliquable : le laisser au fond
+         d'une liste reviendrait à le cacher. -->
+    <div v-if="impayees.length" class="bandeau mb-4 items-center justify-between">
+      <span class="flex items-start gap-2.5">
+        <CreditCard :size="15" class="mt-px shrink-0" />
+        <span>
+          {{ impayees.length }} commande{{ impayees.length > 1 ? 's' : '' }}
+          attend{{ impayees.length > 1 ? 'ent' : '' }} votre paiement. Vos articles sont
+          mis de côté en attendant.
+        </span>
+      </span>
+      <RouterLink :to="{ name: 'paiement' }" class="bouton-accent shrink-0 !py-1.5 !text-[12px]">
+        Payer maintenant
+      </RouterLink>
+    </div>
 
     <Liste
       :colonnes="colonnes"
@@ -226,6 +252,21 @@ const quand = (date: string) => new Date(date).toLocaleDateString('fr-FR')
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
           @click="selection = selection?.id === ligne.id ? null : ligne"
+        />
+        <ActionLigne
+          v-if="ligne.statut_actuel === 'EN_ATTENTE_PAIEMENT'"
+          titre="Payer cette commande"
+          :icone="CreditCard"
+          ton="accent"
+          :vers="{ name: 'paiement' }"
+        />
+        <ActionLigne
+          :titre="AVANT_PAIEMENT.includes(ligne.statut_actuel)
+            ? 'La facture existe une fois la commande payée'
+            : 'Voir et imprimer la facture'"
+          :icone="FileText"
+          :desactive="AVANT_PAIEMENT.includes(ligne.statut_actuel)"
+          :vers="{ name: 'facture', params: { id: ligne.id } }"
         />
         <ActionLigne
           :titre="ligne.statut_actuel === 'LIVREE' ? 'Donner mon avis'

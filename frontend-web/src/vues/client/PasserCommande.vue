@@ -108,9 +108,13 @@ async function valider() {
         : adresseRemplie.value
           ? { adresse: adresse.value }
           : {}
-    const creees = await commandes.creer(corps)
+    await commandes.creer(corps)
     await panier.charger()
-    routeur.push({ name: 'mes-commandes', query: { creees: creees.length } })
+    // Vers le paiement, pas vers le suivi : une commande creee n'est pas une
+    // commande payee, et son stock reste immobilise tant que rien n'est
+    // regle (D-15). Envoyer le client sur « mes commandes » lui ferait croire
+    // que c'est fini.
+    routeur.push({ name: 'paiement' })
   } catch (echec) {
     erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Commande impossible.'
     // Le panier a peut-etre bouge entre l'apercu et la validation : on le
@@ -297,7 +301,7 @@ async function valider() {
               @click="valider"
             >
               <Check :size="17" />
-              {{ envoi ? 'Validation…' : 'Valider ma commande' }}
+              {{ envoi ? 'Validation…' : 'Continuer vers le paiement' }}
             </button>
 
             <!-- Le panier suit le visiteur jusqu'au compte (D-34) : le lui
@@ -316,8 +320,8 @@ async function valider() {
             </p>
             <p v-else class="flex items-center gap-1.5 text-[11.5px] text-encre-douce">
               <ShieldCheck :size="13" />
-              Le paiement Stripe arrive a la tranche suivante — la commande est creee
-              sans debit.
+              Etape suivante : le paiement. Il est en mode simulation, aucun montant
+              n&rsquo;est debite.
             </p>
           </div>
         </div>

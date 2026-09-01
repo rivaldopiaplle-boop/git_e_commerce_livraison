@@ -101,8 +101,8 @@ watch(
   >
     <!-- ── Sidebar ──────────────────────────────────────────────────── -->
     <aside
-      class="flex shrink-0 flex-col border-r border-trait bg-panneau transition-[width]
-             duration-200"
+      class="barre-laterale flex shrink-0 flex-col border-r border-trait bg-panneau
+             transition-[width] duration-200"
       :class="sidebarRepliee ? 'w-[64px]' : 'w-[210px]'"
     >
       <RouterLink
@@ -171,8 +171,8 @@ watch(
     <!-- ── Colonne centrale ─────────────────────────────────────────── -->
     <div class="flex min-w-0 flex-1 flex-col">
       <header
-        class="flex h-[56px] shrink-0 items-center justify-between gap-4 border-b border-trait
-               bg-papier px-[18px]"
+        class="barre-haute flex h-[56px] shrink-0 items-center justify-between gap-4
+               border-b border-trait bg-papier px-[18px]"
       >
         <div class="min-w-0">
           <p

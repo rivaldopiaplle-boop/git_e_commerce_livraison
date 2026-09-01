@@ -43,8 +43,8 @@ base neuve.
 | Catalogue | `/` | `VueCatalogue` | `GET /produits`, `GET /boutiques` | 1 | **fait** |
 | Fiche produit | `/produit/:id` | `VueProduit` | `GET /produits/{id}`, `POST /panier/lignes`, `POST /produits/{id}/alerte-dispo` | 1 | **fait** |
 | Panier (panneau droit) | — | `PanneauPanier` | `GET /panier`, `PATCH`, `DELETE`, `GET /panier/apercu-commandes` | 1 | à faire |
-| Tunnel de commande | `/commande` | `VueTunnel` | `POST /commandes`, `POST /paiements/intention` | 1 | **fait** |
-| Confirmation | `/commande/confirmation` | `VueConfirmation` | `GET /commandes` | 1 | à faire |
+| Tunnel de commande | `/commande` | `PasserCommande.vue` | `GET /panier/apercu-commandes`, `POST /commandes` | 1 | **fait** |
+| Paiement | `/paiement` | `Paiement.vue` | `POST /commandes/{id}/paiement`, `POST /paiements/confirmation` | 1 | **fait** |
 | Mes commandes | `/mes-commandes` | `VueMesCommandes` | `GET /commandes` | 1 | **fait** |
 | Détail commande | `/mes-commandes/:id` | `VueCommande` | `GET /commandes/{id}`, `GET .../historique`, `GET /livraisons/{id}/suivi` | 1 | à faire |
 | Adresses | `/mes-adresses` | `Adresses.vue` | `GET/POST/PATCH/DELETE /moi/adresses` | 1 | **fait** |
@@ -138,3 +138,34 @@ range le livreur du côté mobile, et c'est juste : accepter une course et
 confirmer une livraison se font une main sur le guidon. Mais « mobile
 uniquement » ne veut pas dire « écran web vide » — il lui reste le suivi et les
 gains, que D-40 lui assigne explicitement.
+
+
+---
+
+## Ajouté en fin de bloc L — le paiement
+
+| Écran | Route | Vue | Endpoints | État |
+|---|---|---|---|---|
+| Paiement | `/paiement` | `Paiement.vue` | `POST /commandes/{id}/paiement`, `.../abandonner`, `POST /paiements/confirmation` | **fait** |
+| Facture imprimable | `/mes-commandes/:id/facture` | `Facture.vue` | `GET /commandes/{id}/facture` | **fait** |
+
+Deux écarts assumés par rapport au tableau d'origine, et leurs raisons.
+
+**Il n'y a pas d'écran « confirmation ».** Une page qui dit « merci » et ne
+sert à rien d'autre est une page de plus à charger : le paiement réussi renvoie
+directement sur « Mes commandes », avec un bandeau qui l'annonce. C'est ce que
+font les vrais sites ([D-98](../00-pilotage/journal-decisions.md)).
+
+**`/paiement` ne porte pas d'identifiant.** Un panier multi-boutique donne
+plusieurs commandes ([D-10](../00-pilotage/journal-decisions.md)) mais le
+client ne veut payer qu'une fois : l'écran règle **toutes** ses commandes en
+attente ([D-101](../00-pilotage/journal-decisions.md)). L'effet secondaire est
+le plus utile — parti en cours de route, il retrouve la même page en revenant,
+et « Mes commandes » lui rappelle en bandeau ce qui attend encore.
+
+La facture réutilise la mécanique d'impression du navigateur
+([D-102](../00-pilotage/journal-decisions.md)) : `feuille` marque le document,
+`sans-impression` tout ce qui sert à naviguer, et `barre-laterale`,
+`barre-haute`, `volet-droit` disparaissent de la feuille. Le bon de préparation
+du vendeur ([D-82](../00-pilotage/journal-decisions.md)) s'écrira avec les
+mêmes classes.

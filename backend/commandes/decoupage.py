@@ -25,6 +25,7 @@ from django.utils import timezone
 
 from comptes.models import TypeService
 
+from . import reservation
 from .models import (
     Commande,
     LigneCommande,
@@ -247,10 +248,6 @@ def _creer_commande(panier, client, adresse, type_service, groupes):
                 sous_total_centimes=sous_total,
             )
 
-            # Reservation courte, le temps du paiement (D-15) : le stock n'est
-            # pas encore decremente, il est mis de cote.
-            produit.stock_reserve += ligne.quantite
-            produit.save(update_fields=["stock_reserve"])
 
         commission = round(part_vendeur * float(vendeur.taux_commission))
         sous_commande.montant_vendeur_centimes = part_vendeur - commission
@@ -270,4 +267,9 @@ def _creer_commande(panier, client, adresse, type_service, groupes):
             "montant_total_centimes",
         ]
     )
+
+    # Reservation courte, le temps du paiement (D-15) : le stock n'est pas
+    # decremente, il est mis de cote. Un seul module en est l'auteur, sans
+    # quoi la meme commande finit reservee deux fois.
+    reservation.poser(commande)
     return commande

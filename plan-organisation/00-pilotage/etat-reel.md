@@ -5,7 +5,7 @@
 > une intention. Il est établi en listant les routes que l'API expose et les
 > écrans que le front compile, puis en les confrontant au dossier de conception.
 >
-> Généré le 30 août, après le premier lot du bloc K.
+> Mis à jour le 1er septembre, après la tranche paiement du bloc L.
 
 ---
 
@@ -23,7 +23,9 @@
 | **D-10** découpage du panier | `commandes/decoupage.py` | 13 tests |
 | **D-11** frais par bandes | `frais_livraison_centimes` | via le découpage |
 | **D-13** suppression logique | retirer un produit le masque, et on peut le remettre en vente | 2 tests |
-| **D-15** réservation au paiement | `stock_reserve`, jamais décrémenté à l'ajout | 2 tests |
+| **D-12** confirmation par le serveur | `POST /paiements/confirmation`, ouverte et idempotente | 3 tests |
+| **D-15** réservation à la commande, jamais au panier | `commandes/reservation.py`, seul auteur du compteur | 18 tests |
+| **D-18** services externes derrière une interface | `PaiementSimule`, `AssistantSimule`, bascule par variable | 15 tests |
 | **D-19** rien de durable sur le disque | Cloudinary actif, repli local documenté | manuel |
 | **D-21** adresse partagée | `ADRESSE` reliée client / vendeur / entrepôt, carnet d'adresses client | smoke API |
 | **D-24** photos | vérification du contenu réel, EXIF retiré, WebP | 6 tests |
@@ -105,12 +107,9 @@ validation, 2 entrepôts, 25 produits, puis `seed_activite` ajoute :
 
 | Manque | Pourquoi ce n'est pas encore là |
 |---|---|
-| **Paiement Stripe** | La commande se crée et réserve le stock ; le débit viendra brancher `PAIEMENT` et `REPARTITION_VENDEUR`, déjà modélisés et déjà peuplés par le jeu de démonstration. C'est le prochain gros morceau |
-| **Faire avancer une livraison ou une tournée** | Les écrans lisent, ils n'agissent pas encore. Une livraison naît d'une commande payée : le paiement passe devant |
+| **Le vrai Stripe** | Le parcours de paiement est **complet** avec le simulateur : intention, réservation, capture, répartition par vendeur, facture, remboursement du stock en cas de refus. `PaiementStripe` reste volontairement non implémenté : du code qu'on ne peut ni lancer ni tester donne une fausse impression d'avancement, et il faudrait le réécrire face à l'API réelle |
 | **L'algorithme de tournée** | Les arrêts sont ordonnés en base ; le plus proche voisin ([D-44](journal-decisions.md)) s'écrira avec la tranche livraison |
-| **Application mobile** | Ionic + Capacitor, décidé en [D-20](journal-decisions.md) |
-| **Paquet `partage/`** | Le code commun aux deux fronts n'a de sens qu'une fois le second front existant |
-| **Arbitrage d'un litige** | Rembourser suppose un paiement à rembourser |
+| **Arbitrage d'un litige** | Le paiement existe désormais, donc le remboursement est écrivable : c'est le prochain morceau ([D-94](journal-decisions.md)) |
 | **Envoi réel des notifications** | Elles existent en base et s'affichent dans la cloche et le panneau droit ; l'e-mail et le push viendront avec le service de notification |
 | **Géocodage d'une adresse saisie** | Nominatim décidé ([D-25](journal-decisions.md)), pas encore appelé : les adresses de démonstration sont déjà géocodées |
 
@@ -134,3 +133,52 @@ validation, 2 entrepôts, 25 produits, puis `seed_activite` ajoute :
 6. **Six photos ne montraient pas le bon produit** (une salade pour une
    baguette, un tissu gris pour une huile d'olive) — remplacées et revérifiées
    à l'œil, planche-contact à l'appui.
+
+
+---
+
+## La tranche paiement, et le défaut qu'elle a révélé
+
+Écrite en fin de bloc L, vérifiée deux fois : par un script qui parle à l'API
+en réseau **et** lit la base directement — le seul moyen de prouver qu'une
+réservation existe vraiment entre l'ouverture du paiement et sa capture — puis
+par 18 tests permanents.
+
+### Ce que le code fait maintenant
+
+| Étape | Route | Ce qui bouge en base |
+|---|---|---|
+| Créer la commande | `POST /commandes` | `stock_reserve` **+n**, `stock_reserve_pose = vrai` |
+| Ouvrir le paiement | `POST /commandes/{id}/paiement` | un `PAIEMENT` en attente ; **rien de plus** si la réserve tient déjà |
+| Confirmer (serveur) | `POST /paiements/confirmation` | `stock_disponible` **−n**, `stock_reserve` **−n**, un `MOUVEMENT_STOCK` VENTE, une `REPARTITION_VENDEUR` par boutique, une `FACTURE`, commande `PAYEE` |
+| Paiement refusé | même route | réserve rendue, commande **toujours payable** |
+| Renoncer | `POST /commandes/{id}/paiement/abandonner` | réserve rendue tout de suite |
+| Expiration | `manage.py liberer_reservations` | réserve rendue au bout de 10 minutes |
+
+### Le défaut trouvé, et son étendue
+
+`stock_reserve` était écrit à **deux endroits** — `commandes/decoupage.py` à la
+création, `paiements/views.py` à l'ouverture du paiement — et relâché à un
+seul. Chaque commande payée laissait une réserve fantôme, jamais rendue.
+
+Corrigé au-delà du cas :
+
+- **un seul module écrit ce compteur** (`commandes/reservation.py`,
+  [D-99](journal-decisions.md)), et le drapeau `Commande.stock_reserve_pose`
+  rend `poser`, `relacher` et `consommer` rejouables sans dégât ;
+- **la migration `0003` répare les bases existantes** : elle lève le drapeau
+  sur les commandes en attente, puis **recompte** chaque `stock_reserve` depuis
+  les commandes qui le justifient. Sans elle, une base de développement aurait
+  gardé ses fantômes pour toujours ;
+- **`seed_activite` ne remet plus les compteurs à zéro** : il les recompte. Sa
+  vieille règle — « aucune réservation n'est légitime tant que le paiement
+  n'existe pas » — était devenue fausse le jour où le paiement a existé, et
+  effacer une réservation valable ferait vendre deux fois le même exemplaire ;
+- **la réservation expire** ([D-100](journal-decisions.md)), et `demarrer.py`
+  applique l'expiration au lancement.
+
+### Ce que les tests verrouillent
+
+Une phrase : **le compteur revient toujours à sa valeur de départ**, quel que
+soit le chemin — capture, refus, abandon, double abandon, webhook rejoué,
+retour du client sur une commande abandonnée, ou stock parti entre-temps.

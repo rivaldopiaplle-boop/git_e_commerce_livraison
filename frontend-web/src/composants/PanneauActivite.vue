@@ -57,8 +57,8 @@ const ecranContribue = computed(() => volet.contributeurs > 0)
 
 <template>
   <aside
-    class="hidden shrink-0 flex-col border-l border-trait bg-panneau transition-[width]
-           duration-200 lg:flex"
+    class="volet-droit hidden shrink-0 flex-col border-l border-trait bg-panneau
+           transition-[width] duration-200 lg:flex"
     :class="panneau.ouvert ? 'w-[300px]' : 'w-[52px]'"
   >
     <div

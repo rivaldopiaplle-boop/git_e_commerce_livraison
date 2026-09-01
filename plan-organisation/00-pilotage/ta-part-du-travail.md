@@ -8,18 +8,44 @@
 
 ---
 
-# ⬛ À FAIRE MAINTENANT — mis à jour le 30 août
+# ⬛ À FAIRE MAINTENANT — mis à jour le 1er septembre
+
+Le **paiement existe**, avec son simulateur : c'est la pièce qui manquait entre
+« passer commande » et « suivre ma commande ». Il y avait aussi un vrai défaut
+derrière, expliqué plus bas.
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
 | **1** | **`python demarrer.py`**, puis Ctrl+Maj+R | 2 min | — |
-| **2** | **Léa → panier → « Passer commande »**. Ça marchait pas parce qu'**un seul article retiré de la vente bloquait tout le panier**. L'écran te dit maintenant lequel, et te propose de le retirer | 4 min | § K-1 |
-| **3** | **Une fois la commande livrée, clique l'étoile** dans « Mes commandes » : tu notes la boutique, chaque produit, et le livreur | 3 min | § K-1 |
-| **4** | **Déconnecte-toi depuis un compte client** : le panier ne reste plus affiché | 1 min | § K-1 |
-| **5** | **`rachid@exemple.fr` → Colis reçus, puis Tournées.** Les tournées sont là, avec leurs arrêts dans l'ordre — dans le **panneau de droite** | 5 min | § K-1, K-2 |
-| **6** | **Regarde le panneau de droite sur chaque écran** : il montre enfin ce que l'écran a sélectionné, au lieu de la même chose partout | 3 min | § K-1 |
+| **2** | **Léa → panier → « Continuer vers le paiement »**. Tu arrives sur un écran de paiement, pas sur le suivi : une commande créée n'est pas une commande payée | 2 min | D-101 |
+| **3** | **Regarde le total, puis clique « Payer »**. Le bandeau bleu te dit franchement que c'est simulé : aucune carte n'est demandée | 2 min | D-18 |
+| **4** | **Refais l'opération, mais clique « Renoncer »** cette fois. Retourne au catalogue : le produit est **immédiatement** re-commandable | 3 min | D-100 |
+| **5** | **Dans « Mes commandes », clique l'icône de document** sur une commande payée, puis **Imprimer** (ou Ctrl+P). La barre latérale, la barre haute et les boutons disparaissent de la feuille | 3 min | D-102 |
+| **6** | **Laisse une commande impayée et reviens dans « Mes commandes »** : un bandeau te rappelle qu'elle attend, avec un bouton pour finir | 2 min | D-101 |
 
 Mot de passe commun : **`Demonstration!2026`**.
+
+---
+
+## Le défaut que j'ai trouvé en écrivant le paiement
+
+Je te le dis parce qu'il expliquait sans doute des choses que tu as vues sans
+comprendre : **du stock était réservé deux fois pour une même commande**, une
+fois à sa création, une fois à l'ouverture du paiement — et rendu une seule
+fois. Au bout de quelques essais, des produits parfaitement disponibles
+s'affichaient **« épuisé »** sans raison visible.
+
+Trois choses ont été faites, pas une :
+
+1. **Un seul module écrit désormais ce compteur** (`commandes/reservation.py`).
+   Poser, relâcher et consommer sont rejouables sans dégât — c'est ce qu'exige
+   un webhook de paiement, qui réessaie quand il doute d'avoir été reçu.
+2. **Une réservation expire au bout de dix minutes.** `demarrer.py` libère au
+   lancement ce qu'une session interrompue retenait encore : ta base de la
+   veille ne te ment plus le lendemain.
+3. **18 tests** verrouillent la règle : quel que soit le chemin — capture,
+   refus, abandon, webhook rejoué, retour du client — le compteur revient
+   toujours à sa valeur de départ.
 
 ---
 

@@ -335,6 +335,16 @@ def preparer_backend():
             if ligne.strip():
                 info(ligne.rstrip())
 
+    # Le stock qu'un paiement abandonne retient encore repart a la vente
+    # (D-15). Sans ordonnanceur, le demarrage est le moment naturel pour le
+    # faire : une session de la veille interrompue en plein tunnel de commande
+    # ne doit pas laisser des produits en fausse rupture ce matin.
+    code, sortie = executer('"%s" manage.py liberer_reservations' % py, cwd=BACKEND)
+    if code == 0:
+        for ligne in sortie.strip().splitlines():
+            if ligne.strip() and "Aucune" not in ligne:
+                info(ligne.rstrip())
+
 
 def preparer_mobile():
     """Les dependances de l'application mobile.

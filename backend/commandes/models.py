@@ -95,6 +95,12 @@ class Commande(models.Model):
     date_commande = models.DateTimeField(auto_now_add=True)
     date_livraison_estimee = models.DateTimeField(null=True, blank=True)
 
+    # Le stock de cette commande est-il actuellement mis de cote ? (D-15)
+    # Un simple booleen, mais c'est lui qui empeche de reserver deux fois la
+    # meme commande — a sa creation puis a l'ouverture du paiement — et de
+    # laisser derriere elle une reserve fantome. Voir `commandes/reservation.py`.
+    stock_reserve_pose = models.BooleanField(default=False)
+
     class Meta:
         ordering = ["-date_commande"]
 

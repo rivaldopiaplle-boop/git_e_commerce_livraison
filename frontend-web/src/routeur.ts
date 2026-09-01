@@ -86,9 +86,25 @@ const routes: RouteRecordRaw[] = [
     meta: { acces: 'prive' },
   },
   {
+    path: '/paiement',
+    name: 'paiement',
+    component: () => import('./vues/client/Paiement.vue'),
+    // Sans identifiant dans l'URL : l'ecran regle TOUTES les commandes en
+    // attente. Un panier multi-boutique en cree plusieurs (D-10), mais le
+    // client ne veut payer qu'une fois — et s'il est parti en cours de route,
+    // il retrouve la meme page telle qu'il l'avait laissee.
+    meta: { acces: 'prive' },
+  },
+  {
     path: '/mes-commandes',
     name: 'mes-commandes',
     component: () => import('./vues/client/MesCommandes.vue'),
+    meta: { acces: 'prive' },
+  },
+  {
+    path: '/mes-commandes/:id/facture',
+    name: 'facture',
+    component: () => import('./vues/client/Facture.vue'),
     meta: { acces: 'prive' },
   },
   {

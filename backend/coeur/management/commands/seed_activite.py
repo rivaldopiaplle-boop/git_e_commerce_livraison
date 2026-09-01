@@ -28,10 +28,11 @@ import random
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 from catalogue.models import MouvementStock, Produit, TypeMouvement
+from commandes import reservation
 from commandes.models import (
     Commande,
     HistoriqueStatut,
@@ -94,6 +95,12 @@ class Command(BaseCommand):
         if options["refaire"]:
             self._effacer()
 
+        # La remise en ordre des compteurs de reservation tourne AVANT le
+        # garde d'idempotence : c'est une reparation, pas un peuplement. Un
+        # essai de paiement interrompu la veille laisse du stock immobilise,
+        # et relancer la commande de peuplement doit suffire a le rendre.
+        self._reparer_reservations()
+
         if Commande.objects.filter(numero_commande__startswith=PREFIXE).exists():
             self.stdout.write(self.style.SUCCESS("Activite de demonstration deja en place."))
             return
@@ -104,7 +111,6 @@ class Command(BaseCommand):
         self.hasard = random.Random(2026)
         self.compteur = 0
 
-        self._reparer_reservations()
         acteurs = self._rassembler()
         if acteurs is None:
             return
@@ -139,17 +145,52 @@ class Command(BaseCommand):
         self.stdout.write("Activite de demonstration effacee.")
 
     def _reparer_reservations(self):
-        """Le stock reserve sans paiement en cours est un residu, pas une reservation.
+        """Recalculer le stock reserve a partir des commandes qui en tiennent une.
 
-        Tant que le paiement n'est pas implemente, aucune reservation ne peut
-        etre legitime (D-15). En laisser trainer fait apparaitre en rupture un
-        produit qui ne l'est pas — et personne ne comprend pourquoi.
+        Cette methode disait autrefois : « aucune reservation n'est legitime
+        tant que le paiement n'existe pas », et remettait tout a zero. Le
+        paiement existe maintenant, et une commande en attente de paiement
+        tient une reservation parfaitement valable (D-15) : l'effacer ferait
+        vendre deux fois le meme exemplaire.
+
+        On ne devine donc plus : on **recompte**. La somme des lignes des
+        commandes dont le drapeau `stock_reserve_pose` est leve fait foi, et
+        tout ce qui depasse est un residu d'une execution interrompue.
         """
-        residus = Produit.objects.filter(stock_reserve__gt=0)
-        nombre = residus.count()
-        if nombre:
-            residus.update(stock_reserve=0)
-            self.stdout.write(f"  {nombre} reservation(s) de stock sans paiement, remise(s) a zero.")
+        # D'abord rendre ce qu'un panier abandonne retient encore : sans quoi
+        # on recompterait des reservations qui n'ont plus lieu d'etre.
+        expirees = reservation.liberer_les_expirees()
+        if expirees:
+            self.stdout.write(
+                f"  {expirees} commande(s) jamais payee(s) : stock rendu a la vente."
+            )
+
+        attendu = {}
+        commandes = Commande.objects.filter(stock_reserve_pose=True).prefetch_related(
+            "sous_commandes__lignes"
+        )
+        for commande in commandes:
+            for sous_commande in commande.sous_commandes.all():
+                for ligne in sous_commande.lignes.all():
+                    if ligne.produit_id:
+                        attendu[ligne.produit_id] = (
+                            attendu.get(ligne.produit_id, 0) + ligne.quantite
+                        )
+
+        corriges = 0
+        for produit in Produit.objects.filter(
+            models.Q(stock_reserve__gt=0) | models.Q(id__in=attendu)
+        ):
+            juste = min(attendu.get(produit.id, 0), produit.stock_disponible)
+            if produit.stock_reserve != juste:
+                Produit.objects.filter(pk=produit.id).update(stock_reserve=juste)
+                corriges += 1
+
+        if corriges:
+            self.stdout.write(
+                f"  {corriges} compteur(s) de reservation recalcule(s) "
+                f"depuis les commandes en attente de paiement."
+            )
 
     def _rassembler(self):
         """Les acteurs de l'histoire, ou un message clair s'ils manquent."""
