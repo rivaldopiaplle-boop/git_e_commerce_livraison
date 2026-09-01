@@ -79,6 +79,23 @@ Ce contrôle a trouvé **trois vrais défauts** le jour ou il a été écrit :
 2. l'écran de validation n'avait **aucun dossier en attente** ;
 3. commander deux fois à la même adresse en créait deux.
 
+## Les fiches produit : plusieurs vues, et une animation
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **19** | **Ouvre n'importe quel produit du catalogue.** Il a maintenant **quatre vues** — ensemble, détail, matière, mise en situation — plus un **aperçu animé** en dernier, reconnaissable à son symbole de lecture | 3 min | D-111 |
+| **20** | **Survole la grande image** : deux flèches apparaissent. **Clique dedans puis utilise ← et →** : la galerie se pilote au clavier | 2 min | D-111 |
+| **21** | **Regarde le badge « Livraison Express »** en haut de la fiche. Il était écrit en jaune clair sur fond jaune clair — la même maladie qu'au bloc J | 1 min | D-113 |
+
+Je te dois une précision, et je préfère te la dire plutôt que tu la
+découvres : **ce n'est pas une vraie vidéo**, c'est une image animée. Encoder
+une vidéo demande `ffmpeg`, que le projet n'a pas et qui l'obligerait à une
+dépendance externe. La plateforme accepte les deux — le jour où un vendeur
+téléverse un vrai fichier vidéo, l'écran le joue avec une balise `<video>`.
+Les quatre vues sont, elles aussi, **dérivées de la photo source** : une vraie
+boutique photographie sous plusieurs angles, ce qu'aucun peuplement ne peut
+inventer.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

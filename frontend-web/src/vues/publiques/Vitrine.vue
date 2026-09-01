@@ -33,7 +33,7 @@ const titre = computed(() =>
     <!-- Banniere : le seul endroit ou le contenu marchand prend la parole. -->
     <section
       class="relative flex flex-col items-center gap-8 overflow-hidden rounded-2xl border
-             border-slate-200 bg-white px-8 py-10 lg:flex-row lg:justify-between lg:py-12"
+             border-trait bg-papier px-8 py-10 lg:flex-row lg:justify-between lg:py-12"
     >
       <div
         class="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full blur-3xl"
@@ -47,9 +47,9 @@ const titre = computed(() =>
         <h2 class="mt-3 max-w-[16ch] text-[34px] leading-[1.12] font-semibold tracking-tight">
           Deux rythmes, une seule plateforme.
         </h2>
-        <p class="mt-4 max-w-[56ch] text-[14.5px] leading-relaxed text-slate-600">
-          <b class="text-slate-900">Express</b> : les boutiques proches de chez vous, livrees
-          directement. <b class="text-slate-900">Standard</b> : tout le catalogue, regroupe en
+        <p class="mt-4 max-w-[56ch] text-[14.5px] leading-relaxed text-encre-douce">
+          <b class="text-encre">Express</b> : les boutiques proches de chez vous, livrees
+          directement. <b class="text-encre">Standard</b> : tout le catalogue, regroupe en
           entrepot et livre en tournee.
         </p>
         <div class="mt-6 flex flex-wrap gap-3">
@@ -64,8 +64,8 @@ const titre = computed(() =>
           </a>
           <RouterLink
             :to="{ name: 'rejoindre' }"
-            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5
-                   text-[13.5px] transition-colors hover:bg-slate-50"
+            class="inline-flex items-center gap-2 rounded-xl border border-trait px-4 py-2.5
+                   text-[13.5px] transition-colors hover:bg-atelier"
           >
             <Store :size="15" />
             Vendre ou livrer
@@ -78,8 +78,8 @@ const titre = computed(() =>
 
     <p
       v-if="!position.connue"
-      class="mt-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4
-             py-3 text-[13px] text-amber-900"
+      class="mt-4 flex items-center gap-2 rounded-xl border border-avis-trait bg-avis-voile px-4
+             py-3 text-[13px] text-avis"
     >
       <MapPin :size="15" class="shrink-0" />
       Indiquez votre ville en haut de page pour voir aussi les boutiques Express proches —
@@ -106,7 +106,7 @@ const titre = computed(() =>
         <div
           v-for="n in 6"
           :key="n"
-          class="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+          class="overflow-hidden rounded-2xl border border-trait bg-papier"
         >
           <Squelette hauteur="170px" />
           <div class="flex flex-col gap-2 p-4">
@@ -129,7 +129,7 @@ const titre = computed(() =>
 
       <div
         v-else
-        class="mt-5 flex flex-col items-center rounded-2xl border border-slate-200 bg-white
+        class="mt-5 flex flex-col items-center rounded-2xl border border-trait bg-papier
                px-6 py-16 text-center"
       >
         <span
@@ -139,7 +139,7 @@ const titre = computed(() =>
           <Search :size="24" />
         </span>
         <b class="mt-4 text-[15px]">Aucun produit ne correspond</b>
-        <p class="mt-1.5 max-w-[46ch] text-[13.5px] text-slate-500">
+        <p class="mt-1.5 max-w-[46ch] text-[13.5px] text-encre-douce">
           <template v-if="!position.connue && catalogue.service === 'EXPRESS'">
             Les boutiques Express n apparaissent qu une fois votre ville indiquee.
           </template>
@@ -148,8 +148,8 @@ const titre = computed(() =>
         <button
           v-if="catalogue.filtreActif"
           type="button"
-          class="mt-5 rounded-xl border border-slate-200 px-4 py-2 text-[13px]
-                 transition-colors hover:bg-slate-50"
+          class="mt-5 rounded-xl border border-trait px-4 py-2 text-[13px]
+                 transition-colors hover:bg-atelier"
           @click="catalogue.toutEffacer()"
         >
           Tout effacer

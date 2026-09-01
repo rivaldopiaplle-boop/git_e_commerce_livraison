@@ -5,7 +5,8 @@
 // (D-06) : le produit reste au catalogue, sinon on perd le client au lieu de
 // le faire patienter.
 import {
-  ArrowLeft, Bell, Bike, Clock, MapPin, MessageSquare, Package, ShieldCheck, ShoppingCart, Star,
+  ArrowLeft, Bell, Bike, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare,
+  Package, Play, ShieldCheck, ShoppingCart, Star,
 } from '@lucide/vue'
 import Rating from 'primevue/rating'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -74,11 +75,47 @@ const prix = computed(() =>
 const estExpress = computed(() => produit.value?.boutique?.type_service === 'EXPRESS')
 // `photos?.length` et non `photos.length` : si la charge utile change de
 // forme, l'ecran doit se degrader, pas planter toute l'application.
-const photos = computed(() =>
-  produit.value?.photos?.length ? produit.value.photos : produit.value?.image
-    ? [{ id: 0, url: produit.value.image, texte_alternatif: produit.value.nom }]
-    : [],
-)
+type Media = {
+  id: number
+  url: string
+  texte_alternatif: string
+  /** `apercu` : l'animation ou la video, toujours en dernier. */
+  genre: 'photo' | 'apercu'
+  video?: boolean
+}
+
+// L'apercu anime ferme la galerie plutot que de l'ouvrir : on regarde d'abord
+// le produit, on l'anime ensuite. C'est l'ordre de toutes les fiches produit
+// des vraies places de marche.
+const medias = computed<Media[]>(() => {
+  const produits = produit.value
+  if (!produits) return []
+
+  const vues: Media[] = produits.photos?.length
+    ? produits.photos.map((photo) => ({ ...photo, genre: 'photo' as const }))
+    : produits.image
+      ? [{ id: 0, url: produits.image, texte_alternatif: produits.nom, genre: 'photo' as const }]
+      : []
+
+  if (produits.apercu) {
+    vues.push({
+      id: -1,
+      url: produits.apercu.url,
+      texte_alternatif: `${produits.nom} — apercu anime`,
+      genre: 'apercu',
+      video: produits.apercu.genre === 'video',
+    })
+  }
+  return vues
+})
+
+const mediaCourant = computed(() => medias.value[photoActive.value] ?? null)
+
+/** Fleches du clavier : une galerie qui ne repond qu'a la souris exclut. */
+function deplacer(pas: number) {
+  if (!medias.value.length) return
+  photoActive.value = (photoActive.value + pas + medias.value.length) % medias.value.length
+}
 </script>
 
 <template>
@@ -115,24 +152,83 @@ const photos = computed(() =>
       <!-- Galerie : grande image, vignettes dessous — le premier reflexe d'un
            acheteur (design-system.md § 9). -->
       <div>
-        <div class="overflow-hidden rounded-2xl border border-trait bg-atelier">
+        <div
+          class="group relative overflow-hidden rounded-2xl border border-trait bg-atelier"
+          tabindex="0"
+          @keydown.left.prevent="deplacer(-1)"
+          @keydown.right.prevent="deplacer(1)"
+        >
+          <!-- Une vraie video se joue ; un apercu anime est une image. Le
+               serveur dit lequel, l'ecran ne le devine pas. -->
+          <video
+            v-if="mediaCourant?.genre === 'apercu' && mediaCourant.video"
+            :src="mediaCourant.url"
+            class="aspect-4/3 w-full object-cover"
+            controls
+            playsinline
+            muted
+            loop
+          />
           <img
-            v-if="photos.length"
-            :src="photos[photoActive]?.url"
-            :alt="photos[photoActive]?.texte_alternatif"
+            v-else-if="mediaCourant"
+            :src="mediaCourant.url"
+            :alt="mediaCourant.texte_alternatif"
             class="aspect-4/3 w-full object-cover"
           />
+
+          <!-- Les fleches n'apparaissent qu'au survol, mais elles existent
+               toujours pour le clavier et les lecteurs d'ecran. -->
+          <template v-if="medias.length > 1">
+            <button
+              type="button"
+              class="fleche-galerie left-3"
+              title="Vue precedente"
+              @click="deplacer(-1)"
+            >
+              <ChevronLeft :size="18" />
+              <span class="sr-only">Vue precedente</span>
+            </button>
+            <button
+              type="button"
+              class="fleche-galerie right-3"
+              title="Vue suivante"
+              @click="deplacer(1)"
+            >
+              <ChevronRight :size="18" />
+              <span class="sr-only">Vue suivante</span>
+            </button>
+            <span
+              class="pointer-events-none absolute bottom-3 right-3 rounded-full bg-encre/70
+                     px-2.5 py-1 text-[11px] font-semibold text-papier"
+            >
+              {{ photoActive + 1 }} / {{ medias.length }}
+            </span>
+          </template>
         </div>
-        <div v-if="photos.length > 1" class="mt-3 flex gap-3">
+
+        <div v-if="medias.length > 1" class="mt-3 flex flex-wrap gap-3">
           <button
-            v-for="(photo, index) in photos"
-            :key="photo.id"
+            v-for="(media, index) in medias"
+            :key="media.id"
             type="button"
-            class="h-20 w-24 overflow-hidden rounded-xl border transition-colors duration-150"
-            :class="index === photoActive ? 'border-marque' : 'border-trait hover:border-marque/50'"
+            class="relative h-20 w-24 overflow-hidden rounded-xl border transition-colors
+                   duration-150"
+            :class="index === photoActive
+              ? 'border-[color:var(--accent)]'
+              : 'border-trait hover:border-encre-douce'"
+            :title="media.genre === 'apercu' ? 'Apercu anime' : media.texte_alternatif"
             @click="photoActive = index"
           >
-            <img :src="photo.url" :alt="photo.texte_alternatif" class="h-full w-full object-cover" />
+            <img :src="media.url" :alt="media.texte_alternatif"
+                 class="h-full w-full object-cover" />
+            <!-- Le symbole de lecture dit ce qui se cache derriere la
+                 vignette : sans lui, la derniere image ressemble aux autres. -->
+            <span
+              v-if="media.genre === 'apercu'"
+              class="absolute inset-0 flex items-center justify-center bg-encre/35 text-papier"
+            >
+              <Play :size="18" />
+            </span>
           </button>
         </div>
       </div>
@@ -140,8 +236,8 @@ const photos = computed(() =>
       <div>
         <div class="flex items-center gap-2">
           <span
-            class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
-            :class="estExpress ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-500/15 text-slate-300'"
+            class="badge"
+            :class="estExpress ? 'badge-attente' : 'badge-neutre'"
           >
             <component :is="estExpress ? Bike : Package" :size="12" />
             {{ estExpress ? 'Livraison Express' : 'Livraison Standard' }}

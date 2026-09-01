@@ -1436,3 +1436,62 @@ même rue, même complément, même code postal, même ville, à la casse près.
 fusionner mal réécrirait l'histoire d'une livraison. Les commandes sont
 repointées vers l'adresse la plus ancienne — celle que le client a nommée
 lui-même — avant toute suppression.
+
+
+### D-111 — Une fiche produit montre plusieurs vues, et une animation en dernier
+
+**Ta demande, K-1 et L-2** : plusieurs photos par produit, et une courte vidéo.
+
+Le modèle prévoyait six photos depuis [D-24](#d-24--les-photos-sont-verifiées-recadrées-et-nettoyées),
+mais le peuplement n'en posait **qu'une**. Une seule photo, c'est ce qui
+distingue au premier coup d'œil un catalogue d'exercice d'une vraie boutique.
+
+Quatre vues par produit désormais : la photo d'ensemble, un **détail**, la
+**matière**, une **mise en situation**. Elles sont **dérivées** de la photo
+source, et il faut le dire franchement : une vraie boutique photographie son
+produit sous plusieurs angles, ce qu'aucun peuplement ne peut inventer. Ce que
+la démonstration prouve ici, c'est que la galerie fonctionne — le jour où un
+vendeur téléverse ses six photos, rien ne change.
+
+**L'animation ferme la galerie, elle ne l'ouvre pas.** On regarde d'abord le
+produit, on l'anime ensuite : c'est l'ordre de toutes les fiches produit des
+vraies places de marché ([D-98](#d-98--devant-une-idée-jamais-vue-ailleurs-on-fait-comme-les-vrais-sites)).
+Sa vignette porte un symbole de lecture, sans quoi elle ressemble aux autres et
+personne ne clique dessus.
+
+### D-112 — On appelle une image animée une image animée
+
+`ffmpeg` n'est pas disponible, et le projet doit tourner **sans réseau ni
+dépendance externe** ([D-18](#d-18--les-services-payants-sont-derrière-une-interface)).
+Le peuplement fabrique donc un **aperçu animé** — un lent zoom en WebP animé,
+huit images, une centaine de kilo-octets — et non une vidéo.
+
+L'appeler « vidéo » aurait été un petit mensonge du même genre que d'appeler
+« recommandé pour vous » ce qui est en réalité « ce qui se vend le plus ».
+
+La plateforme, elle, accepte les deux : `Produit.video_url` porte l'un ou
+l'autre, et le serveur **dit lequel** dans `apercu.genre`. Le front joue un
+`<video>` s'il reçoit une vidéo, affiche une image sinon. Deviner depuis
+l'extension marcherait aujourd'hui et casserait le jour où une URL Cloudinary
+arrive sans extension.
+
+Contrainte de poids assumée : huit images en tiers de format, qualité 48. Une
+fiche produit qui met deux secondes à s'afficher sur un téléphone en 4G n'aide
+personne à acheter, et le projet tourne sur une offre gratuite
+([D-19](#d-19--trois-hébergeurs-gratuits-un-par-métier)).
+
+### D-113 — La vitrine emprunte les mêmes couleurs que les espaces de travail
+
+Les écrans publics — vitrine, boutiques, fiche produit — utilisaient les
+couleurs brutes de Tailwind (`slate-600`, `amber-50`) là où tout le reste du
+projet passe par les jetons de la maquette.
+
+Ce n'était pas qu'une question de goût. Tes règles d'or disent que **les
+couleurs suivent la maquette**, et une vitrine qui ne ressemble pas à l'espace
+de travail est ressentie comme deux projets collés ensemble — ce que tu m'as
+reproché au bloc H-8 : *« fais-moi un truc cohérent, du début à la fin »*.
+
+Un vrai défaut se cachait dedans, et c'était **exactement la maladie du bloc
+J** : le badge du mode de livraison s'écrivait `text-amber-300` sur un fond
+`bg-amber-500/15`. Du clair sur du clair, illisible. Il passe par `badge` et
+`badge-attente`, comme tous les autres badges du projet.

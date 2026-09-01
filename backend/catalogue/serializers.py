@@ -78,14 +78,31 @@ class ProduitListeSerializer(_ProduitBase):
 class ProduitDetailSerializer(_ProduitBase):
     photos = PhotoProduitSerializer(many=True, read_only=True)
     categorie = CategorieSerializer(read_only=True)
+    apercu = serializers.SerializerMethodField()
 
     class Meta:
         model = Produit
         fields = [
             "id", "nom", "description", "prix_centimes", "image", "photos",
-            "boutique", "categorie", "disponible", "stock_disponible",
+            "apercu", "boutique", "categorie", "disponible", "stock_disponible",
             "poids_grammes", "distance_km", "date_ajout",
         ]
+
+    def get_apercu(self, produit):
+        """L'apercu anime, et son genre.
+
+        Le front doit savoir s'il recoit une VIDEO — qu'il joue avec
+        `<video>` — ou une image animee, qu'il affiche comme une image. Le
+        deviner depuis l'extension marcherait aujourd'hui et casserait le jour
+        ou une URL Cloudinary arrive sans extension.
+        """
+        if not produit.video_url:
+            return None
+        video = produit.video_url.lower().rsplit(".", 1)[-1] in ("mp4", "webm", "mov")
+        return {
+            "url": url_absolue(produit.video_url, self.context.get("request")),
+            "genre": "video" if video else "image",
+        }
 
 
 class ProduitVendeurSerializer(_ProduitBase):

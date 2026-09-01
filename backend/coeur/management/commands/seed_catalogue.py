@@ -205,6 +205,8 @@ class Command(BaseCommand):
         self.telecharges = 0
         self.fabriquees = 0
         self.fournies = 0
+        self.galeries = 0
+        self.animes = 0
 
         boutiques = {v.nom_boutique: v for v in Vendeur.objects.all()}
         if not boutiques:
@@ -243,6 +245,7 @@ class Command(BaseCommand):
                 # sans retour possible. Le jeu de demonstration doit se
                 # remettre d'aplomb en une commande (D-96).
                 self.reposer_particularites(existant)
+                self.completer_les_medias(existant, photo)
                 continue
 
             produit = Produit.objects.create(
@@ -265,6 +268,7 @@ class Command(BaseCommand):
                 produit=produit, url=chemin, ordre=1,
                 texte_alternatif=f"{nom} — {vendeur.nom_boutique}",
             )
+            self.completer_les_medias(produit, photo)
             crees += 1
 
         self.stdout.write("")
@@ -276,7 +280,122 @@ class Command(BaseCommand):
             )
         else:
             self.stdout.write(self.style.SUCCESS("Catalogue deja en place."))
+
+        if self.galeries or self.animes:
+            self.stdout.write(
+                f"  medias : {self.galeries} vue(s) de galerie, "
+                f"{self.animes} apercu(s) anime(s)"
+            )
         self.stdout.write("")
+
+    # Les cadrages de la galerie. Une fiche produit credible en montre
+    # plusieurs : « la seule photo » est ce qui distingue un catalogue
+    # d'exercice d'une vraie boutique.
+    #
+    # Ces vues sont DERIVEES de la photo source, et il faut le dire : une
+    # vraie boutique photographie son produit sous plusieurs angles, ce
+    # qu'aucun peuplement ne peut inventer. Ce que la demonstration prouve
+    # ici, c'est que la galerie, ses vignettes et sa navigation fonctionnent
+    # — le jour ou un vendeur televerse ses six photos, rien ne change.
+    CADRAGES = [
+        (2, "detail", "Detail", 0.45),
+        (3, "matiere", "Matiere", 0.28),
+        (4, "situation", "Mise en situation", 0.75),
+    ]
+
+    def completer_les_medias(self, produit, source):
+        """Poser la galerie et l'apercu anime d'un produit, s'ils manquent."""
+        principale = produit.photos.filter(ordre=1).first()
+        if principale is None:
+            return
+
+        origine = self.charger_media(principale.url)
+        if origine is None:
+            return
+
+        for ordre, suffixe, libelle, zoom in self.CADRAGES:
+            if produit.photos.filter(ordre=ordre).exists():
+                continue
+            chemin = self.ecrire_cadrage(produit.nom, suffixe, origine, zoom)
+            PhotoProduit.objects.create(
+                produit=produit, url=chemin, ordre=ordre,
+                texte_alternatif=f"{produit.nom} — {libelle.lower()}",
+            )
+            self.galeries += 1
+
+        if not produit.video_url:
+            produit.video_url = self.ecrire_apercu_anime(produit.nom, origine)
+            produit.save(update_fields=["video_url"])
+            self.animes += 1
+
+    def charger_media(self, chemin_public):
+        """Relire une image deja ecrite, depuis son chemin public."""
+        relatif = chemin_public.replace(settings.MEDIA_URL, "", 1).lstrip("/")
+        chemin = os.path.join(settings.MEDIA_ROOT, relatif)
+        if not os.path.exists(chemin):
+            return None
+        image = Image.open(chemin)
+        image.load()
+        return image.convert("RGB")
+
+    def ecrire_cadrage(self, nom_produit, suffixe, origine, zoom):
+        """Un recadrage centre, ecrit une seule fois."""
+        slug = f"{slugify(nom_produit)}-{suffixe}"
+        dossier = os.path.join(settings.MEDIA_ROOT, DOSSIER)
+        os.makedirs(dossier, exist_ok=True)
+        destination = os.path.join(dossier, f"{slug}.webp")
+        chemin_public = f"{settings.MEDIA_URL}{DOSSIER}/{slug}.webp"
+        if os.path.exists(destination):
+            return chemin_public
+
+        largeur, hauteur = origine.size
+        cadre_l, cadre_h = int(largeur * zoom), int(hauteur * zoom)
+        gauche = (largeur - cadre_l) // 2
+        haut = (hauteur - cadre_h) // 2
+        vue = origine.crop((gauche, haut, gauche + cadre_l, haut + cadre_h))
+        vue.resize((LARGEUR, HAUTEUR), Image.LANCZOS).save(
+            destination, "WEBP", quality=82, method=5
+        )
+        return chemin_public
+
+    def ecrire_apercu_anime(self, nom_produit, origine):
+        """Un lent zoom, en WebP anime.
+
+        Ce n'est PAS une video, et l'appeler ainsi serait mentir : c'est une
+        image animee de quelques dizaines de kilo-octets, fabriquee sans
+        encodeur ni reseau. Le champ `video_url` accepte les deux, et le front
+        joue une vraie video le jour ou un vendeur en televerse une.
+        """
+        slug = slugify(nom_produit)
+        dossier = os.path.join(settings.MEDIA_ROOT, DOSSIER)
+        destination = os.path.join(dossier, f"{slug}-apercu.webp")
+        chemin_public = f"{settings.MEDIA_URL}{DOSSIER}/{slug}-apercu.webp"
+        if os.path.exists(destination):
+            return chemin_public
+
+        # Huit images, en demi-format, a qualite moderee : l'apercu doit peser
+        # quelques dizaines de kilo-octets, pas trois cents. Une fiche produit
+        # qui met deux secondes a s'afficher sur un telephone en 4G n'aide
+        # personne a acheter — et le projet tourne sur une offre gratuite.
+        largeur, hauteur = origine.size
+        images = []
+        for etape in range(8):
+            zoom = 1 - etape * 0.03
+            cadre_l, cadre_h = int(largeur * zoom), int(hauteur * zoom)
+            gauche = (largeur - cadre_l) // 2
+            haut = (hauteur - cadre_h) // 2
+            images.append(
+                origine.crop((gauche, haut, gauche + cadre_l, haut + cadre_h))
+                .resize((LARGEUR // 3, HAUTEUR // 3), Image.LANCZOS)
+            )
+        # Aller puis retour : la boucle ne saute pas.
+        images += images[-2:0:-1]
+
+        images[0].save(
+            destination, "WEBP", save_all=True, append_images=images[1:],
+            duration=140, loop=0, quality=48, method=6,
+        )
+        return chemin_public
 
     def univers(self, nom):
         """La categorie parente, creee au besoin."""

@@ -26,6 +26,10 @@ export type ProduitDetail = Produit & {
   stock_disponible: number
   poids_grammes: number | null
   photos: { id: number; url: string; texte_alternatif: string }[]
+  /** L'apercu anime, quand le vendeur en a un. `genre` dit s'il faut un
+   *  `<video>` ou une simple image : deviner depuis l'extension marcherait
+   *  aujourd'hui et casserait le jour ou une URL Cloudinary arrive sans. */
+  apercu: { url: string; genre: 'video' | 'image' } | null
   categorie: { id: number; nom: string; slug: string } | null
   // Ce qu'un acheteur lit avant d'acheter (D-71).
   avis: {

@@ -201,6 +201,17 @@
   .vide-titre { @apply mt-3 text-[13.5px] font-bold text-encre; }
   .vide-texte { @apply mx-auto mt-1 max-w-[46ch] text-[12px] text-encre-douce; }
 
+  /* ── La galerie d'une fiche produit ──────────────────────── */
+  /* Les fleches restent discretes tant qu'on ne survole pas, mais elles ne
+     disparaissent JAMAIS au clavier : `focus-visible` les ramene. Une galerie
+     qui ne repond qu'a la souris exclut. */
+  .fleche-galerie {
+    @apply absolute top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center
+           rounded-full border border-trait bg-papier text-encre opacity-0 shadow-sm
+           transition-opacity duration-150
+           group-hover:opacity-100 focus-visible:opacity-100 hover:bg-atelier;
+  }
+
   /* ── L'impression : facture et bon de preparation (D-78, D-82) ───── */
   /* `feuille` marque le document a imprimer, `sans-impression` tout ce qui
      sert a naviguer. La regle d'impression tient en une phrase : une facture

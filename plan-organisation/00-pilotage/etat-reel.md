@@ -305,3 +305,40 @@ Déclarer un scénario absent n'est pas un aveu de faiblesse : les douze le sont
 pour deux raisons seulement — une tâche planifiée qu'on n'héberge pas au MVP
 ([D-19](journal-decisions.md)), ou un service payant qu'on ne branche pas
 ([D-18](journal-decisions.md)).
+
+
+---
+
+## Les médias d'une fiche produit
+
+Le modèle prévoyait six photos depuis [D-24](journal-decisions.md), le
+peuplement n'en posait **qu'une**. Chaque produit en a désormais **quatre**,
+plus un aperçu animé.
+
+| Média | Comment il est obtenu | Poids |
+|---|---|---|
+| Photo d'ensemble | téléchargée, ou fabriquée hors ligne | ~50 Ko |
+| Détail, matière, mise en situation | **recadrages** de la photo source | ~35 Ko chacun |
+| Aperçu animé | WebP animé, 8 images, lent zoom aller-retour | ~100 Ko |
+
+Deux honnêtetés à garder en tête, et elles sont écrites dans le code :
+
+- **les trois vues supplémentaires sont dérivées**, pas photographiées. Ce que
+  la démonstration prouve, c'est que la galerie, ses vignettes, ses flèches et
+  sa navigation au clavier fonctionnent ;
+- **l'aperçu n'est pas une vidéo.** `ffmpeg` n'est pas disponible et le projet
+  doit tourner sans dépendance externe ([D-112](journal-decisions.md)). Le
+  champ `Produit.video_url` accepte les deux, et `apercu.genre` dit au front
+  lequel il reçoit.
+
+Total sur disque : **6,4 Mo** pour 25 produits, soit 125 fichiers. Le dossier
+`backend/media/` n'est pas versionné ; en ligne, Cloudinary les sert
+([D-19](journal-decisions.md)).
+
+### Un défaut trouvé dans le même passage
+
+Les écrans publics utilisaient les couleurs brutes de Tailwind là où tout le
+reste du projet passe par les jetons de la maquette. Le badge du mode de
+livraison s'écrivait `text-amber-300` sur `bg-amber-500/15` : **du clair sur du
+clair**, exactement la maladie du bloc J. Les quatre écrans publics sont
+convertis ([D-113](journal-decisions.md)).

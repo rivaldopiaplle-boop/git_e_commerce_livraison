@@ -47,6 +47,13 @@ class Produit(models.Model):
     # Reserve pendant qu'un paiement est en cours (D-15) : le stock reellement
     # commandable vaut stock_disponible - stock_reserve.
     stock_reserve = models.PositiveIntegerField(default=0)
+
+    # Un apercu anime ou une courte video (D-24, contrat-medias). Une photo
+    # ne dit pas la taille d'un objet ni la texture d'un plat ; c'est
+    # exactement ce qu'une place de marche ajoute quand elle veut vendre.
+    # Le champ accepte les deux : le front joue une video s'il en recoit une,
+    # et affiche une image animee sinon.
+    video_url = models.CharField(max_length=500, blank=True)
     seuil_alerte = models.PositiveIntegerField(default=5)
 
     est_visible = models.BooleanField(default=True, help_text="Masquage par le vendeur.")
