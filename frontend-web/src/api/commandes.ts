@@ -33,6 +33,10 @@ export type SousCommande = {
    *  postal : il prepare un colis, il n'a pas a connaitre l'etage de
    *  quelqu'un. Le livreur, lui, recoit l'adresse complete. */
   destination?: { ville: string; code_postal: string } | null
+  /** Qui a fait avancer cette commande, et quand (D-80). Le vendeur et son
+   *  personnel travaillaient sur la meme file sans jamais savoir lequel des
+   *  deux avait deja agi. */
+  dernier_acte?: { qui: string; quand: string; statut: string } | null
 }
 
 export type Commande = {

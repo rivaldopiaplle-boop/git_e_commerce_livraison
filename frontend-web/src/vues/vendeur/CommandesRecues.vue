@@ -10,7 +10,7 @@
 // n'a pas à connaître la machine à états, il affiche ce qu'on lui donne.
 // C'est ce qui garantit qu'un vendeur ne saute jamais une étape.
 import {
-  AlertTriangle, Bike, Check, ClipboardList, Eye, MapPin, Package, X,
+  AlertTriangle, Bike, Check, ClipboardList, Eye, MapPin, Package, UserRound, X,
 } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
@@ -104,6 +104,16 @@ const colonnes: Colonne<Ligne>[] = [
 
 const euros = (centimes: number) =>
   (centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+
+/** « il y a deux heures » plutot qu'une date : c'est la fraicheur qui compte. */
+function depuis(quand: string) {
+  const minutes = Math.round((Date.now() - new Date(quand).getTime()) / 60_000)
+  if (minutes < 1) return 'a l\'instant'
+  if (minutes < 60) return `il y a ${minutes} min`
+  const heures = Math.round(minutes / 60)
+  if (heures < 24) return `il y a ${heures} h`
+  return new Date(quand).toLocaleDateString('fr-FR')
+}
 </script>
 
 <template>
@@ -144,9 +154,18 @@ const euros = (centimes: number) =>
         </b>
       </template>
       <template #col-articles="{ ligne }">
-        <span class="min-w-0 truncate text-encre-douce">
+        <span class="block min-w-0 truncate text-encre-douce">
           {{ ligne.lignes.reduce((total, l) => total + l.quantite, 0) }} article(s) —
           {{ ligne.lignes.map((l) => l.nom_produit_capture).join(', ') }}
+        </span>
+        <!-- Qui a deja agi (D-80). Le vendeur et son personnel travaillaient
+             sur la meme file sans savoir lequel des deux l'avait prise. -->
+        <span
+          v-if="ligne.dernier_acte"
+          class="mt-0.5 flex items-center gap-1 text-[11px] text-encre-douce"
+        >
+          <UserRound :size="10" class="shrink-0" />
+          {{ ligne.dernier_acte.qui }}, {{ depuis(ligne.dernier_acte.quand) }}
         </span>
       </template>
       <template #col-destination="{ ligne }">

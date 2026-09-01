@@ -473,3 +473,39 @@ second recevait les instructions de porte du client.
 Une nuance assumée par rapport à [D-74](journal-decisions.md) : l'entrepôt voit
 la **rue**, que D-74 ne lui donnait pas. Monter une tournée sans les rues
 reviendrait à ordonner les arrêts au hasard ([D-123](journal-decisions.md)).
+
+
+---
+
+## Le vendeur et son personnel
+
+Tu disais qu'ils *« se marchent sur les pieds »*. En le vérifiant, le défaut
+s'est révélé plus profond que l'affichage.
+
+### Un défaut de modélisation
+
+Faire avancer une préparation écrivait dans l'historique
+`type_objet="COMMANDE"`, avec un **statut de préparation** et l'identifiant de
+la **commande**. Sur une commande Standard à trois boutiques, les trois
+vendeurs y écrivaient trois statuts sans rapport entre eux, sur la même ligne
+d'objet ([D-124](journal-decisions.md)).
+
+Corrigé au-delà du cas : `_synchroniser_commande` faisait passer la commande de
+« payée » à « prête » **en silence**, contre [D-95](journal-decisions.md). Elle
+écrit désormais sa propre ligne d'historique.
+
+### Ce que chacun voit de l'autre
+
+| Écran | Ce qui apparaît |
+|---|---|
+| Commandes reçues | « Nadia, il y a 2 h » sous chaque ligne déjà touchée |
+| Mon personnel | commandes préparées, ajustements faits, dernière action |
+| Barre latérale | la pastille descend quand l'un des deux a préparé |
+
+Le compte se fait en **une requête pour toute la liste**. Une requête par ligne
+serait invisible sur cinq commandes et insupportable sur trois cents.
+
+Dix tests verrouillent l'ensemble, dont trois sur le cloisonnement : un vendeur
+ne fait pas avancer la part d'une autre boutique (404), il ne voit que son
+propre personnel, et une commande Standard ne passe « prête » que lorsque
+**toutes** ses parts le sont.

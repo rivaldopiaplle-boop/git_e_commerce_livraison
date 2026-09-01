@@ -11,7 +11,14 @@ from comptes.models import Adresse, AdresseClient
 from comptes.permissions import EstClient, EstVendeurOuSonPersonnel
 
 from .decoupage import PanierInvalide, apercu, decouper
-from .models import Commande, HistoriqueStatut, SousCommande, StatutCommande, StatutPreparation
+from .models import (
+    Commande,
+    HistoriqueStatut,
+    SousCommande,
+    StatutCommande,
+    StatutPreparation,
+    TypeObjetSuivi,
+)
 from .serializers_commande import CommandeSerializer, SousCommandeSerializer
 from .services import panier_courant
 
@@ -212,6 +219,25 @@ def commandes_recues(requete):
         .order_by("-commande__date_commande")
     )
 
+    # Le dernier changement de statut de chaque sous-commande, en UNE requete.
+    # Une par ligne serait invisible sur cinq commandes et insupportable sur
+    # trois cents.
+    derniers_actes = {}
+    for entree in (
+        HistoriqueStatut.objects.filter(
+            type_objet="SOUS_COMMANDE",
+            id_objet__in=[sous.id for sous in sous_commandes],
+        )
+        .select_related("utilisateur")
+        .order_by("id_objet", "-date_changement")
+    ):
+        derniers_actes.setdefault(entree.id_objet, {
+            "qui": (f"{entree.utilisateur.prenom} {entree.utilisateur.nom}".strip()
+                    if entree.utilisateur else "le systeme"),
+            "quand": entree.date_changement,
+            "statut": entree.statut_apres,
+        })
+
     return Response({"data": [
         {
             **SousCommandeSerializer(sous, context={"request": requete}).data,
@@ -224,6 +250,10 @@ def commandes_recues(requete):
             # ville il expediait : ni la rue ni les instructions, il prepare un
             # colis, il n'a pas a connaitre l'etage de quelqu'un.
             "destination": adresse_pour(VENDEUR, sous.commande.adresse_livraison),
+            # Qui a fait avancer cette commande, et quand (D-80). Le vendeur et
+            # son personnel travaillaient sur la meme file sans jamais savoir
+            # lequel des deux avait deja agi.
+            "dernier_acte": derniers_actes.get(sous.id),
         }
         for sous in sous_commandes
     ]})
@@ -259,15 +289,18 @@ def avancer_preparation(requete, identifiant):
     sous.statut_preparation = vise
     sous.save(update_fields=["statut_preparation"])
 
+    # La trace porte sur la SOUS-commande : c'est elle qui a un statut de
+    # preparation. L'ecrire sur la commande melangeait les avancements de trois
+    # boutiques differentes sur une commande Standard multi-vendeur.
     HistoriqueStatut.objects.create(
-        type_objet="COMMANDE", id_objet=sous.commande_id,
+        type_objet=TypeObjetSuivi.SOUS_COMMANDE, id_objet=sous.id,
         statut_avant=avant, statut_apres=vise, utilisateur=utilisateur,
         commentaire=f"Preparation chez {sous.vendeur.nom_boutique}",
     )
 
     # La commande suit quand toutes ses parts sont pretes : c'est ce qui
     # declenchera l'attribution d'un livreur.
-    _synchroniser_commande(sous.commande)
+    _synchroniser_commande(sous.commande, utilisateur)
 
     return Response({"data": {
         **SousCommandeSerializer(sous, context={"request": requete}).data,
@@ -275,7 +308,14 @@ def avancer_preparation(requete, identifiant):
     }})
 
 
-def _synchroniser_commande(commande):
+def _synchroniser_commande(commande, utilisateur=None):
+    """La commande suit ses sous-commandes, et le dit dans son historique.
+
+    Le changement etait applique en silence : le client voyait sa commande
+    passer de « payee » a « prete » sans qu'aucune ligne d'historique ne
+    l'explique. « Jamais de statut modifie en silence » est pourtant la
+    premiere phrase du modele (D-95).
+    """
     statuts = set(commande.sous_commandes.values_list("statut_preparation", flat=True))
     if statuts <= {StatutPreparation.PRETE, StatutPreparation.EXPEDIEE}:
         nouveau = StatutCommande.PRETE
@@ -284,6 +324,14 @@ def _synchroniser_commande(commande):
     else:
         return
 
-    if commande.statut_actuel != nouveau:
-        commande.statut_actuel = nouveau
-        commande.save(update_fields=["statut_actuel"])
+    if commande.statut_actuel == nouveau:
+        return
+
+    avant = commande.statut_actuel
+    commande.statut_actuel = nouveau
+    commande.save(update_fields=["statut_actuel"])
+    HistoriqueStatut.objects.create(
+        type_objet=TypeObjetSuivi.COMMANDE, id_objet=commande.id,
+        statut_avant=avant, statut_apres=nouveau, utilisateur=utilisateur,
+        commentaire="Suit l'avancement des boutiques",
+    )

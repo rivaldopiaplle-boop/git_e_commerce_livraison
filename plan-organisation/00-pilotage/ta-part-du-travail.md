@@ -188,6 +188,32 @@ diffusée à toute la chaîne est une donnée personnelle exposée sans nécessi
 Huit tests le verrouillent **dans les deux sens** — chacun reçoit ce dont il a
 besoin, et personne ne reçoit plus.
 
+## Le vendeur et son gestionnaire ne se marchent plus sur les pieds
+
+Tu disais (L-3) : *« le vendeur et le gestionnaire se marchent sur les pieds,
+ne sont pas complémentaires, et les actions de l'un ne sont pas mises à jour
+chez l'autre »*. En le vérifiant, j'ai trouvé un défaut plus profond que
+l'affichage.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **38** | **`nadia@exemple.fr` → À préparer.** Fais avancer une commande | 2 min | — |
+| **39** | **Reconnecte-toi en `sophie@exemple.fr` → Commandes reçues.** Sous la ligne : « **Test Nadia, il y a 2 min** ». Avant, les deux pouvaient préparer la même commande sans le savoir | 2 min | D-125 |
+| **40** | **→ Mon personnel.** Tu vois ce que Nadia a **réellement fait** : commandes préparées, ajustements de stock, dernière action | 2 min | D-125 |
+| **41** | **Regarde la pastille de « Commandes reçues »** dans la barre latérale : elle a baissé toute seule | 1 min | D-114 |
+
+### Le défaut de fond, et il ne se voyait pas
+
+Faire avancer une préparation écrivait la trace sur la **commande**, avec
+l'identifiant de la commande. Sur une commande Standard à trois boutiques, les
+trois vendeurs y écrivaient trois statuts de préparation sans rapport entre eux
+— et rien ne disait ensuite lequel concernait qui. C'est précisément la
+confusion que tu décrivais.
+
+Et au passage : la commande passait de « payée » à « prête » **en silence**. Tu
+voyais ton état changer sans qu'aucune ligne d'historique ne l'explique, alors
+que « jamais de statut modifié en silence » est la première phrase du modèle.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

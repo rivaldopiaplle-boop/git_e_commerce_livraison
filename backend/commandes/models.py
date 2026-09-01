@@ -171,13 +171,18 @@ class LigneCommande(models.Model):
 
 class TypeObjetSuivi(models.TextChoices):
     COMMANDE = "COMMANDE", "Commande"
+    # La preparation appartient a la SOUS-commande, pas a la commande. Elle
+    # etait enregistree sur la commande, si bien que trois vendeurs d'une meme
+    # commande Standard y ecrivaient trois statuts de preparation sans rapport
+    # entre eux : impossible de dire ensuite lequel concernait quelle boutique.
+    SOUS_COMMANDE = "SOUS_COMMANDE", "Sous-commande"
     LIVRAISON = "LIVRAISON", "Livraison"
 
 
 class HistoriqueStatut(models.Model):
     """Qui a change quoi, quand, et pourquoi. Jamais de statut modifie en silence."""
 
-    type_objet = models.CharField(max_length=12, choices=TypeObjetSuivi.choices)
+    type_objet = models.CharField(max_length=14, choices=TypeObjetSuivi.choices)
     id_objet = models.PositiveIntegerField()
     statut_avant = models.CharField(max_length=25, blank=True)
     statut_apres = models.CharField(max_length=25)

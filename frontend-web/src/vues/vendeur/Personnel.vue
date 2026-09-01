@@ -69,8 +69,10 @@ const quand = (date: string | null) =>
 
 const colonnes: Colonne<Ligne>[] = [
   { cle: 'personne', titre: 'Employé' },
-  { cle: 'droits', titre: 'Droits', masquerSous: 'sm' },
-  { cle: 'connexion', titre: 'Dernière visite', masquerSous: 'md' },
+  // Ce qu'il a REELLEMENT fait (D-80) : le vendeur avait un employé et aucun
+  // moyen de savoir ce qu'il faisait de ses journées.
+  { cle: 'activite', titre: 'Son travail', masquerSous: 'sm' },
+  { cle: 'connexion', titre: 'Dernière action', masquerSous: 'md' },
   { cle: 'statut', titre: 'Accès', largeur: 110, aligne: 'centre' },
 ]
 
@@ -173,12 +175,21 @@ async function confirmerBascule() {
         </span>
       </template>
 
-      <template #col-droits>
-        <span class="badge badge-cours">préparation + stock</span>
+      <template #col-activite="{ ligne }">
+        <span class="flex flex-wrap items-center gap-1.5">
+          <span class="badge badge-cours">
+            {{ ligne.commandes_preparees ?? 0 }} commande(s) préparée(s)
+          </span>
+          <span class="badge badge-neutre">
+            {{ ligne.ajustements_stock ?? 0 }} ajustement(s)
+          </span>
+        </span>
       </template>
 
       <template #col-connexion="{ ligne }">
-        <span class="text-encre-douce">{{ quand(ligne.derniere_connexion) }}</span>
+        <span class="text-encre-douce">
+          {{ ligne.derniere_action ? quand(ligne.derniere_action) : 'aucune action' }}
+        </span>
       </template>
 
       <template #col-statut="{ ligne }">
@@ -222,13 +233,25 @@ async function confirmerBascule() {
       ? `${selection.utilisateur.prenom} ${selection.utilisateur.nom}`
       : 'Droits du personnel'">
       <div class="flex flex-col gap-4 p-4 text-[12.5px]">
-        <div v-if="selection" class="kpi">
-          <div class="kpi-nombre">{{ selection.actif ? 'Actif' : 'Suspendu' }}</div>
-          <div class="kpi-libelle">
-            Dernière visite : {{ quand(selection.derniere_connexion) }}
+        <template v-if="selection">
+          <div class="kpi">
+            <div class="kpi-nombre">{{ selection.actif ? 'Actif' : 'Suspendu' }}</div>
+            <div class="kpi-libelle">
+              Dernière visite : {{ quand(selection.derniere_connexion) }}
+            </div>
           </div>
-        </div>
-        <div v-else class="kpi">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="kpi">
+              <div class="kpi-nombre">{{ selection.commandes_preparees ?? 0 }}</div>
+              <div class="kpi-libelle">Commandes préparées</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-nombre">{{ selection.ajustements_stock ?? 0 }}</div>
+              <div class="kpi-libelle">Ajustements de stock</div>
+            </div>
+          </div>
+        </template>
+        <div v-if="!selection" class="kpi">
           <div class="kpi-nombre">{{ actifs }} / {{ personnel.length }}</div>
           <div class="kpi-libelle">Comptes actifs</div>
         </div>

@@ -1730,3 +1730,52 @@ second recevait « code portail 4512, 3e étage ».
 
 Huit tests verrouillent le cloisonnement **dans les deux sens** : chacun reçoit
 ce dont il a besoin, et personne ne reçoit plus.
+
+
+### D-124 — La préparation appartient à la sous-commande, pas à la commande
+
+Défaut de modélisation trouvé en appliquant
+[D-80](#d-80--le-vendeur-voit-ce-que-son-personnel-a-fait-et-réciproquement) :
+faire avancer une préparation écrivait dans l'historique
+`type_objet="COMMANDE"`, avec un **statut de préparation** et l'identifiant de
+la **commande**.
+
+Sur une commande Standard à trois boutiques, les trois vendeurs y écrivaient
+donc trois statuts de préparation sans rapport entre eux, sur la même ligne
+d'objet. Rien ne disait ensuite lequel concernait quelle boutique — et c'est
+exactement la confusion que tu décrivais en disant que *« le vendeur et le
+gestionnaire se marchent sur les pieds »*.
+
+`TypeObjetSuivi` gagne `SOUS_COMMANDE`, et la trace y va. Le champ passe de 12
+à 14 caractères pour l'accueillir.
+
+Une conséquence qui n'était pas prévue : `_synchroniser_commande` faisait
+passer la commande de « payée » à « prête » **en silence**. Le client voyait sa
+commande changer d'état sans qu'aucune ligne d'historique ne l'explique, alors
+que la première phrase du modèle est *« jamais de statut modifié en silence »*
+([D-95](#d-95--toute-action-sensible-laisse-une-trace)). Elle écrit désormais
+sa propre ligne.
+
+### D-125 — Chacun voit ce que l'autre a fait, en toutes lettres
+
+Le vendeur et son personnel partagent la même file de commandes, et **aucun ne
+disait qui avait agi**. Deux personnes pouvaient préparer la même commande sans
+le savoir.
+
+Deux ajouts, un dans chaque sens :
+
+| Écran | Ce qui apparaît | Pourquoi |
+|---|---|---|
+| Commandes reçues | « Nadia, il y a 2 h » sous chaque ligne déjà touchée | on ne prend pas une commande que quelqu'un a déjà prise |
+| Mon personnel | commandes préparées, ajustements faits, dernière action | le vendeur avait un employé et aucun moyen de savoir ce qu'il faisait |
+
+Le compte se fait en **une requête pour toute la liste**, pas une par ligne :
+invisible sur cinq commandes, insupportable sur trois cents.
+
+« il y a 2 h » et non une date : sur une file de travail, c'est la **fraîcheur**
+qui décide si on prend la commande ou pas, pas le jour.
+
+Les compteurs de la barre latérale
+([D-114](#d-114--la-barre-latérale-dit-ce-qui-attend-elle-ne-liste-pas-des-écrans))
+ferment la boucle : préparer une commande chez l'un fait descendre la pastille
+chez l'autre au changement d'écran suivant.

@@ -21,6 +21,11 @@ export type MembrePersonnel = {
   id: number
   utilisateur: { id: number; email: string; nom: string; prenom: string; role: string }
   date_embauche: string | null
+  // Ce que l'employe a REELLEMENT fait (D-80). Le vendeur avait un employe et
+  // aucun moyen de savoir ce qu'il faisait de ses journees.
+  commandes_preparees?: number
+  ajustements_stock?: number
+  derniere_action?: string | null
 }
 
 export type Statistiques = {

@@ -11,7 +11,7 @@ Le decoupage suit la matrice des droits de `01-produit/roles-et-parcours.md`,
 et il est verifie **cote serveur** : cacher une entree de menu n'a jamais ete
 une permission (scenario 14.1).
 """
-from django.db.models import Avg, Count, Q, Sum
+from django.db.models import Avg, Count, Max, Q, Sum
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -126,13 +126,43 @@ def mon_personnel(requete):
     if profil is None:
         return Response({"data": {"personnel": [], "acces": []}})
 
+    from catalogue.models import MouvementStock
+    from commandes.models import HistoriqueStatut
+
     personnel = Gestionnaire.objects.filter(vendeur=profil).select_related("utilisateur")
+
+    # Ce que chaque employe a REELLEMENT fait (D-80). « Le vendeur et le
+    # gestionnaire se marchent sur les pieds, et les actions de l'un ne sont
+    # pas mises a jour chez l'autre » : les deux ecrans affichaient les memes
+    # compteurs et aucun ne disait QUI avait agi.
+    comptes = [gestionnaire.utilisateur_id for gestionnaire in personnel]
+    ajustements = dict(
+        MouvementStock.objects.filter(auteur_id__in=comptes)
+        .values_list("auteur_id")
+        .annotate(nombre=Count("id"))
+    )
+    preparations = dict(
+        HistoriqueStatut.objects.filter(
+            utilisateur_id__in=comptes, type_objet="SOUS_COMMANDE"
+        )
+        .values_list("utilisateur_id")
+        .annotate(nombre=Count("id"))
+    )
+    dernieres = dict(
+        MouvementStock.objects.filter(auteur_id__in=comptes)
+        .values_list("auteur_id")
+        .annotate(quand=Max("date_mouvement"))
+    )
+
     return Response({"data": {
         "personnel": [
             {
                 "id": gestionnaire.id,
                 "utilisateur": UtilisateurSerializer(gestionnaire.utilisateur).data,
                 "date_embauche": gestionnaire.date_embauche,
+                "commandes_preparees": preparations.get(gestionnaire.utilisateur_id, 0),
+                "ajustements_stock": ajustements.get(gestionnaire.utilisateur_id, 0),
+                "derniere_action": dernieres.get(gestionnaire.utilisateur_id),
                 # L'ecran doit pouvoir dire d'un coup d'oeil qui peut encore
                 # entrer. Sans ce champ, un compte suspendu ressemblait a un
                 # compte actif, et le vendeur n'avait aucun moyen de le voir.
