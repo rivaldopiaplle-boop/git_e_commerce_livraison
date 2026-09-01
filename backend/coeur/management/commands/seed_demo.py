@@ -39,6 +39,26 @@ from livraisons.models import Entrepot, ZoneLivraison
 MOT_DE_PASSE_DEMO = "Demonstration!2026"
 
 
+def adresse_unique(rue, code_postal, ville, **defauts):
+    """Retrouver une adresse par sa rue, ou la creer.
+
+    `Adresse.objects.get_or_create` explosait ici (`MultipleObjectsReturned`)
+    des qu'une deuxieme adresse partageait la meme rue — ce qui arrive des
+    qu'un client en saisit une au tunnel de commande. Le peuplement doit
+    pouvoir se relancer sur une base vecue, pas seulement sur une base neuve.
+    """
+    existante = (
+        Adresse.objects.filter(rue=rue, code_postal=code_postal, ville=ville)
+        .order_by("id")
+        .first()
+    )
+    if existante is not None:
+        return existante, False
+    return Adresse.objects.create(
+        rue=rue, code_postal=code_postal, ville=ville, **defauts
+    ), True
+
+
 class Command(BaseCommand):
     help = "Cree les comptes et les lieux de demonstration."
 
@@ -64,9 +84,9 @@ class Command(BaseCommand):
             return compte, True
 
         # ── Les lieux ────────────────────────────────────────────────────
-        adresse_entrepot, _ = Adresse.objects.get_or_create(
+        adresse_entrepot, _ = adresse_unique(
             rue="12 rue de la Logistique", code_postal="69100", ville="Villeurbanne",
-            defaults={"libelle": "Entrepot Est", "latitude": 45.7719, "longitude": 4.8902},
+            libelle="Entrepot Est", latitude=45.7719, longitude=4.8902,
         )
         entrepot, _ = Entrepot.objects.get_or_create(
             nom="Entrepot Lyon-Est",
@@ -94,9 +114,9 @@ class Command(BaseCommand):
         # Un second entrepot, dans une autre region : c'est la seule facon de
         # montrer qu'une tournee appartient a un entrepot et pas a la
         # plateforme entiere.
-        adresse_entrepot_sud, _ = Adresse.objects.get_or_create(
+        adresse_entrepot_sud, _ = adresse_unique(
             rue="45 chemin des Docks", code_postal="13015", ville="Marseille",
-            defaults={"libelle": "Entrepot Sud", "latitude": 43.3520, "longitude": 5.3480},
+            libelle="Entrepot Sud", latitude=43.3520, longitude=5.3480,
         )
         entrepot_sud, _ = Entrepot.objects.get_or_create(
             nom="Entrepot Marseille-Nord",
@@ -115,12 +135,10 @@ class Command(BaseCommand):
         # ── Lea, cliente ─────────────────────────────────────────────────
         compte_lea, neuf = utilisateur("lea@exemple.fr", "Lea", "Martin", Role.CLIENT)
         client_lea, _ = Client.objects.get_or_create(utilisateur=compte_lea)
-        adresse_lea, _ = Adresse.objects.get_or_create(
+        adresse_lea, _ = adresse_unique(
             rue="8 rue Victor Hugo", code_postal="69002", ville="Lyon",
-            defaults={
-                "libelle": "Domicile", "latitude": 45.7550, "longitude": 4.8320,
-                "zone": zone, "instructions_livraison": "Code portail 4512, 3e etage.",
-            },
+            libelle="Domicile", latitude=45.7550, longitude=4.8320, zone=zone,
+            instructions_livraison="Code portail 4512, 3e etage.",
         )
         client_lea.adresses.through.objects.get_or_create(
             client=client_lea, adresse=adresse_lea, defaults={"est_principale": True}
@@ -128,10 +146,9 @@ class Command(BaseCommand):
 
         # ── Karim, vendeur Express — et Nadia, son personnel ─────────────
         compte_karim, _ = utilisateur("karim@exemple.fr", "Karim", "Benali", Role.VENDEUR)
-        adresse_karim, _ = Adresse.objects.get_or_create(
+        adresse_karim, _ = adresse_unique(
             rue="24 cours Gambetta", code_postal="69003", ville="Lyon",
-            defaults={"libelle": "Chez Karim", "latitude": 45.7545, "longitude": 4.8480,
-                      "zone": zone},
+            libelle="Chez Karim", latitude=45.7545, longitude=4.8480, zone=zone,
         )
         vendeur_karim, _ = Vendeur.objects.get_or_create(
             utilisateur=compte_karim,
@@ -151,10 +168,9 @@ class Command(BaseCommand):
 
         # ── Sophie, vendeuse Standard ────────────────────────────────────
         compte_sophie, _ = utilisateur("sophie@exemple.fr", "Sophie", "Leroy", Role.VENDEUR)
-        adresse_sophie, _ = Adresse.objects.get_or_create(
+        adresse_sophie, _ = adresse_unique(
             rue="5 avenue Jean Jaures", code_postal="69007", ville="Lyon",
-            defaults={"libelle": "TechSophie", "latitude": 45.7420, "longitude": 4.8410,
-                      "zone": zone},
+            libelle="TechSophie", latitude=45.7420, longitude=4.8410, zone=zone,
         )
         Vendeur.objects.get_or_create(
             utilisateur=compte_sophie,
@@ -205,10 +221,10 @@ class Command(BaseCommand):
                    instructions=""):
             compte, _ = utilisateur(email, prenom, nom, Role.CLIENT)
             profil, _ = Client.objects.get_or_create(utilisateur=compte)
-            adresse, _ = Adresse.objects.get_or_create(
+            adresse, _ = adresse_unique(
                 rue=rue, code_postal=cp, ville=ville,
-                defaults={"libelle": "Domicile", "latitude": lat, "longitude": lon,
-                          "zone": zone_client, "instructions_livraison": instructions},
+                libelle="Domicile", latitude=lat, longitude=lon,
+                zone=zone_client, instructions_livraison=instructions,
             )
             profil.adresses.through.objects.get_or_create(
                 client=profil, adresse=adresse, defaults={"est_principale": True}
@@ -226,10 +242,10 @@ class Command(BaseCommand):
 
         # Une deuxieme adresse pour Lea : un carnet d'adresses qui n'en
         # contient qu'une ne se demontre pas.
-        adresse_bureau, _ = Adresse.objects.get_or_create(
+        adresse_bureau, _ = adresse_unique(
             rue="52 rue de la Republique", code_postal="69002", ville="Lyon",
-            defaults={"libelle": "Bureau", "latitude": 45.7620, "longitude": 4.8360,
-                      "zone": zone, "instructions_livraison": "Accueil du 2e etage."},
+            libelle="Bureau", latitude=45.7620, longitude=4.8360, zone=zone,
+            instructions_livraison="Accueil du 2e etage.",
         )
         client_lea.adresses.through.objects.get_or_create(
             client=client_lea, adresse=adresse_bureau, defaults={"est_principale": False}
@@ -240,9 +256,9 @@ class Command(BaseCommand):
                      statut=StatutValidation.VALIDE, description="", rayon=6,
                      statut_compte=StatutCompte.ACTIF):
             compte, _ = utilisateur(email, prenom, nom, Role.VENDEUR, statut_compte)
-            adresse, _ = Adresse.objects.get_or_create(
+            adresse, _ = adresse_unique(
                 rue=rue, code_postal=cp, ville=ville,
-                defaults={"libelle": nom_boutique, "latitude": lat, "longitude": lon},
+                libelle=nom_boutique, latitude=lat, longitude=lon,
             )
             profil, _ = Vendeur.objects.get_or_create(
                 utilisateur=compte,
@@ -273,6 +289,27 @@ class Command(BaseCommand):
                  statut=StatutValidation.REJETE,
                  description="Dossier incomplet : SIRET non verifiable.",
                  statut_compte=StatutCompte.EN_ATTENTE)
+
+        # Un dossier QUI ATTEND. Il manquait, et son absence rendait l'ecran
+        # de validation vide : un administrateur arrivait sur « rien a
+        # valider » et ne pouvait rien demontrer (scenario 14.2).
+        boutique("camille@exemple.fr", "Camille", "Roux", "L Atelier Camille",
+                 TypeService.STANDARD, "22 rue Sergent Blandan", "69001", "Lyon",
+                 45.7720, 4.8320,
+                 statut=StatutValidation.EN_ATTENTE,
+                 description="Ceramique artisanale, pieces uniques. Dossier depose il y a "
+                             "deux jours, en attente de verification du SIRET.",
+                 statut_compte=StatutCompte.EN_ATTENTE)
+
+        # Une boutique SUSPENDUE, et son compte avec : c'est le scenario 10.3,
+        # et c'est aussi la preuve visible qu'on suspend sans supprimer (D-61).
+        # Son catalogue disparait de la vitrine sans que rien ne soit efface.
+        boutique("gaelle@exemple.fr", "Gaelle", "Morvan", "Morvan Primeurs",
+                 TypeService.EXPRESS, "7 rue de la Charite", "69002", "Lyon", 45.7550, 4.8320,
+                 statut=StatutValidation.SUSPENDU,
+                 description="Suspendue le temps d une verification : trois litiges "
+                             "ouverts en deux semaines sur des colis incomplets.",
+                 statut_compte=StatutCompte.SUSPENDU, rayon=5)
 
         # -- Du personnel, des deux cotes ---------------------------------
         vendeur_sophie = Vendeur.objects.filter(nom_boutique="TechSophie").first()

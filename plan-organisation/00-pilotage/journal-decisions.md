@@ -1367,3 +1367,72 @@ il portait deux défauts que la conversion a mis au jour :
 
 La même popup sert à créer et à corriger. C'est le même formulaire, et deux
 formulaires jumeaux finissent toujours par diverger.
+
+
+### D-108 — La couverture du jeu de données se vérifie, elle ne se promet pas
+
+[D-96](#d-96--le-jeu-de-données-rend-visible-chaque-scénario) promettait que
+chaque scénario du dossier produit serait illustré par une donnée. Une promesse
+pareille **se défait en silence** : on ajoute un scénario, personne ne pense au
+peuplement, et six semaines plus tard la démonstration a des trous que personne
+ne sait nommer.
+
+Deux outils, et ils ne font pas le même travail :
+
+| Outil | Ce qu'il vérifie | Quand |
+|---|---|---|
+| `manage.py verifier_couverture` | la **base réelle** : 34 requêtes, une par scénario illustrable | à la main, et dans la CI après le peuplement |
+| `coeur/tests/test_couverture.py` | le **document** : aucun scénario sans ligne, aucune ligne sans contrôle | à chaque exécution des tests |
+
+La séparation est nécessaire : un test tourne sur une base vide, et y vérifier
+des données de démonstration serait absurde. La CI peuple donc une vraie base
+avant d'appeler `verifier_couverture --strict`, ce qui vérifie **aussi** que les
+commandes de peuplement tournent encore — elles ne sont dans aucun test et
+cassent donc en silence.
+
+Le tableau [`donnees-demo/couverture.md`](../donnees-demo/couverture.md)
+distingue trois genres, parce que prétendre que tout se démontre par une donnée
+serait malhonnête : **donnée** (une ligne existe), **règle** (un refus du
+serveur, vérifié par un test nommé), **absent** (pas encore écrit — le dire
+vaut mieux que de le laisser croire couvert).
+
+### D-109 — Le peuplement repose ses cas limites, il ne les pose pas une fois
+
+`seed_catalogue` n'appliquait ses particularités qu'**à la création** du
+produit : le retrait de la vente, les deux ruptures franches, les trois seuils
+d'alerte. Un seul essai à l'écran — remettre en vente un produit retiré,
+réapprovisionner une rupture — les effaçait **définitivement**, et relancer la
+commande n'y changeait rien.
+
+C'est `verifier_couverture` qui l'a trouvé, le jour même où il a été écrit :
+le scénario 4.5 était vide alors que le peuplement prétendait le couvrir.
+
+La règle, plus large que ce fichier : **une commande de peuplement doit
+remettre la démonstration d'aplomb, pas seulement la monter la première fois.**
+Elle n'est plus seulement idempotente au sens de « ne casse rien si on la
+relance » — elle est **réparatrice**.
+
+Trois autres endroits ont reçu le même traitement dans la foulée :
+
+- `seed_activite` **recompte** les réservations de stock au lieu de les
+  remettre à zéro ([D-99](#d-99--la-réservation-de-stock-na-quun-seul-auteur)) ;
+- `seed_demo` retrouve une adresse par sa rue au lieu d'un `get_or_create` qui
+  explosait au premier doublon ;
+- `manage.py liberer_reservations` rend le stock qu'un panier abandonné retient
+  ([D-100](#d-100--une-réservation-expire-au-bout-de-dix-minutes)).
+
+### D-110 — Commander deux fois à la même adresse n'en crée pas deux
+
+Passer commande en saisissant une adresse **créait une ligne de plus à chaque
+fois**, même si la même figurait déjà au carnet. Trois achats depuis chez soi
+donnaient trois adresses rigoureusement identiques, et le tunnel de commande
+proposait trois choix indiscernables.
+
+`_adresse_de_livraison` réutilise désormais une adresse identique du client —
+même rue, même complément, même code postal, même ville, à la casse près.
+
+`manage.py nettoyer_adresses` répare l'existant. Elle **ne supprime rien** sans
+`--pour-de-vrai` : une commande passée pointe vers son adresse de livraison, et
+fusionner mal réécrirait l'histoire d'une livraison. Les commandes sont
+repointées vers l'adresse la plus ancienne — celle que le client a nommée
+lui-même — avant toute suppression.

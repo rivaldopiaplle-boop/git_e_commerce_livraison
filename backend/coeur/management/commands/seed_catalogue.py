@@ -169,6 +169,28 @@ PARTICULARITES = {
 class Command(BaseCommand):
     help = "Cree les categories, les produits et leurs images de demonstration."
 
+    def reposer_particularites(self, produit):
+        """Reappliquer les cas limites d'un produit, meme s'il existe deja.
+
+        Ce sont eux qui rendent visibles les scenarios 4.1, 4.5 et D-06 :
+        un produit retire de la vente, deux ruptures franches, trois seuils
+        d'alerte. Sans cette methode, un seul essai a l'ecran les perdait
+        definitivement.
+        """
+        particularites = PARTICULARITES.get(produit.nom)
+        if not particularites:
+            return
+        change = [
+            champ for champ, valeur in particularites.items()
+            if getattr(produit, champ) != valeur
+        ]
+        if not change:
+            return
+        for champ, valeur in particularites.items():
+            setattr(produit, champ, valeur)
+        produit.save(update_fields=list(particularites))
+        self.stdout.write(f"  {produit.nom} : {', '.join(change)} remis en place.")
+
     def add_arguments(self, analyseur):
         analyseur.add_argument(
             "--hors-ligne",
@@ -212,7 +234,15 @@ class Command(BaseCommand):
                     categorie.save(update_fields=["parente"])
                 categories[nom_categorie] = categorie
 
-            if Produit.objects.filter(vendeur=vendeur, nom=nom).exists():
+            existant = Produit.objects.filter(vendeur=vendeur, nom=nom).first()
+            if existant is not None:
+                # Le produit est la : on ne le recree pas, mais on REPOSE ses
+                # particularites. Elles n'etaient appliquees qu'a la creation,
+                # si bien qu'un essai en cours de route — remettre en vente un
+                # produit retire, reapprovisionner une rupture — les effacait
+                # sans retour possible. Le jeu de demonstration doit se
+                # remettre d'aplomb en une commande (D-96).
+                self.reposer_particularites(existant)
                 continue
 
             produit = Produit.objects.create(
@@ -226,11 +256,7 @@ class Command(BaseCommand):
                 poids_grammes=400 if vendeur.type_activite == "EXPRESS" else 1200,
             )
 
-            particularites = PARTICULARITES.get(nom)
-            if particularites:
-                for champ, valeur in particularites.items():
-                    setattr(produit, champ, valeur)
-                produit.save(update_fields=list(particularites))
+            self.reposer_particularites(produit)
 
             chemin = self.obtenir_image(nom, photo)
             produit.image_principale_url = chemin

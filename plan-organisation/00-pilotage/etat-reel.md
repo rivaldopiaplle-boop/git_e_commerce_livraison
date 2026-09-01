@@ -268,3 +268,40 @@ apparus en la faisant, et c'est en général ce qui arrive quand on regarde un
 Les 47 tests de plus portent tous sur ce qui vient d'être écrit : le paiement
 et sa réservation (18 + 7), le cycle du litige (21), la gestion du personnel
 (8).
+
+
+---
+
+## La couverture du jeu de données, désormais vérifiable
+
+`python manage.py verifier_couverture` interroge la base réelle et rend
+34 lignes, une par scénario illustrable. `coeur/tests/test_couverture.py` garde
+le document et la commande synchronisés. La CI enchaîne les deux : elle peuple
+une vraie base, puis appelle `verifier_couverture --strict`.
+
+Ce second point vaut plus qu'il n'en a l'air : **les commandes de peuplement
+n'étaient dans aucun test**. Elles écrivent en base, ce qu'un test ne fait pas,
+et cassaient donc en silence — un champ renommé, une contrainte ajoutée, et la
+démonstration ne se monte plus. On ne s'en apercevait que le jour où on en avait
+besoin.
+
+### Ce que le contrôle a trouvé le jour même
+
+| Défaut | Ce qu'il coûtait | Corrigé par |
+|---|---|---|
+| `seed_catalogue` n'appliquait ses cas limites qu'à la création | un essai à l'écran effaçait un scénario **pour toujours** | [D-109](journal-decisions.md) |
+| aucune boutique en attente de validation | l'écran de validation de l'admin était vide | `seed_demo` |
+| aucune boutique ni aucun compte suspendu | deux scénarios sur trois de la section 10 invisibles | `seed_demo` |
+| commander créait une adresse à chaque fois | 14 adresses identiques dans le carnet de Léa | [D-110](journal-decisions.md) |
+
+### L'état actuel
+
+Les 34 contrôles sont verts. Le tableau
+[`donnees-demo/couverture.md`](../donnees-demo/couverture.md) couvre les
+53 scénarios du dossier produit : **26 par une donnée**, **15 par une règle
+testée**, **12 déclarés absents** avec leur raison.
+
+Déclarer un scénario absent n'est pas un aveu de faiblesse : les douze le sont
+pour deux raisons seulement — une tâche planifiée qu'on n'héberge pas au MVP
+([D-19](journal-decisions.md)), ou un service payant qu'on ne branche pas
+([D-18](journal-decisions.md)).

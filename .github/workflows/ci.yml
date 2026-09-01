@@ -71,6 +71,32 @@ jobs:
           DEBUG: "true"
         run: pytest -q
 
+      - name: Le jeu de démonstration se peuple, et il couvre les scénarios
+        # Deux choses en une, et les deux comptent.
+        #
+        # D'abord, les commandes de peuplement TOURNENT. Elles ne sont dans
+        # aucun test — elles écrivent en base, ce qu'un test ne fait pas — et
+        # elles cassent donc en silence : un champ renommé, une contrainte
+        # ajoutée, et la démonstration ne se monte plus. On ne s'en aperçoit
+        # que le jour où on en a besoin.
+        #
+        # Ensuite, `verifier_couverture --strict` échoue si un scénario du
+        # dossier produit n'a plus rien à montrer (D-96). Sans lui, la
+        # promesse « chaque scénario est visible » se déferait sans bruit.
+        env:
+          DATABASE_URL: postgresql://rivdinde:rivdinde@localhost:5432/rivdinde_test
+          DJANGO_SECRET_KEY: cle-de-test-sans-valeur
+          DEBUG: "true"
+          DEMO_AUTORISEE: "1"
+        run: |
+          set -e
+          python manage.py migrate --noinput
+          python manage.py seed_admin
+          python manage.py seed_demo
+          python manage.py seed_catalogue --hors-ligne
+          python manage.py seed_activite --refaire
+          python manage.py verifier_couverture --strict
+
   web:
     name: Front web — types + tests + build
     runs-on: ubuntu-latest

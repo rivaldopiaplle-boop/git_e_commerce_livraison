@@ -50,6 +50,35 @@ rôles**. Il en restait quatre au bloc K ; les quatre y sont.
 | **13** | **Léa → Mes adresses.** Tu peux enfin **corriger** une adresse au lieu de l'effacer et la retaper, et **retirer** demande confirmation — avant, un seul clic suffisait | 3 min | D-107 |
 | **14** | **Regarde la barre latérale de chaque rôle** : « Commandes reçues », « Vue d'ensemble », « Tournées », « Demandes d'identité ». Elles étaient toutes écrites sans accents | 1 min | D-105 |
 
+## Le jeu de données, et ce qu'il rend visible
+
+Tu demandais (L-15) *« autant de données que possible pour rendre visible
+chaque scénario »*. Ce n'est plus une promesse, c'est **vérifiable** :
+
+```
+cd backend
+python manage.py verifier_couverture
+```
+
+Il interroge la vraie base et te dit, scénario par scénario, ce qu'il y a à
+montrer. Le tableau lisible est dans
+`plan-organisation/donnees-demo/couverture.md`.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **15** | **Lance `python manage.py verifier_couverture`** depuis `backend/`. Les 34 lignes doivent être vertes | 1 min | D-108 |
+| **16** | **`admin@exemple.fr` → Validations.** Il y a enfin un dossier **qui attend** : « L'Atelier Camille ». L'écran était vide, tu ne pouvais rien démontrer | 2 min | — |
+| **17** | **→ Boutiques.** « Morvan Primeurs » est **suspendue**, et son catalogue a disparu de la vitrine sans que rien ne soit effacé | 2 min | — |
+| **18** | **Léa → Mes adresses.** Elle en avait **quatorze identiques** — mes essais de paiement en créaient une à chaque commande. C'est corrigé à la source, et l'existant est fusionné | 2 min | D-110 |
+
+Ce contrôle a trouvé **trois vrais défauts** le jour ou il a été écrit :
+
+1. `seed_catalogue` n'appliquait ses cas limites qu'à la **création**. Un seul
+   essai à l'écran — remettre en vente un produit retiré — les effaçait pour
+   toujours, et relancer la commande n'y changeait rien ;
+2. l'écran de validation n'avait **aucun dossier en attente** ;
+3. commander deux fois à la même adresse en créait deux.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

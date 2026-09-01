@@ -107,14 +107,30 @@ def _adresse_de_livraison(requete, profil):
 
     nouvelle = requete.data.get("adresse")
     if nouvelle:
-        adresse = Adresse.objects.create(
-            libelle=nouvelle.get("libelle", "Livraison"),
-            rue=nouvelle.get("rue", ""),
-            complement=nouvelle.get("complement", ""),
-            ville=nouvelle.get("ville", ""),
-            code_postal=nouvelle.get("code_postal", ""),
-            instructions_livraison=nouvelle.get("instructions_livraison", ""),
-        )
+        rue = str(nouvelle.get("rue", "")).strip()
+        ville = str(nouvelle.get("ville", "")).strip()
+        code_postal = str(nouvelle.get("code_postal", "")).strip()
+        complement = str(nouvelle.get("complement", "")).strip()
+
+        # On REUTILISE une adresse identique deja au carnet plutot que d'en
+        # creer une copie. Sans cela, commander trois fois chez soi remplissait
+        # le carnet de trois lignes rigoureusement identiques : le client ne
+        # savait plus laquelle choisir, et le tunnel de commande devenait
+        # illisible au bout de quelques achats.
+        adresse = Adresse.objects.filter(
+            clients=profil, rue__iexact=rue, ville__iexact=ville,
+            code_postal=code_postal, complement__iexact=complement,
+        ).first()
+
+        if adresse is None:
+            adresse = Adresse.objects.create(
+                libelle=nouvelle.get("libelle", "Livraison"),
+                rue=rue,
+                complement=complement,
+                ville=ville,
+                code_postal=code_postal,
+                instructions_livraison=nouvelle.get("instructions_livraison", ""),
+            )
         AdresseClient.objects.get_or_create(
             client=profil, adresse=adresse,
             defaults={"est_principale": not profil.adresses.exists()},
