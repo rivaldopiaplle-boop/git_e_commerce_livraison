@@ -55,8 +55,8 @@ git push prive main
 git checkout public-sans-mobile
 git rebase main
 
-# 3. Le public reçoit le tout
-git push origin public-sans-mobile:main
+# 3. Le public reçoit le tout — voir la note sur le --force juste après
+git push --force-with-lease origin public-sans-mobile:main
 
 # 4. On revient travailler
 git checkout main
@@ -66,6 +66,26 @@ git checkout main
 conflit, c'est **toujours** parce qu'un fichier du public s'est remis à parler
 du mobile : `demarrer.py`, `ci.yml`, `README.md` ou le guide de déploiement.
 Corrige, `git rebase --continue`, et c'est fini.
+
+### Pourquoi un `--force-with-lease`, et pourquoi ce n'est pas grave ici
+
+Le rebase **réécrit** le commit de retrait : il en fabrique un nouveau, au-dessus
+du nouveau travail. L'ancien n'est donc plus un ancêtre du nouveau, et un push
+ordinaire est refusé. C'est normal, et c'est la contrepartie du choix
+« une branche à un seul commit ».
+
+Ce qui est réécrit se limite à **ce seul commit mécanique**. Tout l'historique
+réel — celui qui vient de `main` — est identique de part et d'autre et n'est
+jamais touché.
+
+`--force-with-lease` plutôt que `--force` : il **refuse** si le dépôt distant a
+bougé depuis ton dernier `fetch`. Un `--force` sec écraserait ce changement sans
+rien dire ; c'est exactement la commande qui fait perdre du travail.
+
+> **La conséquence, à connaître** : si tu clones un jour le dépôt **public**
+> ailleurs et que tu y travailles, le prochain rebase effacera ce travail. Le
+> public est une **cible de publication**, pas un espace de travail. C'est le
+> même piège que celui de la fin de ce document, sous un autre angle.
 
 ### Si les remotes manquent
 

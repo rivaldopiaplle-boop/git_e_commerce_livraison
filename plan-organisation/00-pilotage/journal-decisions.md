@@ -2043,6 +2043,19 @@ front, dossier de conception, guides — sauf `frontend-mobile/`.
 commandes, avec son piège : **on ne travaille jamais sur la branche publique**,
 tout ce qui y serait écrit disparaîtrait au prochain rebase.
 
+**La contrepartie, trouvée en rejouant la procédure** : le rebase réécrit le
+commit de retrait, donc la publication vers le public demande un
+`--force-with-lease`. Ce qui est réécrit se limite à **ce seul commit
+mécanique** ; tout l'historique réel vient de `main` et n'est jamais touché.
+
+`--force-with-lease` et non `--force` : il refuse si le dépôt distant a bougé
+depuis le dernier `fetch`. Un `--force` sec écraserait ce changement sans rien
+dire, et c'est exactement la commande qui fait perdre du travail.
+
+La première rédaction de la procédure omettait ce détail. Elle a été corrigée
+après l'avoir **rejouée en vrai** : une procédure écrite sans être exécutée est
+une procédure fausse quelque part.
+
 ### D-137 — Retirer du code ne retire pas la décision qui l'explique
 
 En retirant le mobile du dépôt public, la tentation était d'effacer aussi
