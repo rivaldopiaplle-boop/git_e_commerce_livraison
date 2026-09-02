@@ -144,8 +144,139 @@ CATALOGUE = [
     ("Marseille Grill", "Entrees", "Assiette de mezze",
      "Six entrees a partager, preparees le matin.",
      1190, 15, ("flickr", "mezze,hummus,appetizer", 3)),
-]
+    # ── Rallonge du catalogue (M-0) ─────────────────────────────────────
+    #
+    # Vingt-quatre produits, c'est trop peu pour eprouver ce que le catalogue
+    # sait faire : la recherche rendait toujours tout, les facettes n'ecartaient
+    # rien, la pagination ne se declenchait jamais, et le graphe des ventes
+    # tenait sur trois barres.
+    #
+    # Les prix et les stocks sont VARIES a dessein : un catalogue ou tout coute
+    # entre 10 et 20 euros ne permet pas d'essayer un tri par prix, et un
+    # catalogue ou tout est en stock ne montre jamais une rupture.
 
+    # -- Chez Karim, Express : une carte de restaurant credible --------
+    ("Chez Karim", "Plats", "Poke bowl saumon",
+     "Riz vinaigre, saumon label rouge, edamame, sesame.",
+     1390, 24, ("flickr", "poke,bowl", 5)),
+    ("Chez Karim", "Plats", "Curry de legumes",
+     "Lait de coco, patate douce, pois chiches. Vegetalien.",
+     1190, 30, ("flickr", "curry,vegetables", 7)),
+    ("Chez Karim", "Plats", "Wrap poulet grille",
+     "Galette de ble, poulet marine, crudites, sauce yaourt.",
+     990, 45, ("flickr", "wrap,chicken", 11)),
+    ("Chez Karim", "Entrees", "Soupe du jour",
+     "Legumes de saison, changee chaque matin.",
+     590, 18, ("flickr", "soup,bowl", 13)),
+    ("Chez Karim", "Entrees", "Salade cesar",
+     "Sucrine, parmesan, croutons maison, anchois.",
+     890, 26, ("flickr", "caesar,salad", 17)),
+    ("Chez Karim", "Desserts", "Fondant au chocolat",
+     "Coeur coulant, chocolat 70 %, servi tiede.",
+     650, 20, ("flickr", "chocolate,cake", 19)),
+    ("Chez Karim", "Desserts", "Panna cotta fruits rouges",
+     "Creme infusee a la vanille, coulis de fruits rouges.",
+     590, 15, ("flickr", "pannacotta,dessert", 23)),
+    ("Chez Karim", "Boissons", "Limonade artisanale",
+     "Citrons de Menton, sucre de canne, bulles fines.",
+     390, 60, ("flickr", "lemonade,drink", 29)),
+
+    # -- Le Fournil : la boulangerie du matin --------------------------
+    ("Le Fournil d a cote", "Boulangerie", "Croissant au beurre",
+     "Beurre AOP Charentes-Poitou, feuilletage a la main.",
+     140, 80, ("flickr", "croissant,bakery", 31)),
+    ("Le Fournil d a cote", "Boulangerie", "Pain aux cereales",
+     "Sept graines, farine T80, longue fermentation.",
+     380, 22, ("flickr", "bread,seeds", 37)),
+    ("Le Fournil d a cote", "Boulangerie", "Chausson aux pommes",
+     "Pommes du Limousin, feuilletage pur beurre.",
+     220, 34, ("flickr", "applepastry,bakery", 41)),
+    ("Le Fournil d a cote", "Desserts", "Tarte au citron meringuee",
+     "Citrons de Sicile, meringue doree au chalumeau.",
+     420, 12, ("flickr", "lemontart,meringue", 43)),
+    ("Le Fournil d a cote", "Desserts", "Cookie chocolat noisette",
+     "Cuit du jour, coeur fondant, noisettes du Piemont.",
+     250, 48, ("flickr", "cookie,chocolate", 47)),
+
+    # -- Marseille Grill : hors rayon depuis Lyon, et c'est le but -----
+    ("Marseille Grill", "Plats", "Brochettes d agneau",
+     "Agneau marine aux herbes, semoule fine.",
+     1590, 20, ("flickr", "lamb,skewer", 53)),
+    ("Marseille Grill", "Entrees", "Houmous et pain plat",
+     "Pois chiches ecrases, tahini, huile d olive.",
+     690, 25, ("flickr", "hummus,bread", 59)),
+    ("Marseille Grill", "Boissons", "The a la menthe",
+     "The vert gunpowder, menthe fraiche, servi sucre.",
+     350, 40, ("flickr", "mint,tea", 61)),
+
+    # -- TechSophie : de quoi trier par prix sur deux ordres de grandeur
+    ("TechSophie", "Audio", "Ecouteurs sans fil",
+     "Reconditionnes, boitier de charge neuf, reduction de bruit.",
+     8900, 27, ("flickr", "earbuds,wireless", 67)),
+    ("TechSophie", "Audio", "Platine vinyle",
+     "Entrainement par courroie, cellule remplacee, revisee.",
+     22900, 5, ("flickr", "turntable,vinyl", 71)),
+    ("TechSophie", "Informatique", "Ecran 27 pouces",
+     "Dalle IPS, 2560x1440, pied reglable en hauteur.",
+     19900, 8, ("flickr", "monitor,desk", 73)),
+    ("TechSophie", "Informatique", "Souris ergonomique",
+     "Verticale, sans fil, reconditionnee grade A.",
+     4900, 33, ("flickr", "mouse,computer", 79)),
+    ("TechSophie", "Informatique", "Disque externe 2 To",
+     "USB-C, teste sur banc, garanti un an.",
+     7900, 16, ("flickr", "harddrive,storage", 83)),
+    ("TechSophie", "Telephonie", "Tablette 10 pouces",
+     "Reconditionnee, 128 Go, etui inclus.",
+     24900, 7, ("flickr", "tablet,device", 89)),
+    ("TechSophie", "Telephonie", "Chargeur rapide 65 W",
+     "Trois ports, compatible ordinateur portable.",
+     3500, 52, ("flickr", "charger,usb", 97)),
+    ("TechSophie", "Accessoires", "Batterie externe 20 000 mAh",
+     "Charge deux appareils a la fois, indicateur de niveau.",
+     4500, 38, ("flickr", "powerbank,battery", 101)),
+    ("TechSophie", "Accessoires", "Support ordinateur portable",
+     "Aluminium recycle, hauteur reglable, pliable.",
+     3900, 29, ("flickr", "laptopstand,desk", 103)),
+
+    # -- Maison Perrin : l'epicerie fine -------------------------------
+    ("Maison Perrin", "Epicerie", "Miel de montagne",
+     "Recolte des Cevennes, pot de 500 grammes.",
+     1290, 26, ("flickr", "honey,jar", 107)),
+    ("Maison Perrin", "Epicerie", "Confiture d abricots",
+     "Abricots du Roussillon, 65 % de fruits.",
+     690, 34, ("flickr", "jam,apricot", 109)),
+    ("Maison Perrin", "Epicerie", "Terrine de campagne",
+     "Porc fermier, poivre concasse, bocal de 180 grammes.",
+     890, 19, ("flickr", "terrine,pate", 113)),
+    ("Maison Perrin", "Epicerie", "Sel de Guerande",
+     "Recolte a la main, fleur de sel, boite de 250 grammes.",
+     580, 44, ("flickr", "salt,guerande", 127)),
+    ("Maison Perrin", "Epicerie", "Riz de Camargue",
+     "Riz rouge complet, sachet d un kilo.",
+     720, 30, ("flickr", "rice,grain", 131)),
+    ("Maison Perrin", "Boissons", "Jus de pomme trouble",
+     "Pommes de Normandie, sans sucre ajoute, bouteille d un litre.",
+     490, 40, ("flickr", "applejuice,bottle", 137)),
+    ("Maison Perrin", "Boissons", "Infusion verveine menthe",
+     "Plantes de Provence, boite de 40 grammes.",
+     650, 28, ("flickr", "herbaltea,leaves", 139)),
+    ("Maison Perrin", "Boissons", "Sirop de sureau",
+     "Fleurs cueillies a la main, bouteille de 50 centilitres.",
+     840, 14, ("flickr", "syrup,bottle", 149)),
+
+    # -- Morvan Primeurs : SUSPENDUE. Son catalogue existe et doit
+    #    disparaitre de la vitrine sans que rien ne soit efface (D-61).
+    #    Sans produits, la suspension ne se demontrait pas.
+    ("Morvan Primeurs", "Epicerie", "Panier de legumes de saison",
+     "Composition variable selon la recolte, environ quatre kilos.",
+     1890, 15, ("flickr", "vegetables,basket", 151)),
+    ("Morvan Primeurs", "Epicerie", "Pommes de terre de Noirmoutier",
+     "Primeurs, sachet de deux kilos.",
+     790, 22, ("flickr", "potatoes,harvest", 157)),
+    ("Morvan Primeurs", "Epicerie", "Fromage de chevre fermier",
+     "Affine trois semaines, lait cru.",
+     650, 18, ("flickr", "goatcheese,dairy", 163)),
+]
 # Des cas que le catalogue doit savoir montrer, et qu'un jeu de donnees
 # uniforme cache : un produit retire de la vente, un stock sous le seuil,
 # un article lourd, un article sans photo. Chacun existe ici pour qu'un
@@ -207,6 +338,7 @@ class Command(BaseCommand):
         self.fournies = 0
         self.galeries = 0
         self.animes = 0
+        self.reparees = 0
 
         boutiques = {v.nom_boutique: v for v in Vendeur.objects.all()}
         if not boutiques:
@@ -261,7 +393,7 @@ class Command(BaseCommand):
 
             self.reposer_particularites(produit)
 
-            chemin = self.obtenir_image(nom, photo)
+            chemin = self.obtenir_image(nom, photo, nom_categorie)
             produit.image_principale_url = chemin
             produit.save(update_fields=["image_principale_url"])
             PhotoProduit.objects.create(
@@ -281,9 +413,10 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("Catalogue deja en place."))
 
-        if self.galeries or self.animes:
+        if self.galeries or self.animes or self.reparees:
             self.stdout.write(
-                f"  medias : {self.galeries} vue(s) de galerie, "
+                f"  medias : {self.reparees} photo(s) principale(s) refaite(s), "
+                f"{self.galeries} vue(s) de galerie, "
                 f"{self.animes} apercu(s) anime(s)"
             )
         self.stdout.write("")
@@ -304,10 +437,31 @@ class Command(BaseCommand):
     ]
 
     def completer_les_medias(self, produit, source):
-        """Poser la galerie et l'apercu anime d'un produit, s'ils manquent."""
+        """Poser la photo principale, la galerie et l'apercu, s'ils manquent.
+
+        Elle ne posait que la galerie, et abandonnait si la photo principale
+        manquait. Un produit qui perdait son image — fichier efface, media non
+        versionne restaure depuis zero — restait donc sans image pour toujours,
+        et relancer la commande n'y changeait rien.
+
+        Meme famille de defaut que les particularites (D-109) : **une commande
+        de peuplement doit remettre la demonstration d'aplomb, pas seulement la
+        monter la premiere fois.**
+        """
         principale = produit.photos.filter(ordre=1).first()
-        if principale is None:
-            return
+        if principale is None or self.charger_media(principale.url) is None:
+            chemin = self.obtenir_image(
+                produit.nom, source,
+                produit.categorie.nom if produit.categorie_id else "Autres",
+            )
+            produit.image_principale_url = chemin
+            produit.save(update_fields=["image_principale_url"])
+            produit.photos.filter(ordre=1).delete()
+            principale = PhotoProduit.objects.create(
+                produit=produit, url=chemin, ordre=1,
+                texte_alternatif=f"{produit.nom} — {produit.vendeur.nom_boutique}",
+            )
+            self.reparees += 1
 
         origine = self.charger_media(principale.url)
         if origine is None:
@@ -409,7 +563,7 @@ class Command(BaseCommand):
 
     # ── Les images ───────────────────────────────────────────────────────
 
-    def obtenir_image(self, nom_produit, source):
+    def obtenir_image(self, nom_produit, source, categorie="Autres"):
         """Renvoie le chemin public de l'image, quelle que soit sa provenance."""
         slug = slugify(nom_produit)
         dossier = os.path.join(settings.MEDIA_ROOT, DOSSIER)
@@ -422,7 +576,7 @@ class Command(BaseCommand):
 
         image = self.image_fournie(slug) or self.image_telechargee(source)
         if image is None:
-            image = self.image_fabriquee(nom_produit)
+            image = self.image_fabriquee(nom_produit, categorie)
             self.fabriquees += 1
 
         self.traiter(image).save(destination, "WEBP", quality=82, method=5)
@@ -462,26 +616,88 @@ class Command(BaseCommand):
             # Site injoignable, adresse morte, pas de reseau : on fabrique.
             return None
 
-    def image_fabriquee(self, nom_produit):
-        """Le dernier recours : un degrade aux couleurs de la marque.
+    # Les couleurs de remplacement, par univers. Elles viennent des jetons de
+    # la maquette : une vignette fabriquee doit avoir l'air d'appartenir au
+    # site, pas d'etre un trou.
+    TEINTES = {
+        "Restauration": ((251, 243, 232), (234, 140, 42), (184, 101, 15)),
+        "High-tech": ((234, 240, 255), (37, 99, 235), (30, 64, 175)),
+        "Maison": ((232, 248, 238), (22, 163, 74), (21, 128, 61)),
+        "Autres": ((244, 245, 248), (91, 100, 120), (15, 20, 32)),
+    }
 
-        Deterministe — le meme produit donne toujours la meme image, ce qui
-        evite qu'un catalogue change d'apparence a chaque peuplement.
+    def image_fabriquee(self, nom_produit, categorie="Autres"):
+        """Une vignette de remplacement ASSUMEE, pas un degrade au hasard.
+
+        Le premier essai de peuplement etendu l'a montre sans appel : la
+        recherche d'images par mots-cles rend n'importe quoi. Sur trente-quatre
+        produits, vingt-cinq n'ont rien recu du tout, et parmi les neuf photos
+        obtenues, un « poke bowl » etait une tasse posee sur un clavier et un
+        « ecran 27 pouces » l'interieur d'un magasin.
+
+        **Une photo fausse est pire qu'une absence de photo.** Elle fait douter
+        de tout le reste du catalogue, et c'est exactement ce qu'on m'a
+        reproche au bloc J.
+
+        Cette vignette dit donc ce qu'elle est : le nom du produit, son
+        univers, aux couleurs de la maquette. Elle est deterministe — le meme
+        produit donne toujours la meme image — et elle a l'air d'appartenir au
+        site plutot que d'etre un trou.
         """
-        graine = int(hashlib.md5(nom_produit.encode()).hexdigest()[:6], 16)
-        base = (90 + graine % 60, 50 + graine // 60 % 40, 30 + graine // 2400 % 30)
-
-        image = Image.new("RGB", (LARGEUR, HAUTEUR), base)
+        fond, accent, encre = self.TEINTES.get(
+            UNIVERS.get(categorie, "Autres"), self.TEINTES["Autres"]
+        )
+        image = Image.new("RGB", (LARGEUR, HAUTEUR), fond)
         dessin = ImageDraw.Draw(image)
-        for y in range(HAUTEUR):
-            facteur = 1 - y / (HAUTEUR * 1.6)
-            dessin.line([(0, y), (LARGEUR, y)], fill=tuple(int(c * facteur) for c in base))
 
-        try:
-            police = ImageFont.truetype("arial.ttf", 44)
-        except OSError:
-            police = ImageFont.load_default()
-        dessin.text((48, HAUTEUR - 120), nom_produit, font=police, fill=(240, 163, 68))
+        # Un motif de cercles concentriques, decale selon le produit : deux
+        # vignettes voisines ne doivent pas se ressembler au point qu'on croie
+        # a un bogue d'affichage.
+        graine = int(hashlib.md5(nom_produit.encode()).hexdigest()[:8], 16)
+        centre_x = LARGEUR // 2 + (graine % 160) - 80
+        centre_y = HAUTEUR // 2 + (graine // 160 % 90) - 45
+        for rayon in range(430, 60, -46):
+            teinte = tuple(
+                int(f + (a - f) * (1 - rayon / 470) * 0.16)
+                for f, a in zip(fond, accent, strict=True)
+            )
+            dessin.ellipse(
+                [centre_x - rayon, centre_y - rayon, centre_x + rayon, centre_y + rayon],
+                outline=teinte, width=2,
+            )
+
+        def police(taille):
+            for nom in ("arialbd.ttf", "arial.ttf", "DejaVuSans-Bold.ttf"):
+                try:
+                    return ImageFont.truetype(nom, taille)
+                except OSError:
+                    continue
+            return ImageFont.load_default()
+
+        # Le nom du produit, sur deux lignes au besoin : tronquer un nom de
+        # produit dans sa propre vignette serait absurde.
+        mots, lignes, courante = nom_produit.split(), [], ""
+        for mot in mots:
+            essai = f"{courante} {mot}".strip()
+            if len(essai) > 20 and courante:
+                lignes.append(courante)
+                courante = mot
+            else:
+                courante = essai
+        lignes.append(courante)
+
+        grande = police(52)
+        y = HAUTEUR // 2 - len(lignes) * 34
+        for ligne in lignes[:3]:
+            dessin.text((56, y), ligne, font=grande, fill=encre)
+            y += 66
+
+        petite = police(24)
+        dessin.text((56, y + 12), categorie.upper(), font=petite, fill=accent)
+
+        # Un trait d'accent en bas : ce qui distingue une vignette dessinee
+        # d'une image ratee.
+        dessin.rectangle([0, HAUTEUR - 10, LARGEUR, HAUTEUR], fill=accent)
         return image
 
     def traiter(self, image):

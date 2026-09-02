@@ -240,6 +240,29 @@ class Command(BaseCommand):
         client("awa@exemple.fr", "Awa", "Diop", "6 rue Duquesne", "69006", "Lyon",
                45.7690, 4.8480, zone)
 
+        # -- D'autres clients encore (M-0) --------------------------------
+        #
+        # « Je veux plus de donnees preremplies pour tout essayer a ma guise. »
+        # Cinq clients, c'est trop peu : la liste des utilisateurs tient sur un
+        # ecran, la recherche rend toujours tout, et aucun ecran n'atteint sa
+        # deuxieme page.
+        #
+        # Ils sont repartis a dessein : quatre a Lyon — donc livrables en
+        # Express — et deux ailleurs, pour que le filtrage par rayon (D-09)
+        # reste demontrable.
+        client("hugo.client@exemple.fr", "Hugo", "Renaud", "14 rue Bellecombe", "69006",
+               "Lyon", 45.7700, 4.8520, zone, "Sonner deux fois.")
+        client("sarah@exemple.fr", "Sarah", "Cohen", "9 place Sathonay", "69001", "Lyon",
+               45.7690, 4.8320, zone)
+        client("mehdi@exemple.fr", "Mehdi", "Berrada", "31 rue Garibaldi", "69003", "Lyon",
+               45.7560, 4.8560, zone, "Code 7788, batiment C.")
+        client("clara@exemple.fr", "Clara", "Fontaine", "5 rue des Remparts", "69005",
+               "Lyon", 45.7610, 4.8250, zone)
+        client("jonas@exemple.fr", "Jonas", "Weber", "22 rue de la Republique", "67000",
+               "Strasbourg", 48.5830, 7.7450, None)
+        client("nina@exemple.fr", "Nina", "Lopes", "7 cours Berriat", "38000", "Grenoble",
+               45.1900, 5.7150, None, "Interphone au nom de Lopes.")
+
         # Une deuxieme adresse pour Lea : un carnet d'adresses qui n'en
         # contient qu'une ne se demontre pas.
         adresse_bureau, _ = adresse_unique(

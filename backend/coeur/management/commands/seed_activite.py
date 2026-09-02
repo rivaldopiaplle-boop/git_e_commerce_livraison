@@ -117,6 +117,9 @@ class Command(BaseCommand):
 
         self._promotions(acteurs)
         commandes = self._commandes(acteurs)
+        # L'historique de fond vient APRES les commandes scenarisees : celles-ci
+        # portent la couverture des scenarios, celui-la donne du volume.
+        fond = self._historique_de_fond(acteurs)
         self._livraisons(acteurs, commandes)
         self._tournees(acteurs, commandes)
         self._engagement(acteurs, commandes)
@@ -124,7 +127,7 @@ class Command(BaseCommand):
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(
-            f"Activite : {len(commandes)} commandes, "
+            f"Activite : {len(commandes) + len(fond)} commandes, "
             f"{Livraison.objects.count()} livraisons, "
             f"{Tournee.objects.count()} tournees, "
             f"{Avis.objects.count()} avis, {Litige.objects.count()} litiges."
@@ -504,6 +507,191 @@ class Command(BaseCommand):
         return creees
 
     # ── Livraisons ───────────────────────────────────────────────────────
+
+    def _historique_de_fond(self, acteurs):
+        """Du VOLUME, en plus des quinze commandes scenarisees — M-0.
+
+        **Ta demande** : *« je veux plus de jeux de donnees sur les donnees
+        preremplies pour que je puisse tout essayer a ma guise »*.
+
+        Quinze commandes ne permettent pas d'eprouver ce que les ecrans savent
+        faire : aucune liste n'atteint sa deuxieme page, le tri par montant se
+        lit d'un coup d'oeil sans avoir a trier, et le graphe des ventes tient
+        sur trois barres.
+
+        Deux precautions, sans quoi ce volume ferait plus de mal que de bien :
+
+          · **les commandes scenarisees restent intactes.** Ce sont elles qui
+            portent la couverture des scenarios (D-96) ; celles-ci ne font que
+            remplir autour, et aucune ne cree un cas nouveau ;
+          · **le tirage est deterministe.** Meme graine, meme historique : une
+            demonstration dont les chiffres changent a chaque peuplement ne se
+            prepare pas.
+
+        La repartition des statuts suit celle d'une vraie boutique : on livre
+        beaucoup, on annule un peu, et il reste toujours deux ou trois
+        commandes en cours.
+        """
+        clients = [
+            courriel for courriel in acteurs["clients"]
+            # Lea porte deja les commandes scenarisees : la noyer sous
+            # quarante autres rendrait ses ecrans illisibles a la demo.
+            if courriel != "lea@exemple.fr"
+        ]
+        produits = list(acteurs["produits"].items())
+        if not clients or not produits:
+            return []
+
+        express = [(cle, p) for cle, p in produits
+                   if p.vendeur.type_activite == TypeService.EXPRESS]
+        standard = [(cle, p) for cle, p in produits
+                    if p.vendeur.type_activite == TypeService.STANDARD]
+
+        # Ce qui arrive vraiment, et dans quelles proportions.
+        REPARTITION = (
+            [(StatutCommande.LIVREE, StatutPreparation.EXPEDIEE)] * 26
+            + [(StatutCommande.EN_LIVRAISON, StatutPreparation.EXPEDIEE)] * 3
+            + [(StatutCommande.EN_PREPARATION, StatutPreparation.EN_PREPARATION)] * 4
+            + [(StatutCommande.PRETE, StatutPreparation.PRETE)] * 3
+            + [(StatutCommande.PAYEE, StatutPreparation.A_PREPARER)] * 4
+            + [(StatutCommande.ANNULEE, StatutPreparation.ANNULEE)] * 3
+            + [(StatutCommande.RECUE_ENTREPOT, StatutPreparation.EXPEDIEE)] * 2
+        )
+
+        creees = []
+        for rang in range(70):
+            statut, preparation = REPARTITION[rang % len(REPARTITION)]
+            service = (TypeService.EXPRESS if self.hasard.random() < 0.55
+                       else TypeService.STANDARD)
+            source = express if service == TypeService.EXPRESS else standard
+            if not source:
+                continue
+
+            # Une commande Express ne melange jamais deux boutiques (D-10) :
+            # on tire d'abord la boutique, puis ses produits.
+            if service == TypeService.EXPRESS:
+                boutique = self.hasard.choice(source)[0][0]
+                choix = [entree for entree in source if entree[0][0] == boutique]
+            else:
+                choix = source
+
+            panier = []
+            for cle, _produit in self.hasard.sample(choix, min(len(choix),
+                                                               self.hasard.randint(1, 3))):
+                panier.append((cle[0], cle[1], self.hasard.randint(1, 3)))
+            if not panier:
+                continue
+
+            # Reparties sur soixante jours, avec une legere densite recente :
+            # une boutique qui vendait autant il y a deux mois qu'hier ne
+            # ressemble a rien.
+            jours = int(60 * (self.hasard.random() ** 1.5))
+            heures = jours * 24 + self.hasard.randint(0, 23)
+
+            commande = self._creer(
+                acteurs,
+                self.hasard.choice(clients),
+                service,
+                statut,
+                panier,
+                il_y_a_heures=max(2, heures),
+                preparation=preparation,
+                frais=490 if service == TypeService.STANDARD else 290,
+                annulee_par=("Rupture de stock signalee par la boutique."
+                             if statut == StatutCommande.ANNULEE else ""),
+            )
+            if commande is not None:
+                creees.append(commande)
+
+        self._suites_du_fond(acteurs, creees)
+        if creees:
+            self.stdout.write(f"  {len(creees)} commande(s) d'historique, sur soixante jours.")
+        return creees
+
+    def _suites_du_fond(self, acteurs, commandes):
+        """Ce qu'une commande de fond entraine : une livraison, parfois un avis.
+
+        Sans cela, l'historique aurait produit quarante commandes **livrees
+        sans livraison** — une incoherence qui se voit immediatement : l'ecran
+        du livreur reste vide alors que le client, lui, a bien recu son colis.
+
+        Les avis ne sont pas systematiques : une boutique dont chaque commande
+        est notee n'existe pas. Deux clients sur trois se taisent, et c'est ce
+        qui donne a la repartition des notes une forme credible.
+        """
+        livreurs = list(acteurs.get("livreurs", {}).values())
+        if not livreurs:
+            return
+
+        CORRESPONDANCE = {
+            StatutCommande.LIVREE: StatutLivraison.LIVREE,
+            StatutCommande.EN_LIVRAISON: StatutLivraison.EN_ROUTE,
+            StatutCommande.RECUE_ENTREPOT: StatutLivraison.A_ATTRIBUER,
+        }
+        COMMENTAIRES = [
+            "Rapide et bien emballe, rien a dire.",
+            "Conforme a la description, je recommanderai.",
+            "Livraison ponctuelle, le livreur a sonne comme demande.",
+            "Bon produit, un peu long a arriver.",
+            "Correct sans plus, l'emballage etait abime.",
+            "",
+            "",
+        ]
+
+        for commande in commandes:
+            statut = CORRESPONDANCE.get(commande.statut_actuel)
+            if statut is None:
+                continue
+
+            livreur = self.hasard.choice(livreurs)
+            distance = round(self.hasard.uniform(0.8, 7.5), 1)
+            Livraison.objects.get_or_create(
+                commande=commande,
+                defaults={
+                    "livreur": livreur if statut != StatutLivraison.A_ATTRIBUER else None,
+                    "adresse_livraison": commande.adresse_livraison,
+                    "statut_livraison": statut,
+                    "distance_km": distance,
+                    "frais_calcules_centimes": commande.montant_livraison_centimes,
+                    "remuneration_livreur_centimes": int(250 + distance * 60),
+                    "code_confirmation": f"{self.hasard.randint(1000, 9999)}",
+                    "date_attribution": commande.date_commande + datetime.timedelta(minutes=9),
+                    "date_estimee": commande.date_livraison_estimee,
+                    "date_reelle": (
+                        commande.date_commande + datetime.timedelta(
+                            minutes=self.hasard.randint(28, 75)
+                        )
+                        if statut == StatutLivraison.LIVREE else None
+                    ),
+                },
+            )
+
+            # On ne note que ce qu'on a recu (R-06), et une fois sur trois.
+            if commande.statut_actuel != StatutCommande.LIVREE:
+                continue
+            if self.hasard.random() > 0.45:
+                continue
+
+            note = self.hasard.choices([5, 4, 3, 2, 1], weights=[46, 28, 14, 8, 4])[0]
+            sous_commande = commande.sous_commandes.first()
+            if sous_commande is None:
+                continue
+
+            Avis.objects.get_or_create(
+                client=commande.client, commande=commande,
+                cible=CibleAvis.VENDEUR, id_cible=sous_commande.vendeur_id,
+                defaults={"note": note, "commentaire": self.hasard.choice(COMMENTAIRES)},
+            )
+            ligne = sous_commande.lignes.first()
+            if ligne and ligne.produit_id and self.hasard.random() < 0.55:
+                Avis.objects.get_or_create(
+                    client=commande.client, commande=commande,
+                    cible=CibleAvis.PRODUIT, id_cible=ligne.produit_id,
+                    defaults={
+                        "note": max(1, min(5, note + self.hasard.choice([-1, 0, 0, 1]))),
+                        "commentaire": self.hasard.choice(COMMENTAIRES),
+                    },
+                )
 
     def _livraisons(self, acteurs, commandes):
         """Une livraison par commande payee, dans l'etat qui suit la commande."""

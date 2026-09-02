@@ -509,3 +509,37 @@ Dix tests verrouillent l'ensemble, dont trois sur le cloisonnement : un vendeur
 ne fait pas avancer la part d'une autre boutique (404), il ne voit que son
 propre personnel, et une commande Standard ne passe « prête » que lorsque
 **toutes** ses parts le sont.
+
+
+---
+
+## Le volume du jeu de démonstration
+
+| | Bloc L | Bloc M |
+|---|---|---|
+| Comptes | 20 | **30** |
+| Produits | 24 | **59** |
+| Commandes | 15 | **85** |
+| Livraisons | 14 | **70** |
+| Avis | 7 | **30** |
+| Mouvements de stock | 10 | **61** |
+
+Les 15 commandes scénarisées sont **inchangées** : elles portent la couverture
+des scénarios, et `verifier_couverture --strict` reste vert. Les 70 autres
+remplissent autour, sur soixante jours avec une densité récente, et chacune
+entraîne sa livraison et parfois un avis.
+
+Vérifié sur base neuve : la chaîne complète `migrate → seed_admin → seed_demo`
+(qui enchaîne lui-même catalogue et activité) produit les 85 commandes et passe
+le contrôle de couverture.
+
+### Les photos : ce qui a échoué, et ce qu'on affiche à la place
+
+34 téléchargements tentés, **25 échecs**, et parmi les 9 réussites plusieurs
+photos qui ne montraient pas le bon objet. Une photo fausse fait douter de tout
+le catalogue ([D-131](journal-decisions.md)).
+
+Le peuplement fabrique donc une vignette assumée — nom, univers, couleurs de la
+maquette. Les 24 photos réelles vérifiées à l'œil au bloc J sont conservées.
+`donnees-demo/images/<slug>.jpg` prime sur tout : déposer un fichier suffit à
+remplacer une vignette.

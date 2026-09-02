@@ -42,6 +42,44 @@ la **portée** qui manquait.
 Les onze écrans sont convertis. Un test parcourt tous les `.vue` et échoue si
 un œil se remet à promettre autre chose, ou s'il cesse d'ouvrir.
 
+## Beaucoup plus de données pour tout essayer
+
+**Ta demande M-0.** La couverture était garantie depuis le bloc L — chaque
+scénario avait de quoi se montrer — mais pas le **volume** : aucune liste
+n'atteignait sa deuxième page, et le graphe des ventes tenait sur trois barres.
+
+| | Avant | Maintenant |
+|---|---|---|
+| Comptes | 20 | **30** |
+| Produits | 24 | **59** |
+| Commandes | 15 | **85** |
+| Livraisons | 14 | **70** |
+| Avis | 7 | **30** |
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **8** | **Sur la vitrine, choisis « Livrer à » → Lyon.** 50 produits, trois univers, des facettes qui écartent vraiment | 2 min | D-130 |
+| **9** | **`karim@exemple.fr` → Statistiques.** La courbe a **quinze jours** de ventes, 8 avis, une vraie note moyenne. Avant : trois barres | 3 min | D-130 |
+| **10** | **→ Commandes reçues.** 33 sous-commandes : la liste pagine, le tri par montant sert enfin à quelque chose | 2 min | D-130 |
+| **11** | **`julien@exemple.fr` → Mes courses.** 70 livraisons, dont 55 terminées : son historique n'est plus vide | 2 min | D-130 |
+
+### Ce que je n'ai pas réussi, et que je préfère te dire
+
+J'ai voulu **34 vraies photos de plus**. J'ai regardé le résultat sur une
+planche-contact avant de te le livrer, et c'était mauvais : **25 téléchargements
+ont échoué**, et sur les 9 photos obtenues, un « poke bowl » était une tasse
+posée sur un clavier et un « écran 27 pouces » montrait l'intérieur d'un
+magasin.
+
+Une photo fausse fait douter de tout le catalogue — c'est ce que tu m'avais
+reproché au bloc J. J'ai donc fabriqué une **vignette assumée** : nom du
+produit, univers, aux couleurs de la maquette. Elle ne ment sur rien.
+
+**Si tu veux de vraies photos**, dépose tes fichiers dans
+`plan-organisation/donnees-demo/images/` en les nommant d'après le produit
+(`poke-bowl-saumon.jpg` par exemple) : le peuplement les prend en priorité sur
+tout le reste.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

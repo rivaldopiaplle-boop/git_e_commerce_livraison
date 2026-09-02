@@ -1862,3 +1862,75 @@ par montage. Sur une machine chargée, la limite sautait au hasard.
 
 `testTimeout: 15_000`. Une suite qui échoue une fois sur cinq n'est plus lue,
 et le jour où elle signale un vrai défaut, personne ne la croit.
+
+
+### D-130 — Le jeu de démonstration a du volume, pas seulement de la couverture
+
+**Ta demande, M-0** : *« je veux plus de jeux de données sur les données
+préremplies pour que je puisse tout essayer à ma guise »*.
+
+[D-96](#d-96--le-jeu-de-données-rend-visible-chaque-scénario) garantissait la
+**couverture** — chaque scénario a de quoi se montrer. Elle ne garantissait pas
+le **volume**, et c'est une autre exigence : avec 24 produits et 15 commandes,
+aucune liste n'atteignait sa deuxième page, la recherche rendait toujours tout,
+les facettes n'écartaient rien, et le graphe des ventes tenait sur trois barres.
+
+| | Avant | Maintenant |
+|---|---|---|
+| Comptes | 20 | **30** |
+| Produits | 24 | **59** |
+| Commandes | 15 | **85** |
+| Livraisons | 14 | **70** |
+| Avis | 7 | **30** |
+
+Deux précautions, sans lesquelles ce volume ferait plus de mal que de bien :
+
+- **les 15 commandes scénarisées restent intactes.** Ce sont elles qui portent
+  la couverture ; les 70 autres remplissent autour, et aucune ne crée un cas
+  nouveau. `verifier_couverture --strict` reste vert ;
+- **le tirage est déterministe.** Même graine, même historique : une
+  démonstration dont les chiffres changent à chaque peuplement ne se prépare
+  pas.
+
+L'historique s'étale sur **soixante jours avec une densité récente** : une
+boutique qui vendait autant il y a deux mois qu'hier ne ressemble à rien. La
+répartition des statuts suit celle d'une vraie boutique — on livre beaucoup, on
+annule un peu, il reste toujours deux ou trois commandes en cours.
+
+Chaque commande de fond entraîne sa **livraison**, et une sur deux un **avis**.
+Sans cela, l'historique aurait produit quarante commandes *livrées sans
+livraison* : une incohérence qui se voit immédiatement — l'écran du livreur
+reste vide alors que le client a bien reçu son colis.
+
+### D-131 — Une photo fausse est pire qu'une absence de photo
+
+En élargissant le catalogue, j'ai voulu télécharger 34 photos de plus. Le
+résultat, regardé sur planche-contact avant livraison : **25 échecs de
+téléchargement**, et parmi les 9 photos obtenues, un « poke bowl » qui était
+une tasse posée sur un clavier et un « écran 27 pouces » qui montrait
+l'intérieur d'un magasin.
+
+Une photo qui ne correspond pas fait douter de **tout** le catalogue — c'est
+exactement ce qu'on m'a reproché au bloc J. La recherche d'images par mots-clés
+rend n'importe quoi, et aucune vérification automatique ne peut le rattraper :
+rien, dans une URL, ne dit qu'une photo montre le bon objet.
+
+Le peuplement fabrique donc une **vignette assumée** : nom du produit, univers,
+aux couleurs de la maquette — orange pour la restauration, bleu pour le
+high-tech, vert pour la maison. Elle est déterministe, elle a l'air
+d'appartenir au site plutôt que d'être un trou, et elle ne ment sur rien.
+
+Les 24 photos réelles vérifiées à l'œil au bloc J sont conservées : on ne perd
+rien, on arrête simplement d'en inventer.
+
+### D-132 — Le peuplement répare une image manquante, il ne l'ignore pas
+
+Trouvé en refaisant les images : `completer_les_medias` **abandonnait** si la
+photo principale manquait. Un produit qui perdait son image — fichier effacé,
+dossier `media/` non versionné restauré depuis zéro — restait donc sans image
+pour toujours, et relancer la commande n'y changeait rien.
+
+Même famille de défaut que les particularités
+([D-109](#d-109--le-peuplement-repose-ses-cas-limites-il-ne-les-pose-pas-une-fois)),
+et même règle : **une commande de peuplement doit remettre la démonstration
+d'aplomb, pas seulement la monter la première fois.**
