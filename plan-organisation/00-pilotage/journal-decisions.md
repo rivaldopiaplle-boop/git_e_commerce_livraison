@@ -2016,3 +2016,46 @@ fonctionne dans l'application installée, parce qu'elle est alors native.
 `deploiement/LISEZ-MOI.md` fait de même pour la mise en ligne, avec une section
 entière consacrée aux pièges. Chacun a réellement coûté du temps sur ce projet :
 ils ne sont pas là pour faire nombre.
+
+
+### D-136 — Deux dépôts : le complet en privé, le web en public
+
+**Ta demande, M-3** : le projet avec le mobile va sur un dépôt privé, la
+version sans mobile reste sur le dépôt public.
+
+Ton conseil était le bon et il a été suivi à la lettre : **on pousse d'abord le
+complet sur le privé**, et seulement ensuite on retire quoi que ce soit du
+public. Sauvegarder avant de rétrograder.
+
+Trois façons de retirer le mobile étaient possibles ; celle retenue est la seule
+qui ne perd rien.
+
+| Option | Ce qu'elle coûte |
+|---|---|
+| **Un commit de retrait** *(retenue)* | rien. L'historique est intact, le mobile revient d'un `git revert` |
+| Réécrire l'historique public | ~135 commits changent d'identifiant, toute copie du dépôt casse, et le gain est nul — le code mobile reste sur le privé |
+| Revenir à un commit d'avant le mobile | emporte aussi le paiement, les litiges, les graphes, tout le bloc M |
+
+Le public garde donc **tout** — API, front web, 176 tests backend, 107 tests
+front, dossier de conception, guides — sauf `frontend-mobile/`.
+
+`plan-organisation/00-pilotage/deux-depots.md` décrit la manœuvre en quatre
+commandes, avec son piège : **on ne travaille jamais sur la branche publique**,
+tout ce qui y serait écrit disparaîtrait au prochain rebase.
+
+### D-137 — Retirer du code ne retire pas la décision qui l'explique
+
+En retirant le mobile du dépôt public, la tentation était d'effacer aussi
+[D-20](#d-20--ionic-et-capacitor-pour-le-mobile) et
+[D-40](#d-40--chaque-rôle-sur-le-support-où-il-travaille) du dossier de
+conception, pour que l'ensemble « se tienne ».
+
+C'est l'inverse qu'il faut faire. **Le dossier de conception raconte les choix,
+pas l'état du dossier `src/`.** Effacer la trace d'un choix d'architecture parce
+que le code correspondant est ailleurs falsifierait le document — et c'est le
+document qu'un recruteur lit en premier.
+
+Le `README` du dépôt public dit donc franchement que l'application mobile
+existe, qu'elle vit ailleurs, et renvoie aux deux décisions qui expliquent
+pourquoi il n'y a **qu'une** application pour deux rôles et pourquoi le vendeur
+et l'administrateur n'y sont pas.

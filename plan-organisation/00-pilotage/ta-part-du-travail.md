@@ -114,6 +114,36 @@ aurais cherché du côté du réseau.
 | **13** | **Depuis ton téléphone, même Wi-Fi** : suis le guide mobile. Si ça bloque, la section « pièges » est dans l'ordre où on les rencontre | 10 min | D-133 |
 | **14** | **Lis la section « pièges » du guide de déploiement** avant de mettre en ligne. Chacun a coûté du temps sur ce projet | 5 min | — |
 
+## Les deux dépôts (M-3)
+
+C'est fait, et dans l'ordre que tu conseillais : **le complet d'abord sur le
+privé**, la rétrogradation du public ensuite.
+
+| Dépôt | Contenu | État |
+|---|---|---|
+| `git_e_commerce_livraison_v2` *(privé)* | tout, mobile compris | ✅ poussé |
+| `git_e_commerce_livraison` *(public)* | tout **sauf** `frontend-mobile/` | ✅ poussé |
+
+Le public garde l'API, le front web, les 176 tests backend, les 107 tests
+front, le dossier de conception et les guides. Il perd le dossier
+`frontend-mobile/`, et c'est tout : aucun test, aucun code d'API, aucune
+décision.
+
+**Les décisions D-20 et D-40 restent écrites** dans le dossier de conception, et
+le README public dit franchement que l'application mobile existe et vit
+ailleurs. Effacer la trace d'un choix d'architecture parce que le code est
+ailleurs falsifierait le dossier — et c'est le dossier qu'un recruteur lit en
+premier.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **15** | **Ouvre les deux dépôts sur GitHub** et compare. Le public n'a plus `frontend-mobile/`, le reste est identique | 3 min | D-136 |
+| **16** | **Lis `plan-organisation/00-pilotage/deux-depots.md`** : les quatre commandes pour livrer la prochaine fois, et le piège à éviter | 3 min | D-136 |
+
+**Le piège, en une phrase** : ne travaille **jamais** sur la branche
+`public-sans-mobile`. Tout ce qui y serait écrit disparaîtrait au prochain
+rebase. Le travail se fait sur `main`, toujours.
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---
