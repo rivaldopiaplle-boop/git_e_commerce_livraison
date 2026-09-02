@@ -19,7 +19,7 @@ import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Popup from '../../composants/Popup.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 import { useNotification } from '../../notifications'
 
 type Ligne = Litige & { [cle: string]: unknown }
@@ -29,6 +29,9 @@ const { succes, echec: prevenir } = useNotification()
 const litiges = ref<Ligne[]>([])
 const chargement = ref(true)
 const selection = ref<Ligne | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 
 const reponseA = ref<Ligne | null>(null)
 const texte = ref('')
@@ -70,6 +73,17 @@ const BADGES: Record<string, string> = {
   EN_COURS: 'badge-attente',
   RESOLU: 'badge-ok',
   REJETE: 'badge-neutre',
+}
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: Ligne) {
+  selection.value = ligne
+  apercu.value = true
 }
 
 const colonnes: Colonne<Ligne>[] = [
@@ -176,7 +190,7 @@ async function repondre() {
           titre="Consulter le dossier"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
         <ActionLigne
           :titre="ligne.date_reponse_vendeur
@@ -204,7 +218,12 @@ async function repondre() {
       </template>
     </Liste>
 
-    <Volet v-if="selection" :titre="`Litige n° ${selection.id}`">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="`Litige n° ${selection.id}`"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <div class="flex flex-col gap-4 p-4 text-[12.5px]">
         <div class="kpi">
           <div class="kpi-nombre">{{ euros(selection.montant_commande_centimes) }}</div>
@@ -251,7 +270,7 @@ async function repondre() {
           Donner ma version
         </button>
       </div>
-    </Volet>
+    </FicheContextuelle>
 
     <Popup
       v-if="reponseA"

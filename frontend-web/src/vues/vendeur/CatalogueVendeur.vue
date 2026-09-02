@@ -27,7 +27,7 @@ import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
 import Popup from '../../composants/Popup.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 import { useNotification } from '../../notifications'
 import { useAuthentification } from '../../stores/authentification'
 
@@ -41,6 +41,9 @@ const produits = ref<Ligne[]>([])
 const chargement = ref(true)
 const onglet = ref('en-vente')
 const selection = ref<Ligne | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 const mouvementsProduit = ref<Mouvement[]>([])
 const occupe = ref(false)
 
@@ -125,12 +128,19 @@ const colonnesJournal: Colonne<LigneJournal>[] = [
   { cle: 'motif', titre: 'Motif et auteur', masquerSous: 'lg' },
 ]
 
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement (M-1).
+ *
+ * Ici la consultation va CHERCHER l'historique des mouvements : c'est la
+ * raison d'etre de l'ecran, et c'est pour cela qu'elle n'est pas la fonction
+ * generique des autres listes.
+ *
+ * Elle ne bascule plus la selection : un oeil ouvre, il ne ferme pas. Refermer
+ * en recliquant sur l'oeil etait invisible et surprenait a chaque fois.
+ */
 async function consulter(produit: Ligne) {
-  if (selection.value?.id === produit.id) {
-    selection.value = null
-    return
-  }
   selection.value = produit
+  apercu.value = true
   mouvementsProduit.value = await vendeur.stock.mouvements(produit.id)
 }
 
@@ -403,7 +413,12 @@ const quand = (date: string) =>
     </Liste>
 
     <!-- Le produit consulté, avec son historique : dans le volet -->
-    <Volet v-if="selection" :titre="selection.nom">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="selection.nom"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <img
         v-if="selection.image"
         :src="selection.image"
@@ -471,7 +486,7 @@ const quand = (date: string) =>
           </span>
         </li>
       </ul>
-    </Volet>
+    </FicheContextuelle>
 
     <!-- La popup de correction : « Nouvelle quantité » et un motif (D-49) -->
     <Popup

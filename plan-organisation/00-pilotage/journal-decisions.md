@@ -1779,3 +1779,86 @@ Les compteurs de la barre latérale
 ([D-114](#d-114--la-barre-latérale-dit-ce-qui-attend-elle-ne-liste-pas-des-écrans))
 ferment la boucle : préparer une commande chez l'un fait descendre la pastille
 chez l'autre au changement d'écran suivant.
+
+
+---
+
+## Bloc M
+
+### D-126 — La couleur d'accent vit sur la racine du document, pas sur la coquille
+
+**Ta remarque, M-2** : *« dans les fenêtres popups, le bouton à côté de
+"Annuler" ou parfois "Garder" est écrit blanc sur blanc, donc invisible »*.
+
+La cause, vérifiée : `--accent` n'était défini que sur le `<div>` de
+`CoquilleApp`, par un `:style`. **PrimeVue accroche ses popups et ses toasts à
+`<body>`**, donc en dehors de cet arbre. Dans une popup,
+`background: var(--accent)` ne résolvait rien : le bouton principal perdait son
+fond et restait en `text-white` sur le fond blanc de la fenêtre.
+
+C'était **la maladie du bloc J revenue par la bande** — sauf qu'elle ne venait
+pas cette fois d'un jeton supprimé, mais d'une variable hors de portée. Le
+garde-fou `jetons.test.ts` ne pouvait pas la voir : la classe existait, la
+couleur aussi, c'est la **portée** qui manquait.
+
+Deux garde-fous plutôt qu'un :
+
+1. **une valeur par défaut sur `:root`**, pour qu'aucun `var(--accent)` ne
+   puisse plus ne rien résoudre — y compris sur un écran hors coquille comme
+   la connexion ;
+2. **`CoquilleApp` pose la couleur du rôle sur `documentElement`**, pour que le
+   contenu téléporté reçoive la **bonne** couleur et pas seulement une couleur.
+   Un administrateur avec le bleu du vendeur serait pire qu'une couleur
+   absente : il croirait être dans le mauvais espace.
+
+Quatre tests, dont deux statiques sur la feuille de style. Vérifié par
+injection : sans le correctif, les quatre échouent.
+
+### D-127 — L'œil ouvre une popup, et le détail n'est écrit qu'une fois
+
+**Ta remarque, M-1** : *« le symbole œil doit ouvrir une fenêtre popup »*. Il se
+contentait de sélectionner la ligne — ce que tu avais déjà jugé inutile au bloc
+L-2.
+
+Les deux endroits ne font pas double emploi, et c'est exactement le partage de
+[D-60](#d-60--trois-niveaux-dinteraction-et-un-seul-choix-possible-à-chaque-fois) :
+
+| Où | Quand | Ce que c'est |
+|---|---|---|
+| Panneau de droite | clic sur la ligne | le **contexte permanent**, qui reste pendant qu'on travaille |
+| Popup | clic sur l'œil | « je veux voir **ça**, maintenant, sans perdre ma place » |
+
+`FicheContextuelle.vue` rend le **même slot** dans les deux. Vue appelle une
+fonction de slot autant de fois qu'on l'écrit : le détail est donc passé une
+seule fois par la vue appelante. Deux copies d'un même détail finissent
+toujours par diverger, et c'est celle qu'on ne regarde pas qui ment.
+
+Onze écrans convertis d'un coup, par un script qui **refusait de deviner** :
+tout écran ne suivant pas exactement la forme attendue était signalé pour
+reprise à la main. Une conversion approximative sur onze fichiers laisserait
+des écrans à moitié faits qu'on ne retrouverait jamais.
+
+### D-128 — Un même symbole promet la même chose partout
+
+Trouvé en écrivant le test de D-127 : onze écrans disaient « Consulter… » sur
+leur œil, un disait « Suivre cette commande ».
+
+C'est mince, et c'est précisément pour cela que ça dérive : un symbole qui
+promet deux choses différentes selon l'écran oblige à le réapprendre à chaque
+fois. Un test parcourt désormais **tous** les `.vue` des vues, isole chaque
+bloc `<ActionLigne>` portant l'icône, et exige que son infobulle commence par
+« Consulter ».
+
+Il vérifie aussi que chaque écran appelle bien `consulter(…)` : un écran qui
+garderait l'ancien `@click` aurait un œil qui n'ouvre rien, et personne ne s'en
+apercevrait avant la démonstration.
+
+### D-129 — Un test qui échoue au hasard cesse d'être lu
+
+Le délai par défaut de vitest est de cinq secondes. Plusieurs tests montent la
+**coquille entière** avec le vrai routeur dans jsdom — c'est ce qui leur donne
+leur valeur, un lien cassé y est attrapé — mais cela coûte une à deux secondes
+par montage. Sur une machine chargée, la limite sautait au hasard.
+
+`testTimeout: 15_000`. Une suite qui échoue une fois sur cinq n'est plus lue,
+et le jour où elle signale un vrai défaut, personne ne la croit.

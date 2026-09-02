@@ -16,7 +16,7 @@ import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type LigneTournee = Tournee & { [cle: string]: unknown }
 
@@ -25,6 +25,9 @@ const enAttente = ref(0)
 const chargement = ref(true)
 const onglet = ref('a-preparer')
 const selection = ref<LigneTournee | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 
 onMounted(async () => {
   try {
@@ -51,6 +54,17 @@ const visibles = computed(() =>
     : onglet.value === 'terminees' ? terminees.value
       : aPreparer.value,
 )
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: LigneTournee) {
+  selection.value = ligne
+  apercu.value = true
+}
 
 const colonnes: Colonne<LigneTournee>[] = [
   { cle: 'numero', titre: 'Tournée', largeur: 120 },
@@ -132,7 +146,7 @@ const BADGES_ARRET: Record<string, string> = {
           titre="Consulter les arrêts de cette tournée"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
       </template>
 
@@ -155,7 +169,12 @@ const BADGES_ARRET: Record<string, string> = {
     </Liste>
 
     <!-- Les arrêts, dans leur ordre : c'est la tournée elle-même. -->
-    <Volet v-if="selection" :titre="`Tournée n° ${selection.id}`">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="`Tournée n° ${selection.id}`"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <dl class="mb-3 flex flex-col gap-2 text-[12px]">
         <div class="flex justify-between gap-2">
           <dt class="text-encre-douce">Entrepôt</dt>
@@ -211,6 +230,6 @@ const BADGES_ARRET: Record<string, string> = {
           </span>
         </li>
       </ol>
-    </Volet>
+    </FicheContextuelle>
   </div>
 </template>

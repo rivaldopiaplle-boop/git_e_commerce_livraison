@@ -19,7 +19,7 @@ import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type LigneColis = {
   id: number
@@ -36,6 +36,9 @@ const donnees = ref<Colis | null>(null)
 const chargement = ref(true)
 const onglet = ref('tout')
 const selection = ref<LigneColis | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 
 onMounted(async () => {
   try {
@@ -64,6 +67,17 @@ const visibles = computed(() =>
     ? tousLesColis.value
     : tousLesColis.value.filter((colis) => colis.vendeur === onglet.value),
 )
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: LigneColis) {
+  selection.value = ligne
+  apercu.value = true
+}
 
 const colonnes: Colonne<LigneColis>[] = [
   { cle: 'numero', titre: 'Commande', largeur: 170 },
@@ -143,7 +157,7 @@ const quand = (date: string | null) =>
           titre="Consulter ce colis"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
       </template>
 
@@ -160,7 +174,12 @@ const quand = (date: string | null) =>
     </Liste>
 
     <!-- Le détail dans le volet : on consulte sans quitter la liste. -->
-    <Volet v-if="selection" :titre="`Colis ${selection.numero_commande}`">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="`Colis ${selection.numero_commande}`"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <dl class="flex flex-col gap-2.5 text-[12px]">
         <div>
           <dt class="font-bold text-encre-douce">Boutique déposante</dt>
@@ -184,6 +203,6 @@ const quand = (date: string | null) =>
         Un magasinier réceptionne et charge : il ne modifie ni la commande, ni son contenu,
         ni son prix. Le rattachement à une tournée se fait depuis l'écran des tournées.
       </p>
-    </Volet>
+    </FicheContextuelle>
   </div>
 </template>

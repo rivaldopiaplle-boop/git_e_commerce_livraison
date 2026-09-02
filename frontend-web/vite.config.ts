@@ -29,5 +29,11 @@ export default defineConfig({
     // par processus expire une fois sur trois au demarrage des ouvriers, et
     // une suite qui echoue au hasard ne sert plus a rien.
     pool: 'threads',
+    // Quinze secondes, pas cinq. Plusieurs tests montent la coquille ENTIERE
+    // avec le vrai routeur dans jsdom : c'est ce qui leur donne leur valeur —
+    // un lien casse y est attrape — mais cela coute une a deux secondes par
+    // montage. Sur une machine chargee, le defaut de cinq secondes expirait
+    // au hasard, et un test qui echoue au hasard cesse d'etre lu.
+    testTimeout: 15_000,
   },
 })

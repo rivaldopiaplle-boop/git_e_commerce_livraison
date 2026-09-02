@@ -28,7 +28,7 @@ import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Popup from '../../composants/Popup.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type Ligne = Commande & { [cle: string]: unknown }
 type ElementNotable = {
@@ -45,6 +45,9 @@ const route = useRoute()
 const liste = ref<Ligne[]>([])
 const chargement = ref(true)
 const selection = ref<Ligne | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 
 const avisOuvert = ref<Ligne | null>(null)
 
@@ -113,6 +116,17 @@ const BADGES: Record<string, string> = {
   ECHEC_LIVRAISON: 'badge-erreur',
   REMBOURSEE: 'badge-neutre',
   EN_ATTENTE_PAIEMENT: 'badge-attente',
+}
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: Ligne) {
+  selection.value = ligne
+  apercu.value = true
 }
 
 const colonnes: Colonne<Ligne>[] = [
@@ -296,10 +310,10 @@ const AVANT_PAIEMENT = ['EN_ATTENTE_PAIEMENT', 'ANNULEE']
 
       <template #actions="{ ligne }">
         <ActionLigne
-          titre="Suivre cette commande"
+          titre="Consulter cette commande"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
         <ActionLigne
           v-if="ligne.statut_actuel === 'EN_ATTENTE_PAIEMENT'"
@@ -349,7 +363,12 @@ const AVANT_PAIEMENT = ['EN_ATTENTE_PAIEMENT', 'ANNULEE']
     </Liste>
 
     <!-- Le suivi de la commande regardée, dans le volet -->
-    <Volet v-if="selection" :titre="selection.numero_commande">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="selection.numero_commande"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <dl class="flex flex-col gap-2 text-[12px]">
         <div class="flex justify-between gap-2">
           <dt class="text-encre-douce">Passée le</dt>
@@ -414,7 +433,7 @@ const AVANT_PAIEMENT = ['EN_ATTENTE_PAIEMENT', 'ANNULEE']
       >
         <Star :size="15" /> Donner mon avis
       </button>
-    </Volet>
+    </FicheContextuelle>
 
     <!-- L'avis : une popup, comme toute action courte (règle d'or n°9) -->
     <Popup

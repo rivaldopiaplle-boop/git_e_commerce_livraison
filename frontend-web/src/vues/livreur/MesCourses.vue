@@ -13,7 +13,7 @@ import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type Ligne = Livraison & { [cle: string]: unknown }
 
@@ -25,6 +25,9 @@ const mode = ref('')
 const chargement = ref(true)
 const onglet = ref('en-cours')
 const selection = ref<Ligne | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 
 onMounted(async () => {
   try {
@@ -55,6 +58,17 @@ const BADGES: Record<string, string> = {
 }
 
 const liste = computed(() => (onglet.value === 'terminees' ? terminees.value : enCours.value))
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: Ligne) {
+  selection.value = ligne
+  apercu.value = true
+}
 
 const colonnes: Colonne<Ligne>[] = [
   { cle: 'course', titre: 'Course' },
@@ -153,7 +167,7 @@ const colonnes: Colonne<Ligne>[] = [
           titre="Consulter cette course"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
       </template>
 
@@ -204,7 +218,12 @@ const colonnes: Colonne<Ligne>[] = [
       </div>
     </section>
 
-    <Volet v-if="selection" :titre="selection.client">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="selection.client"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <dl class="flex flex-col gap-2 text-[12px]">
         <div class="flex justify-between gap-2">
           <dt class="text-encre-douce">Commande</dt>
@@ -246,6 +265,6 @@ const colonnes: Colonne<Ligne>[] = [
         Confirmer la remise se fait sur le téléphone : c'est là que le code du client se
         saisit, et là que la position prouve que vous y étiez.
       </p>
-    </Volet>
+    </FicheContextuelle>
   </div>
 </template>

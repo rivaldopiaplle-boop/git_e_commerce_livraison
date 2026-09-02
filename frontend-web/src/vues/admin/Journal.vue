@@ -12,13 +12,16 @@ import { espaces, type Trace } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type Ligne = Trace & { [cle: string]: unknown }
 
 const traces = ref<Ligne[]>([])
 const chargement = ref(true)
 const selection = ref<Ligne | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 
 onMounted(async () => {
   try {
@@ -27,6 +30,17 @@ onMounted(async () => {
     chargement.value = false
   }
 })
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: Ligne) {
+  selection.value = ligne
+  apercu.value = true
+}
 
 const colonnes: Colonne<Ligne>[] = [
   { cle: 'date', titre: 'Quand', largeur: 130, champTri: 'date' },
@@ -93,7 +107,7 @@ const quand = (date: string) =>
           titre="Consulter cette trace"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
       </template>
 
@@ -105,7 +119,12 @@ const quand = (date: string) =>
       </template>
     </Liste>
 
-    <Volet v-if="selection" :titre="`${lisible(selection.type_objet)} n° ${selection.id_objet}`">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="`${lisible(selection.type_objet)} n° ${selection.id_objet}`"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <dl class="flex flex-col gap-2 text-[12px]">
         <div class="flex justify-between gap-2">
           <dt class="text-encre-douce">Quand</dt>
@@ -128,6 +147,6 @@ const quand = (date: string) =>
           <dd class="leading-relaxed">« {{ selection.commentaire }} »</dd>
         </div>
       </dl>
-    </Volet>
+    </FicheContextuelle>
   </div>
 </template>

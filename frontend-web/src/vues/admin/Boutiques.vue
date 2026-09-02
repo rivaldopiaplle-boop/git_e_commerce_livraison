@@ -12,7 +12,7 @@ import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type Boutique = {
   id: number
@@ -45,6 +45,9 @@ const livreurs = ref<LivreurAdmin[]>([])
 const chargement = ref(true)
 const onglet = ref('boutiques')
 const selection = ref<Boutique | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 const selectionLivreur = ref<LivreurAdmin | null>(null)
 
 onMounted(async () => {
@@ -62,6 +65,17 @@ const STATUTS: Record<string, string> = {
   EN_ATTENTE: 'badge-attente',
   REJETE: 'badge-erreur',
   SUSPENDU: 'badge-neutre',
+}
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: Boutique) {
+  selection.value = ligne
+  apercu.value = true
 }
 
 const colonnesBoutiques: Colonne<Boutique>[] = [
@@ -152,7 +166,7 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
           titre="Consulter cette boutique"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
         <ActionLigne
           titre="Traiter le dossier de validation"
@@ -233,7 +247,12 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
       </template>
     </Liste>
 
-    <Volet v-if="onglet === 'boutiques' && selection" :titre="selection.nom_boutique">
+    <FicheContextuelle
+      v-if="onglet === 'boutiques' && selection"
+      :titre="selection.nom_boutique"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <dl class="flex flex-col gap-2 text-[12px]">
         <div>
           <dt class="text-encre-douce">Responsable</dt>
@@ -261,7 +280,7 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
           <dd class="leading-relaxed">{{ selection.description }}</dd>
         </div>
       </dl>
-    </Volet>
+    </FicheContextuelle>
 
     <Volet v-if="onglet === 'livreurs' && selectionLivreur" :titre="selectionLivreur.nom">
       <dl class="flex flex-col gap-2 text-[12px]">

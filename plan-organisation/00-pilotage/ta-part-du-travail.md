@@ -8,235 +8,41 @@
 
 ---
 
-# ⬛ À FAIRE MAINTENANT — mis à jour le 1er septembre (2ᵉ lot)
+# ⬛ À FAIRE MAINTENANT — bloc M, 2 septembre
 
-Deux gros morceaux depuis ce matin : **le paiement**, et **le cycle complet du
-litige** — celui que tu appelais *« le moins réfléchi »* au bloc L-8. Il est
-maintenant écrit de bout en bout, avec ses trois rôles.
+## ⚠ Le bouton invisible : trouvé, expliqué, corrigé
 
-## Le paiement
+**Ta remarque M-2 était le symptôme d'un vrai défaut**, et il touchait toutes
+les popups du projet.
+
+`--accent` — la couleur de ton rôle — n'était posée que sur le grand `<div>` de
+l'application. Or **PrimeVue accroche ses popups au `<body>`**, donc en dehors.
+Dans une popup, le bouton principal perdait donc son fond et restait écrit en
+blanc… sur le fond blanc de la fenêtre.
+
+C'était la maladie du bloc J revenue par la bande. Sauf que cette fois le
+garde-fou ne pouvait pas la voir : la classe existait, la couleur aussi — c'est
+la **portée** qui manquait.
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
 | **1** | **`python demarrer.py`**, puis Ctrl+Maj+R | 2 min | — |
-| **2** | **Léa → panier → « Continuer vers le paiement »**, puis **Payer** | 3 min | D-101 |
-| **3** | **Refais-le, mais clique « Renoncer »**. Le produit est **immédiatement** re-commandable | 3 min | D-100 |
-| **4** | **Icône de document** sur une commande payée → **Imprimer**. Barre latérale, barre haute et boutons disparaissent de la feuille | 3 min | D-102 |
+| **2** | **Léa → Mes adresses → corbeille.** Le bouton « Retirer du carnet » est **visible**, dans le vert de ton rôle | 1 min | D-126 |
+| **3** | **`karim@exemple.fr` → Mon personnel → bouton d'alimentation.** Le bouton de confirmation est en **bleu vendeur**, pas seulement visible : il porte la couleur du rôle | 1 min | D-126 |
+| **4** | **`admin@rivdinde.local` → Litiges → arbitrer.** Le bouton est en **rouge admin**. Un bouton bleu chez l'admin serait pire qu'un bouton invisible : tu croirais être dans le mauvais espace | 1 min | D-126 |
 
-## Le litige, dans les trois rôles — fais-le dans cet ordre
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **5** | **Léa → Mes commandes → icône bouclier rouge** sur une commande livrée. Choisis un motif, raconte, envoie | 3 min | D-94 |
-| **6** | **`karim@exemple.fr` → Litiges** (nouvelle entrée dans la barre latérale). Le bandeau te dit combien de dossiers attendent **ta** version, et la colonne « Votre réponse » compte les heures restantes | 4 min | D-104 |
-| **7** | **Donne ta version**, puis va sur `admin@exemple.fr` → **Litiges** | 3 min | — |
-| **8** | **Essaie d'arbitrer le dossier « Réponse attendue avant… »** : le bouton est **gris**, et l'infobulle te dit jusqu'à quand la boutique a la parole | 2 min | D-103 |
-| **9** | **Arbitre celui dont le délai est dépassé** : lui, tu peux le trancher sans la seconde version, et la popup te le dit franchement | 3 min | D-103 |
-| **10** | **Rembourse partiellement** un dossier : coche « rembourser une partie seulement ». La commande reste **livrée** — un article manquant sur cinq ne renverse pas toute la vente | 3 min | — |
-
-Le jeu de démonstration te pose **les cinq états** d'un litige côte à côte :
-délai en cours, délai dépassé, boutique entendue, résolu avec remboursement,
-rejeté. Tu n'as rien à fabriquer à la main pour les voir.
-
-## Les quatre dernières listes — c'est fini
-
-Tu m'avais demandé les boutons-symboles **sur toutes les listes de tous les
-rôles**. Il en restait quatre au bloc K ; les quatre y sont.
+## L'œil ouvre enfin une popup
 
 | # | Ce que je te demande | Temps | Détail |
 |---|---|---|---|
-| **11** | **`karim@exemple.fr` → Mon personnel.** C'est maintenant la liste du projet, et surtout : tu peux **suspendre un employé**. Tu ne pouvais pas — quelqu'un qui partait gardait son accès au stock pour toujours | 4 min | D-106 |
-| **12** | **Suspends `rachid@exemple.fr`, puis essaie de te connecter avec.** La porte est vraiment fermée, pas juste le menu masqué | 2 min | D-106 |
-| **13** | **Léa → Mes adresses.** Tu peux enfin **corriger** une adresse au lieu de l'effacer et la retaper, et **retirer** demande confirmation — avant, un seul clic suffisait | 3 min | D-107 |
-| **14** | **Regarde la barre latérale de chaque rôle** : « Commandes reçues », « Vue d'ensemble », « Tournées », « Demandes d'identité ». Elles étaient toutes écrites sans accents | 1 min | D-105 |
+| **5** | **N'importe quelle liste, n'importe quel rôle → clique l'œil.** Une popup s'ouvre avec le détail, et **la liste reste derrière** : tu ne perds pas ta place | 2 min | D-127 |
+| **6** | **Ferme la popup.** Le panneau de droite montre **le même détail** — il est écrit une seule fois, à un seul endroit | 2 min | D-127 |
+| **7** | **Survole l'œil sur cinq écrans différents.** L'infobulle commence toujours par « Consulter ». Un écran disait « Suivre » — un même symbole doit promettre la même chose partout | 2 min | D-128 |
 
-## Le jeu de données, et ce qu'il rend visible
-
-Tu demandais (L-15) *« autant de données que possible pour rendre visible
-chaque scénario »*. Ce n'est plus une promesse, c'est **vérifiable** :
-
-```
-cd backend
-python manage.py verifier_couverture
-```
-
-Il interroge la vraie base et te dit, scénario par scénario, ce qu'il y a à
-montrer. Le tableau lisible est dans
-`plan-organisation/donnees-demo/couverture.md`.
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **15** | **Lance `python manage.py verifier_couverture`** depuis `backend/`. Les 34 lignes doivent être vertes | 1 min | D-108 |
-| **16** | **`admin@exemple.fr` → Validations.** Il y a enfin un dossier **qui attend** : « L'Atelier Camille ». L'écran était vide, tu ne pouvais rien démontrer | 2 min | — |
-| **17** | **→ Boutiques.** « Morvan Primeurs » est **suspendue**, et son catalogue a disparu de la vitrine sans que rien ne soit effacé | 2 min | — |
-| **18** | **Léa → Mes adresses.** Elle en avait **quatorze identiques** — mes essais de paiement en créaient une à chaque commande. C'est corrigé à la source, et l'existant est fusionné | 2 min | D-110 |
-
-Ce contrôle a trouvé **trois vrais défauts** le jour ou il a été écrit :
-
-1. `seed_catalogue` n'appliquait ses cas limites qu'à la **création**. Un seul
-   essai à l'écran — remettre en vente un produit retiré — les effaçait pour
-   toujours, et relancer la commande n'y changeait rien ;
-2. l'écran de validation n'avait **aucun dossier en attente** ;
-3. commander deux fois à la même adresse en créait deux.
-
-## Les fiches produit : plusieurs vues, et une animation
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **19** | **Ouvre n'importe quel produit du catalogue.** Il a maintenant **quatre vues** — ensemble, détail, matière, mise en situation — plus un **aperçu animé** en dernier, reconnaissable à son symbole de lecture | 3 min | D-111 |
-| **20** | **Survole la grande image** : deux flèches apparaissent. **Clique dedans puis utilise ← et →** : la galerie se pilote au clavier | 2 min | D-111 |
-| **21** | **Regarde le badge « Livraison Express »** en haut de la fiche. Il était écrit en jaune clair sur fond jaune clair — la même maladie qu'au bloc J | 1 min | D-113 |
-
-Je te dois une précision, et je préfère te la dire plutôt que tu la
-découvres : **ce n'est pas une vraie vidéo**, c'est une image animée. Encoder
-une vidéo demande `ffmpeg`, que le projet n'a pas et qui l'obligerait à une
-dépendance externe. La plateforme accepte les deux — le jour où un vendeur
-téléverse un vrai fichier vidéo, l'écran le joue avec une balise `<video>`.
-Les quatre vues sont, elles aussi, **dérivées de la photo source** : une vraie
-boutique photographie sous plusieurs angles, ce qu'aucun peuplement ne peut
-inventer.
-
-## La barre latérale et la barre haute — le dernier point de ta liste
-
-C'était le sixième et dernier point de l'ordre que tu m'as donné en L-11.
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **22** | **`karim@exemple.fr`.** La barre latérale a maintenant des **sections** — « Ma boutique », « Vendre », « Mon compte » — et surtout des **pastilles** : tu vois qu'il y a 1 commande à préparer et 2 produits sous le seuil d'alerte **sans ouvrir les écrans** | 3 min | D-114, D-115 |
-| **23** | **Clique « Réduire » en bas de la barre.** Repliée, les nombres ne tiennent plus — mais un point reste sur les icônes concernées. Replier ne doit pas te rendre aveugle | 2 min | D-115 |
-| **24** | **Regarde en haut à gauche** : « Espace vendeur › Vendre » puis le nom de l'écran. Avant, il n'y avait que « Espace vendeur », qui ne disait pas où tu étais | 1 min | D-116 |
-| **25** | **Appuie sur `/`** n'importe où : le curseur va dans la recherche. Le raccourci est écrit dans le champ | 1 min | D-116 |
-| **26** | **Fais descendre une pastille** : prépare la commande qui attend chez Karim, reviens sur un autre écran. Le compteur baisse | 3 min | D-114 |
-
-Ce qui **ne** mérite pas de pastille, et pourquoi je n'en ai pas mis partout :
-une pastille qui ne descend jamais à zéro cesse d'être lue au bout de deux
-jours. « 137 produits au catalogue » n'est pas une pastille, c'est une
-statistique.
-
-## ⚠ Un bandeau rouge s'affichait sur toutes tes pages
-
-Je te le mets en avant parce que c'est le défaut le plus grave que j'ai trouvé
-aujourd'hui, et qu'il ne se voyait dans aucun test.
-
-**PrimeVue 5 exige une clé de licence.** Sans elle, il insère lui-même dans la
-page un rectangle rouge « **Invalid PrimeUI License** », fixé en bas à droite,
-sur **tous** les écrans — et le code partait dans le build de production. Sur
-un projet que tu montres à des recruteurs, c'est rédhibitoire.
-
-Le projet est repassé en **PrimeVue 4**, qui est sous licence **MIT** : mêmes
-composants (tableaux, popups, graphes, toasts, notation), aucune clé, aucune
-expiration. Trois tests empêchent le retour en arrière, dont un qui lit la
-bibliothèque installée et échoue si le message y réapparaît.
-
-La licence Community de la 5 est gratuite pour un étudiant, mais elle demande
-une clé à renouveler chaque année. Une clé qui expire dans un dépôt qu'on
-montre, c'est un bandeau rouge qui apparaît un matin sans prévenir. **Si tu
-préfères quand même la 5 avec une clé, dis-le-moi** : c'est ton appel, pas le
-mien.
-
----
-
-## Le tableau de bord et les graphiques
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **27** | **`karim@exemple.fr` → Tableau de bord.** **Clique n'importe quel chiffre** : ils mènent tous quelque part maintenant. Tu disais deux fois que la dashboard n'était pas cliquable | 3 min | D-118 |
-| **28** | **Clique « 2 sous le seuil d'alerte »** : tu arrives sur l'onglet des **alertes**, pas sur le catalogue entier où il faudrait les chercher | 2 min | D-118 |
-| **29** | **→ Statistiques.** Trois vrais graphiques au lieu de mes barres faites à la main : le chiffre d'affaires jour par jour **avec les commandes en second axe**, la part de chaque produit, et la répartition des notes | 4 min | D-119 |
-| **30** | **Survole la courbe** : l'infobulle donne le montant en euros ET le nombre de commandes. Mes barres n'avaient ni axe, ni échelle, ni infobulle | 2 min | D-119 |
-
-Sur les graphiques, tu avais raison et j'avais tort par écrit : j'avais mis un
-commentaire dans le fichier disant « un graphe de trente valeurs ne mérite pas
-une dépendance ». C'était faux, et c'était contraire à ta règle d'or n°5.
-
-## Les formulaires valident enfin dans le navigateur
-
-Je t'ai dit plus haut que `vee-validate` et `zod` étaient installés sans servir.
-C'est réglé dans la foulée : c'était ton reproche du bloc K, et le laisser en
-l'état aurait été le refaire.
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **31** | **Va sur la connexion, tape `nimportequoi` dans l'adresse e-mail, puis clique ailleurs.** L'erreur apparaît **tout de suite**, avant tout envoi | 1 min | D-121 |
-| **32** | **Essaie de valider quand même** : le formulaire ne part pas. Il n'y a plus de vérification manuelle à oublier | 1 min | D-121 |
-| **33** | **Inscription → mets un mot de passe de cinq lettres.** Il te dit dix caractères minimum au moment où tu quittes le champ | 1 min | D-121 |
-| **34** | **Inscris-toi avec une adresse déjà prise.** Le message du serveur se pose **sous le champ e-mail**, pas dans un bandeau où il faudrait deviner quoi corriger | 2 min | D-121 |
-
-Un choix que je te signale parce qu'il surprend : **je n'exige ni majuscule ni
-chiffre ni symbole**, seulement dix caractères. Les règles de composition
-poussent aux mots de passe du genre `Passe1234!`, que les gens réutilisent
-partout. La longueur protège mieux, et c'est ce que recommandent l'ANSSI et le
-NIST depuis 2017. Django refuse en plus les mots de passe trop courants, ce
-qu'une règle de forme ne sait pas faire.
-
-## Tes adresses servent enfin à quelqu'un
-
-Tu demandais (L-2) : *« mes adresses : ces informations ne sont pas utilisées
-par le vendeur, l'entrepôt, le gestionnaire ni le livreur, pourquoi ? »*.
-C'était vrai : tu saisissais une adresse et des instructions, et **personne ne
-les voyait ensuite**. Karim ne savait même pas dans quelle ville partait son
-colis.
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **35** | **`karim@exemple.fr` → Commandes reçues.** Une colonne **Destination** : ville et code postal. Pas la rue — il prépare un colis, il n'a pas à connaître ton étage | 2 min | D-123 |
-| **36** | **`rachid@exemple.fr` → Tournées.** Lui voit les **rues**, parce qu'il ordonne les arrêts. Mais pas tes instructions de porte | 2 min | D-123 |
-| **37** | **`julien@exemple.fr` → Mes courses.** Lui voit **tout** : rue, complément, « code portail 4512, 3e étage », et les coordonnées pour ouvrir un itinéraire | 2 min | D-123 |
-
-Le cloisonnement n'est pas de la pudeur administrative : une adresse complète
-diffusée à toute la chaîne est une donnée personnelle exposée sans nécessité.
-Huit tests le verrouillent **dans les deux sens** — chacun reçoit ce dont il a
-besoin, et personne ne reçoit plus.
-
-## Le vendeur et son gestionnaire ne se marchent plus sur les pieds
-
-Tu disais (L-3) : *« le vendeur et le gestionnaire se marchent sur les pieds,
-ne sont pas complémentaires, et les actions de l'un ne sont pas mises à jour
-chez l'autre »*. En le vérifiant, j'ai trouvé un défaut plus profond que
-l'affichage.
-
-| # | Ce que je te demande | Temps | Détail |
-|---|---|---|---|
-| **38** | **`nadia@exemple.fr` → À préparer.** Fais avancer une commande | 2 min | — |
-| **39** | **Reconnecte-toi en `sophie@exemple.fr` → Commandes reçues.** Sous la ligne : « **Test Nadia, il y a 2 min** ». Avant, les deux pouvaient préparer la même commande sans le savoir | 2 min | D-125 |
-| **40** | **→ Mon personnel.** Tu vois ce que Nadia a **réellement fait** : commandes préparées, ajustements de stock, dernière action | 2 min | D-125 |
-| **41** | **Regarde la pastille de « Commandes reçues »** dans la barre latérale : elle a baissé toute seule | 1 min | D-114 |
-
-### Le défaut de fond, et il ne se voyait pas
-
-Faire avancer une préparation écrivait la trace sur la **commande**, avec
-l'identifiant de la commande. Sur une commande Standard à trois boutiques, les
-trois vendeurs y écrivaient trois statuts de préparation sans rapport entre eux
-— et rien ne disait ensuite lequel concernait qui. C'est précisément la
-confusion que tu décrivais.
-
-Et au passage : la commande passait de « payée » à « prête » **en silence**. Tu
-voyais ton état changer sans qu'aucune ligne d'historique ne l'explique, alors
-que « jamais de statut modifié en silence » est la première phrase du modèle.
+Les onze écrans sont convertis. Un test parcourt tous les `.vue` et échoue si
+un œil se remet à promettre autre chose, ou s'il cesse d'ouvrir.
 
 Mot de passe commun : **`Demonstration!2026`**.
-
----
-
-## Le défaut que j'ai trouvé en écrivant le paiement
-
-Je te le dis parce qu'il expliquait sans doute des choses que tu as vues sans
-comprendre : **du stock était réservé deux fois pour une même commande**, une
-fois à sa création, une fois à l'ouverture du paiement — et rendu une seule
-fois. Au bout de quelques essais, des produits parfaitement disponibles
-s'affichaient **« épuisé »** sans raison visible.
-
-Trois choses ont été faites, pas une :
-
-1. **Un seul module écrit désormais ce compteur** (`commandes/reservation.py`).
-   Poser, relâcher et consommer sont rejouables sans dégât — c'est ce qu'exige
-   un webhook de paiement, qui réessaie quand il doute d'avoir été reçu.
-2. **Une réservation expire au bout de dix minutes.** `demarrer.py` libère au
-   lancement ce qu'une session interrompue retenait encore : ta base de la
-   veille ne te ment plus le lendemain.
-3. **18 tests** verrouillent la règle : quel que soit le chemin — capture,
-   refus, abandon, webhook rejoué, retour du client — le compteur revient
-   toujours à sa valeur de départ.
 
 ---
 

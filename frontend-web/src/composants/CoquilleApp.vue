@@ -140,6 +140,21 @@ function raccourciRecherche(evenement: KeyboardEvent) {
 onMounted(() => window.addEventListener('keydown', raccourciRecherche))
 onBeforeUnmount(() => window.removeEventListener('keydown', raccourciRecherche))
 
+// La couleur du role va aussi sur la RACINE du document.
+//
+// PrimeVue accroche ses popups et ses toasts a `<body>`, hors de l'arbre de
+// cette coquille : sans cela, un bouton principal dans une popup n'avait plus
+// de fond du tout, et restait en blanc sur le fond blanc de la fenetre.
+watch(
+  role,
+  (courant) => {
+    if (typeof document === 'undefined') return
+    document.documentElement.style.setProperty('--accent', courant.accent)
+    document.documentElement.style.setProperty('--accent-doux', courant.accentDoux)
+  },
+  { immediate: true },
+)
+
 // La recherche pilote le catalogue. Depuis un autre ecran, chercher y ramene.
 const recherche = ref(catalogue.recherche)
 watch(recherche, (valeur) => {

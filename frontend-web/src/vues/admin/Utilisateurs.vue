@@ -18,7 +18,7 @@ import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
 import Popup from '../../composants/Popup.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type Ligne = CompteAdmin & { [cle: string]: unknown }
 
@@ -29,6 +29,9 @@ const chargement = ref(true)
 const onglet = ref('TOUS')
 const occupe = ref(false)
 const selection = ref<Ligne | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 
 const LIBELLES: Record<string, string> = {
   CLIENT: 'Clients',
@@ -96,6 +99,17 @@ async function basculer() {
   } finally {
     occupe.value = false
   }
+}
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: Ligne) {
+  selection.value = ligne
+  apercu.value = true
 }
 
 const colonnes: Colonne<Ligne>[] = [
@@ -168,7 +182,7 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
           titre="Consulter ce compte"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
         <ActionLigne
           :titre="ligne.statut_compte === 'SUSPENDU' ? 'Réactiver ce compte'
@@ -188,7 +202,12 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
       </template>
     </Liste>
 
-    <Volet v-if="selection" :titre="`${selection.prenom} ${selection.nom}`">
+    <FicheContextuelle
+      v-if="selection"
+      :titre="`${selection.prenom} ${selection.nom}`"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
+    >
       <dl class="flex flex-col gap-2 text-[12px]">
         <div>
           <dt class="text-encre-douce">Adresse e-mail</dt>
@@ -233,7 +252,7 @@ const lisible = (statut: string) => statut.toLowerCase().replace(/_/g, ' ')
         Un compte n'est jamais supprimé : ses commandes passées le référencent, et une
         plateforme qui efface ses utilisateurs efface ses preuves.
       </p>
-    </Volet>
+    </FicheContextuelle>
 
     <!-- Suspendre est reversible mais coupe l'acces immediatement : on
          confirme, et on explique ce qui va se passer (D-60, D-63). -->

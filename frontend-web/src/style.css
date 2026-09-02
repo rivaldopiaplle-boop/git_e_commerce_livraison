@@ -61,6 +61,25 @@
 }
 
 @layer base {
+  /* La couleur d'accent du role, posee ICI et non seulement sur la coquille.
+     ------------------------------------------------------------------------
+     PrimeVue accroche ses popups et ses toasts a `<body>`, donc EN DEHORS du
+     div qui portait `--accent`. Dans une popup, `background: var(--accent)`
+     ne resolvait donc rien : le bouton principal perdait son fond et restait
+     en `text-white` sur le fond blanc de la fenetre. **Blanc sur blanc,
+     invisible** — exactement la maladie du bloc J, revenue par la bande.
+
+     Deux garde-fous plutot qu'un :
+       · cette valeur par defaut, qui rend l'accident impossible meme sur un
+         ecran hors coquille (connexion, inscription) ;
+       · `CoquilleApp` qui pose la couleur du role sur `documentElement`, pour
+         que le contenu televerse recoive la BONNE couleur, pas seulement une
+         couleur.  */
+  :root {
+    --accent: #16a34a;
+    --accent-doux: #e8f8ee;
+  }
+
   html { -webkit-font-smoothing: antialiased; }
 
   body {

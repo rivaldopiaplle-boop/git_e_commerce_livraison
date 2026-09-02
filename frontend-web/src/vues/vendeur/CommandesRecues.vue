@@ -19,7 +19,7 @@ import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import Volet from '../../composants/Volet.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 
 type Ligne = SousCommande & { [cle: string]: unknown }
 
@@ -28,6 +28,9 @@ const chargement = ref(true)
 const erreur = ref('')
 const onglet = ref('a_faire')
 const selection = ref<Ligne | null>(null)
+// L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
+// lui, reste le contexte permanent de la ligne active.
+const apercu = ref(false)
 const occupe = ref(false)
 
 // On ne traite pas tout d'un bloc : la file se range par étape, comme dans
@@ -90,6 +93,17 @@ async function avancer(sous: Ligne, statut: string) {
  *  elle ne se déclenche pas par le même geste que « avancer ». */
 const suiteNormale = (sous: Ligne) =>
   (sous.suites_possibles ?? []).find((statut) => statut !== 'ANNULEE') ?? null
+
+/**
+ * L'oeil : on consulte, on ne selectionne pas seulement.
+ *
+ * Il ouvre la popup ET marque la ligne active, pour que le panneau de
+ * droite montre la meme chose une fois la popup refermee.
+ */
+function consulter(ligne: Ligne) {
+  selection.value = ligne
+  apercu.value = true
+}
 
 const colonnes: Colonne<Ligne>[] = [
   { cle: 'numero', titre: 'Commande', largeur: 180 },
@@ -192,7 +206,7 @@ function depuis(quand: string) {
           titre="Consulter cette commande"
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
-          @click="selection = selection?.id === ligne.id ? null : ligne"
+          @click="consulter(ligne)"
         />
         <ActionLigne
           v-if="suiteNormale(ligne)"
@@ -231,9 +245,11 @@ function depuis(quand: string) {
     </Liste>
 
     <!-- Le volet de la maquette : le détail, et UN seul bouton d'avancement. -->
-    <Volet
+    <FicheContextuelle
       v-if="selection"
       :titre="selection.numero_commande ?? `Commande n° ${selection.id}`"
+      :apercu-ouvert="apercu"
+      @fermer-apercu="apercu = false"
     >
       <dl class="flex flex-col gap-2 text-[12px]">
         <div class="flex justify-between gap-2">
@@ -296,6 +312,6 @@ function depuis(quand: string) {
           serveur qui dit ce qui est possible.
         </p>
       </div>
-    </Volet>
+    </FicheContextuelle>
   </div>
 </template>
