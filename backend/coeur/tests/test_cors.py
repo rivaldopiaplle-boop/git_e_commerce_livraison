@@ -68,3 +68,65 @@ def test_une_origine_inconnue_n_est_pas_autorisee(client):
 
     # Le navigateur bloquera : aucune autorisation n'est renvoyee.
     assert reponse.get("access-control-allow-origin") is None
+
+
+# ── Le front mobile — M-4 ────────────────────────────────────────────────
+#
+# Le port 5174 manquait des origines autorisees, et c'etait exactement le meme
+# piege que l'en-tete de session : l'application mobile appelait l'API, l'API
+# repondait, et le navigateur jetait la reponse avant que le code ne la voie.
+# Un ecran vide, aucune erreur serveur, rien dans les journaux.
+
+MOBILE = "http://localhost:5174"
+
+
+@pytest.mark.django_db
+def test_le_port_du_front_mobile_est_autorise(client):
+    reponse = client.options(
+        reverse("liste-produits"),
+        HTTP_ORIGIN=MOBILE,
+        HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+    )
+
+    assert reponse["access-control-allow-origin"] == MOBILE
+
+
+@pytest.mark.django_db
+def test_un_vrai_telephone_sur_le_reseau_local_est_autorise(client):
+    """Pour un telephone, « localhost » designe le telephone lui-meme.
+
+    Il charge donc l'application depuis l'adresse de reseau local de la
+    machine — qui change d'un endroit a l'autre, d'ou l'expression reguliere
+    plutot qu'une liste a reecrire dans `.env` a chaque deplacement.
+    """
+    for origine in (
+        "http://192.168.1.13:5174",
+        "http://10.0.0.42:5173",
+        "http://172.20.10.3:5174",
+    ):
+        reponse = client.options(
+            reverse("liste-produits"),
+            HTTP_ORIGIN=origine,
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+        )
+        assert reponse.get("access-control-allow-origin") == origine, origine
+
+
+@pytest.mark.django_db
+def test_une_adresse_publique_n_est_jamais_autorisee_par_le_motif(client):
+    """Le motif ne couvre QUE les plages privees.
+
+    Autoriser un motif large reviendrait a laisser n'importe quel site lire
+    les reponses de l'API avec les jetons de la personne connectee.
+    """
+    for origine in (
+        "http://8.8.8.8:5174",
+        "http://192.168.1.13.pirate.example:5174",
+        "https://192.168.1.13:5174",
+    ):
+        reponse = client.options(
+            reverse("liste-produits"),
+            HTTP_ORIGIN=origine,
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+        )
+        assert reponse.get("access-control-allow-origin") is None, origine

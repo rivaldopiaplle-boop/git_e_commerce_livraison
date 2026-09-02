@@ -1934,3 +1934,85 @@ Même famille de défaut que les particularités
 ([D-109](#d-109--le-peuplement-repose-ses-cas-limites-il-ne-les-pose-pas-une-fois)),
 et même règle : **une commande de peuplement doit remettre la démonstration
 d'aplomb, pas seulement la monter la première fois.**
+
+
+### D-133 — Le port du front mobile manquait aux origines autorisées
+
+**Trouvé en écrivant la documentation de M-4.** Le port **5174** — celui du
+front mobile — n'était pas dans `CORS_ORIGINS`. L'application appelait l'API,
+l'API répondait, et le navigateur jetait la réponse avant que le code ne la
+voie : un écran vide, aucune erreur serveur, rien dans les journaux.
+
+C'est exactement le piège que le commentaire de `settings.py` décrivait déjà
+pour l'en-tête `X-Panier-Session` au bloc H. Il a suffi d'ajouter un front pour
+le refaire.
+
+Deux ajouts, et le second est le plus utile :
+
+1. `http://localhost:5174` rejoint la liste par défaut ;
+2. **en développement seulement**, les plages d'adresses privées sont acceptées
+   par expression régulière (`192.168.x`, `10.x`, `172.16-31.x`) sur les ports
+   5173, 5174 et 8100. Pour un téléphone, « localhost » désigne le téléphone
+   lui-même : il charge l'application depuis l'adresse de la machine sur le
+   réseau, qui change d'un endroit à l'autre. Une expression régulière évite de
+   la réécrire dans `.env` à chaque déplacement.
+
+**Jamais en ligne.** Autoriser un motif d'origine large reviendrait à laisser
+n'importe quel site lire les réponses de l'API avec les jetons de la personne
+connectée. Trois tests vérifient que le motif ne couvre que les plages privées :
+`8.8.8.8`, `192.168.1.13.pirate.example` et la version `https` sont refusés.
+
+Dans le même passage, `ALLOWED_HOSTS` accepte tout **en développement** : sans
+cela Django répond 400 à un téléphone, avec un message qui n'aide personne.
+
+### D-134 — Un nom de variable d'environnement qui ne correspond pas ne dit rien
+
+Le défaut le plus sournois trouvé aujourd'hui, parce qu'il **n'échoue jamais
+bruyamment**. Trois fichiers nommaient les mêmes réglages différemment :
+
+| Fichier | Ce qu'il posait | Ce que le code lit |
+|---|---|---|
+| `render.yaml` | `DJANGO_ALLOWED_HOSTS` | `ALLOWED_HOSTS` |
+| `render.yaml` | `CORS_ALLOWED_ORIGINS` | `CORS_ORIGINS` |
+| `render.yaml` | `CLOUDINARY_URL` | `CLOUDINARY_CLOUD_NAME` + `_API_KEY` + `_API_SECRET` |
+| `.env.example` | `STRIPE_CLE_SECRETE` | `STRIPE_SECRET_KEY` |
+| `.env.example` | `AI_API_KEY` | `CLE_MODELE_IA` |
+
+Chacun **désactive une fonctionnalité en silence** : la variable existe,
+personne ne la lit, la valeur par défaut s'applique. Le front déployé se serait
+fait refuser par le navigateur au premier appel, les photos auraient disparu au
+redéploiement suivant, et une vraie clé Stripe posée dans le fichier aurait
+laissé le paiement en simulation.
+
+`coeur/tests/test_variables_environnement.py` compare désormais, **dans les
+deux sens**, ce que le code lit et ce que la configuration propose. Les
+variables déclarées pour plus tard — la clé publique Stripe, Nominatim — sont
+listées nommément, avec leur raison : les laisser sans explication ferait croire
+qu'elles sont branchées, les retirer ferait perdre le nom exact à poser le jour
+où on branche le service.
+
+Vérifié par injection : sans les corrections, trois des quatre tests échouent et
+nomment les cinq variables fautives.
+
+### D-135 — Il n'y a qu'une application mobile, et la documentation le dit
+
+**Ta demande, M-4** : *« dans un fichier .md comment lancer les deux mobile
+client et livreur »*.
+
+La formulation méritait une réponse explicite : **il n'y a pas deux
+applications**. C'est le même code, et la barre d'onglets change selon le rôle
+du compte connecté ([D-20](#d-20--ionic-et-capacitor-pour-le-mobile)). Deux
+applications à maintenir pour deux rôles qui partagent la connexion, le profil,
+les notifications et le client d'API, ce serait deux fois le travail pour la
+moitié du résultat.
+
+`frontend-mobile/LISEZ-MOI.md` explique donc les deux expériences, le tableau
+des onglets par rôle, et surtout **les pièges dans l'ordre où on les
+rencontre** : le pare-feu Windows, le port 5174 déjà pris que Vite abandonne
+sans prévenir, `localhost` qui désigne le téléphone, CORS, et la géolocalisation
+que les navigateurs refusent sur une origine non sécurisée — laquelle
+fonctionne dans l'application installée, parce qu'elle est alors native.
+
+`deploiement/LISEZ-MOI.md` fait de même pour la mise en ligne, avec une section
+entière consacrée aux pièges. Chacun a réellement coûté du temps sur ce projet :
+ils ne sont pas là pour faire nombre.

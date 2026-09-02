@@ -543,3 +543,33 @@ Le peuplement fabrique donc une vignette assumée — nom, univers, couleurs de 
 maquette. Les 24 photos réelles vérifiées à l'œil au bloc J sont conservées.
 `donnees-demo/images/<slug>.jpg` prime sur tout : déposer un fichier suffit à
 remplacer une vignette.
+
+
+---
+
+## La documentation de lancement et de déploiement
+
+Deux fichiers, écrits à partir de ce qui a été **vérifié en marche**, pas de ce
+qui devrait marcher :
+
+- `frontend-mobile/LISEZ-MOI.md` — une seule application mobile, deux rôles,
+  du navigateur au téléphone à l'APK, avec les pièges dans l'ordre où on les
+  rencontre ;
+- `deploiement/LISEZ-MOI.md` — Neon, Render, Vercel, Cloudinary, l'APK, et une
+  section entière de pièges dont chacun a réellement coûté du temps.
+
+### Deux défauts trouvés en les écrivant
+
+| Défaut | Ce qu'il coûtait | Corrigé par |
+|---|---|---|
+| Le port 5174 absent de `CORS_ORIGINS` | l'application mobile ne pouvait rien lire de l'API, **sans aucune erreur visible** | [D-133](journal-decisions.md) |
+| Trois variables mal nommées dans `render.yaml` | mise en ligne servant un front vide, photos perdues au redéploiement | [D-134](journal-decisions.md) |
+
+Le second est le plus sournois : **un nom de variable qui ne correspond pas
+n'échoue jamais bruyamment.** La valeur par défaut s'applique, et rien ne le
+signale.
+
+`coeur/tests/test_variables_environnement.py` compare désormais dans les deux
+sens ce que le code lit et ce que la configuration propose. Vérifié par
+injection : sans les corrections, trois des quatre tests échouent et nomment les
+cinq variables fautives.

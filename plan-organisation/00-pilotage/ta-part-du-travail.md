@@ -80,6 +80,40 @@ produit, univers, aux couleurs de la maquette. Elle ne ment sur rien.
 (`poke-bowl-saumon.jpg` par exemple) : le peuplement les prend en priorité sur
 tout le reste.
 
+## Les deux guides que tu demandais (M-4)
+
+| Fichier | Ce qu'il couvre |
+|---|---|
+| [`frontend-mobile/LISEZ-MOI.md`](../../frontend-mobile/LISEZ-MOI.md) | lancer le mobile, dans le navigateur et sur un vrai téléphone, en client **et** en livreur |
+| [`deploiement/LISEZ-MOI.md`](../../deploiement/LISEZ-MOI.md) | la mise en ligne, étape par étape, avec une section entière de pièges |
+
+**Une précision sur ta formulation** : tu parles des « deux mobile client et
+livreur ». Il n'y en a **qu'une**. C'est le même code : la barre d'onglets
+change selon le rôle du compte connecté. `lea@exemple.fr` donne l'application
+du client, `amine@exemple.fr` celle du livreur Express, `julien@exemple.fr`
+celle du livreur Standard.
+
+### ⚠ Deux défauts trouvés en écrivant ces guides
+
+Les deux auraient cassé quelque chose sans jamais lever d'erreur.
+
+**1. L'application mobile ne pouvait pas parler à l'API.** Le port 5174
+manquait aux origines autorisées : le navigateur jetait chaque réponse avant
+que le code ne la voie. Écran vide, journaux serveur parfaitement propres.
+
+**2. Trois variables de déploiement portaient le mauvais nom.** `render.yaml`
+posait `DJANGO_ALLOWED_HOSTS` au lieu de `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
+au lieu de `CORS_ORIGINS`, et `CLOUDINARY_URL` au lieu des trois variables
+attendues. Une variable mal nommée ne provoque aucune erreur : la valeur par
+défaut s'applique. **Ta mise en ligne aurait servi un front vide**, et tu
+aurais cherché du côté du réseau.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **12** | **Ouvre `http://localhost:5174`** et réduis la fenêtre au format téléphone (Ctrl+Maj+M). Connecte-toi en `lea@`, puis en `amine@` : la barre d'onglets change | 4 min | D-135 |
+| **13** | **Depuis ton téléphone, même Wi-Fi** : suis le guide mobile. Si ça bloque, la section « pièges » est dans l'ordre où on les rencontre | 10 min | D-133 |
+| **14** | **Lis la section « pièges » du guide de déploiement** avant de mettre en ligne. Chacun a coûté du temps sur ce projet | 5 min | — |
+
 Mot de passe commun : **`Demonstration!2026`**.
 
 ---

@@ -30,15 +30,28 @@ services:
       - key: DATABASE_URL
         sync: false
 
-      - key: DJANGO_ALLOWED_HOSTS
+      # ATTENTION AUX NOMS. Ce fichier posait `DJANGO_ALLOWED_HOSTS` et
+      # `CORS_ALLOWED_ORIGINS` ; les reglages lisent `ALLOWED_HOSTS` et
+      # `CORS_ORIGINS`. Une variable mal nommee ne provoque aucune erreur :
+      # la valeur par defaut s'applique, et le front deploye se serait fait
+      # refuser par le navigateur sans qu'aucun journal ne le dise.
+      - key: ALLOWED_HOSTS
         value: rivdinde-api.onrender.com
 
-      - key: CORS_ALLOWED_ORIGINS
+      - key: CORS_ORIGINS
         value: https://rivdinde.vercel.app
 
       # Cloudinary : le disque de Render est éphémère, une photo téléversée y
       # disparaîtrait au premier redéploiement (D-24).
-      - key: CLOUDINARY_URL
+      #
+      # Trois variables et non l'URL unique `CLOUDINARY_URL` : c'est ce que
+      # lisent les réglages. Les trois valeurs sont dans le tableau de bord
+      # Cloudinary, section « Product Environment Credentials ».
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
         sync: false
 
       # Le peuplement de démonstration ne s'exécute jamais par accident : il

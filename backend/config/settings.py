@@ -51,6 +51,16 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = env_liste("ALLOWED_HOSTS", "localhost,127.0.0.1")
 
+# En DEVELOPPEMENT seulement : la machine repond aussi sur son adresse de
+# reseau local, sans quoi un vrai telephone ne peut rien joindre. Pour lui,
+# « localhost » designe le telephone lui-meme.
+#
+# Restreint a DEBUG, et a DEBUG seulement : `ALLOWED_HOSTS = ["*"]` en ligne
+# ouvre la porte au detournement d'en-tete Host, qui sert a fabriquer des liens
+# de reinitialisation de mot de passe pointant vers un site pirate.
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+
 # Render publie le domaine du service dans cette variable. Sans cette ligne,
 # la premiere mise en ligne repond 400 sans expliquer pourquoi.
 hote_render = env("RENDER_EXTERNAL_HOSTNAME")
@@ -173,9 +183,28 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "id_utilisateur",
 }
 
+# 5174 est le port du front MOBILE : il manquait, et c'est exactement le piege
+# que le commentaire ci-dessous decrit. L'application mobile appelait l'API,
+# l'API repondait, et le navigateur jetait la reponse avant que le code ne la
+# voie — un ecran vide, aucune erreur serveur, rien dans les journaux.
 CORS_ALLOWED_ORIGINS = env_liste(
-    "CORS_ORIGINS", "http://localhost:5173,http://localhost:8100"
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://localhost:8100",
 )
+
+# En DEVELOPPEMENT seulement : un vrai telephone charge l'application depuis
+# l'adresse de reseau local de la machine, qui change d'un endroit a l'autre.
+# Une expression reguliere evite de la reecrire dans `.env` a chaque fois.
+#
+# Jamais en ligne : autoriser un motif d'origine large revient a laisser
+# n'importe quel site lire les reponses de l'API avec les jetons de la
+# personne connectee.
+if DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://192\.168\.\d{1,3}\.\d{1,3}:(5173|5174|8100)$",
+        r"^http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}:(5173|5174|8100)$",
+        r"^http://172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}:(5173|5174|8100)$",
+    ]
 
 # Tout en-tete personnalise doit etre declare ici, sinon le navigateur bloque
 # la requete AVANT de l'envoyer — et le front ne recoit qu'une erreur reseau
