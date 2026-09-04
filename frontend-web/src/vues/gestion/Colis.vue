@@ -12,8 +12,9 @@
 //   **réceptionne**. Les actions sont donc **consulter** (le détail dans le
 //   volet) et **localiser** (la destination), pas « modifier ».
 import { Eye, MapPin, Package, Warehouse } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { espaces, type Colis } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -40,13 +41,13 @@ const selection = ref<LigneColis | null>(null)
 // lui, reste le contexte permanent de la ligne active.
 const apercu = ref(false)
 
-onMounted(async () => {
+useRafraichissement(async () => {
   try {
     donnees.value = await espaces.entrepot.colis()
   } finally {
     chargement.value = false
   }
-})
+}, { periodique: true })
 
 /** Les colis à plat : c'est ce qu'une liste triable demande. Le regroupement
  *  par boutique reste accessible par l'onglet et par la colonne. */

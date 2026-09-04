@@ -7,11 +7,12 @@
 import { IonButton, IonIcon, IonInput, IonModal } from '@ionic/vue'
 import { Geolocation } from '@capacitor/geolocation'
 import { checkmarkDoneOutline, locationOutline, navigateOutline } from 'ionicons/icons'
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useLivreur } from '@/magasins/livreur'
+import { useRafraichissement } from '@/rafraichissement'
 
 const livreur = useLivreur()
 const routeur = useRouter()
@@ -47,10 +48,14 @@ const code = ref('')
 const occupe = ref(false)
 const erreur = ref('')
 
-onMounted(async () => {
-  livreur.charger()
+/**
+ * L'arrêt courant se recharge en fond : il change quand l'entrepôt réordonne
+ * la tournée, et le livreur ne doit pas rouler vers l'ancien.
+ */
+useRafraichissement(async () => {
+  await livreur.charger()
   moi.value = (await position()) ?? null
-})
+}, { periodique: true })
 
 async function position() {
   try {

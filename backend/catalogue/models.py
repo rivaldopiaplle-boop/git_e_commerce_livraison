@@ -54,6 +54,20 @@ class Produit(models.Model):
     # Le champ accepte les deux : le front joue une video s'il en recoit une,
     # et affiche une image animee sinon.
     video_url = models.CharField(max_length=500, blank=True)
+
+    # L'image est-elle une ILLUSTRATION plutot qu'une photographie ? — O-6
+    #
+    # Ta demande : « les produits avec vraie image en premier, et en dernier
+    # les produits fictifs sans images, mais garde la logique lorsque ce sera
+    # en production ».
+    #
+    # Un produit dont la vignette est dessinee passe donc en fin de catalogue.
+    # C'est un DRAPEAU et non un calcul : en production, un vendeur televerse
+    # sa photo et le drapeau tombe a faux tout seul, sans qu'aucune regle de
+    # tri n'ait a changer. Le peuplement le pose (D-140), le televersement le
+    # retire.
+    image_est_illustration = models.BooleanField(default=False)
+
     seuil_alerte = models.PositiveIntegerField(default=5)
 
     est_visible = models.BooleanField(default=True, help_text="Masquage par le vendeur.")

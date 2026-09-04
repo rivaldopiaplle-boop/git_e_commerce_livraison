@@ -106,6 +106,38 @@ describe('le livreur a ses quatre gestes', () => {
   })
 })
 
+describe('les écrans se rafraîchissent', () => {
+  // Ionic NE DÉMONTE PAS les vues : il les garde en vie pour que le retour
+  // arrière soit instantané. `onMounted` ne se déclenche donc qu'une seule
+  // fois, à la première visite. On ajoutait un article depuis le web, on
+  // revenait sur l'onglet Panier, et il montrait l'état d'il y a dix minutes
+  // sans que rien ne le dise (O-5, O-7).
+  const avecDonnees = ECRANS.filter(
+    (e) => e.source.includes('client.get') || e.source.includes('.charger()'),
+  )
+
+  it('la douzaine d’écrans qui chargent des données est bien trouvée', () => {
+    expect(avecDonnees.length).toBeGreaterThanOrEqual(10)
+  })
+
+  it.each(avecDonnees)('$nom ne charge pas une seule fois', ({ source }) => {
+    expect(source).not.toMatch(/onMounted\(/)
+    expect(source).toContain('useRafraichissement')
+  })
+
+  it('le suivi de commande se rafraîchit en fond', () => {
+    // C'est l'écran où l'immobilité se voit le plus : un statut qui n'avance
+    // jamais donne à croire que la commande est bloquée.
+    const commandes = ECRANS.find((e) => e.nom.endsWith('Commandes.vue'))!
+    expect(commandes.source).toContain('periodique: true')
+  })
+
+  it('les courses disponibles se rafraîchissent en fond', () => {
+    const proximite = ECRANS.find((e) => e.nom.endsWith('Proximite.vue'))!
+    expect(proximite.source).toContain('periodique: true')
+  })
+})
+
 describe('la carte ne porte aucun secret', () => {
   const carte = readFileSync(join(SOURCE, 'composants', 'Carte.vue'), 'utf8')
 

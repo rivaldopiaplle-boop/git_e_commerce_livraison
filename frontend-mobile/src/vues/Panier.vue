@@ -7,18 +7,18 @@
 import { IonButton, IonIcon } from '@ionic/vue'
 import { euros } from '@partage/metier'
 import { addOutline, bagHandleOutline, removeOutline, trashOutline } from 'ionicons/icons'
-import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { usePanier } from '@/magasins/panier'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 const panier = usePanier()
 const session = useSession()
 const routeur = useRouter()
 
-onMounted(() => panier.charger())
+useRafraichissement(() => panier.charger())
 </script>
 
 <template>

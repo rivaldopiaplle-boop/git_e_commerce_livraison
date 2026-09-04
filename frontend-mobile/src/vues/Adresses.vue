@@ -6,10 +6,11 @@
 // change pas son adresse voit un catalogue faux.
 import { IonButton, IonIcon, IonInput, IonModal, IonNote } from '@ionic/vue'
 import { addOutline, homeOutline, starOutline } from 'ionicons/icons'
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 type Adresse = {
   id: number
@@ -32,7 +33,7 @@ async function charger() {
   adresses.value = await session.client.get<Adresse[]>('/moi/adresses')
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 async function enregistrer() {
   occupe.value = true

@@ -13,8 +13,9 @@ import {
   AlertTriangle, Bike, Check, ClipboardList, Clock, Eye, MapPin, Package, UserRound, X,
 } from '@lucide/vue'
 import { useForm } from 'vee-validate'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { EchecApi } from '../../api/client'
 import { commandes, type SousCommande } from '../../api/commandes'
 import ActionLigne from '../../composants/ActionLigne.vue'
@@ -38,6 +39,14 @@ const selection = ref<Ligne | null>(null)
 // lui, reste le contexte permanent de la ligne active.
 const apercu = ref(false)
 const occupe = ref(false)
+/**
+ * On n'ouvre la première ligne utile qu'au premier chargement.
+ *
+ * Depuis que l'écran se rafraîchit en fond (O-5), rouvrir d'office à chaque
+ * passage ferait sauter le volet de droite toutes les vingt secondes, sous les
+ * yeux de la personne en train de lire.
+ */
+const premierChargement = ref(true)
 
 // On ne traite pas tout d'un bloc : la file se range par étape, comme dans
 // n'importe quelle cuisine ou n'importe quel atelier.
@@ -97,13 +106,14 @@ async function charger() {
     liste.value = (await commandes.recues()) as Ligne[]
     // Ce qui attend en tête de file s'ouvre tout seul : on arrive ici pour
     // préparer quelque chose, pas pour contempler une liste.
-    selection.value = parEtape(onglet.value)[0] ?? null
+    if (premierChargement.value) selection.value = parEtape(onglet.value)[0] ?? null
+    premierChargement.value = false
   } finally {
     chargement.value = false
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger, { periodique: true })
 
 async function avancer(sous: Ligne, statut: string) {
   erreur.value = ''

@@ -11,8 +11,9 @@
 // devant. Quelqu'un qui a quarante-huit heures pour répondre n'a que faire des
 // dossiers déjà clos.
 import { AlertTriangle, Clock, Eye, MessageSquare, Scale } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { EchecApi } from '../../api/client'
 import { espaces, type Litige } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
@@ -47,7 +48,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger, { periodique: true })
 
 /** Ce qui attend vraiment quelque chose de la boutique. */
 const aRepondre = computed(() =>

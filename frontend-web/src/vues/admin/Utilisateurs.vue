@@ -5,8 +5,9 @@
 // et une plateforme qui efface ses utilisateurs efface ses preuves (D-13).
 // Le bouton dit donc « suspendre », et il se rejoue en sens inverse.
 import { Ban, Eye, RotateCcw, Users } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { EchecApi } from '../../api/client'
 import { useNotification } from '../../notifications'
 import { espaces, type CompteAdmin } from '../../api/espaces'
@@ -59,7 +60,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 const visibles = computed(() =>
   onglet.value === 'TOUS'

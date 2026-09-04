@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
@@ -10,6 +11,15 @@ const RACINE = resolve(__dirname, '..')
 
 function paquet(chemin: string) {
   return JSON.parse(readFileSync(resolve(RACINE, chemin), 'utf-8'))
+}
+
+function fichiersVue(dossier: string): string[] {
+  return readdirSync(dossier).flatMap((nom) => {
+    const chemin = join(dossier, nom)
+    return statSync(chemin).isDirectory()
+      ? fichiersVue(chemin)
+      : nom.endsWith('.vue') ? [chemin] : []
+  })
 }
 
 const NOTRE_PAQUET = paquet('package.json')
@@ -68,5 +78,37 @@ describe('la coherence des versions', () => {
     // `Chart` de PrimeVue n'embarque pas chart.js : c'est une dépendance de
     // pair. Sans elle, le composant se monte et ne dessine rien — en silence.
     expect(DEPENDANCES['chart.js']).toBeTruthy()
+  })
+})
+
+// ── Les écrans de travail ne restent pas figés — O-5 ─────────────────────
+//
+// « Surtout, surtout, surtout, surtout rien n'est synchronisé et dynamique. »
+// Le reproche portait d'abord sur le mobile, mais le web avait sa version du
+// défaut : un vendeur laisse « Commandes reçues » ouvert toute la journée, et
+// ne voit rien arriver tant qu'il ne rafraîchit pas à la main.
+describe('les ecrans qu on laisse ouverts se rafraichissent', () => {
+  const ECRANS = fichiersVue(resolve(dirname(fileURLToPath(import.meta.url)), 'vues'))
+    .map((chemin) => ({ nom: chemin, source: readFileSync(chemin, 'utf8') }))
+
+  const FILES_VIVANTES = [
+    'CommandesRecues.vue', 'Colis.vue', 'Tournees.vue', 'MesCourses.vue',
+    'MesCommandes.vue', 'Litiges.vue', 'LitigesVendeur.vue',
+  ]
+
+  it.each(FILES_VIVANTES)('%s se recharge en fond', (nom) => {
+    const ecran = ECRANS.find((e) => e.nom.endsWith(nom))!
+    expect(ecran.source).toContain('useRafraichissement')
+    expect(ecran.source).toContain('periodique: true')
+  })
+
+  it('un rafraichissement de fond ne vole pas la selection', () => {
+    // Rouvrir d'office la premiere ligne a chaque passage ferait sauter le
+    // volet de droite toutes les vingt secondes, sous les yeux de la personne.
+    for (const nom of ['MesCommandes.vue', 'CommandesRecues.vue', 'MesCourses.vue',
+                       'Tournees.vue']) {
+      const ecran = ECRANS.find((e) => e.nom.endsWith(nom))!
+      expect(ecran.source, nom).toContain('premierChargement')
+    }
   })
 })

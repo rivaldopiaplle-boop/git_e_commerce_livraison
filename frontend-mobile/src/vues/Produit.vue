@@ -7,12 +7,13 @@
 import { IonBadge, IonButton, IonIcon, IonSpinner } from '@ionic/vue'
 import { euros } from '@partage/metier'
 import { notificationsOutline, starOutline } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { usePanier } from '@/magasins/panier'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 const route = useRoute()
 const session = useSession()
@@ -60,7 +61,12 @@ function suivreDefilement(evenement: Event) {
   vueActive.value = Math.round(bande.scrollLeft / bande.clientWidth)
 }
 
-onMounted(async () => {
+/**
+ * La fiche se recharge à chaque visite : un produit passé en rupture ou dont
+ * le prix a changé depuis la dernière fois ne doit pas s'afficher tel qu'il
+ * était il y a un quart d'heure (O-5).
+ */
+useRafraichissement(async () => {
   try {
     produit.value = await session.client.get(`/produits/${route.params.id}`)
   } finally {

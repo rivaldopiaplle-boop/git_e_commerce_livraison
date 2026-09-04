@@ -12,8 +12,9 @@ import { ArrowRight, BadgeCheck, Check, X } from '@lucide/vue'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { profil as api, type Demande } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -46,7 +47,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 const visibles = computed(() =>
   onglet.value === 'TOUTES'

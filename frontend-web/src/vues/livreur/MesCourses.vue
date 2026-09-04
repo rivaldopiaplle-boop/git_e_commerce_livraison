@@ -6,8 +6,9 @@
 // **suivi** et aux **gains**, ce que D-40 lui assigne explicitement — et il
 // s'appuie sur les mêmes listes que le reste du projet.
 import { Bike, Eye, MapPin, Package, Route, Smartphone, Truck, Wallet } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { espaces, type Livraison, type Tournee } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -29,7 +30,16 @@ const selection = ref<Ligne | null>(null)
 // lui, reste le contexte permanent de la ligne active.
 const apercu = ref(false)
 
-onMounted(async () => {
+/**
+ * On n'ouvre la première ligne utile qu'au premier chargement.
+ *
+ * Depuis que l'écran se rafraîchit en fond (O-5), rouvrir d'office à chaque
+ * passage ferait sauter le volet de droite toutes les vingt secondes, sous les
+ * yeux de la personne en train de lire.
+ */
+const premierChargement = ref(true)
+
+useRafraichissement(async () => {
   try {
     const donnees = await espaces.livreur.mesCourses()
     enCours.value = donnees.en_cours as Ligne[]
@@ -37,11 +47,12 @@ onMounted(async () => {
     tournee.value = donnees.tournee
     gains.value = donnees.gains
     mode.value = donnees.mode
-    selection.value = enCours.value[0] ?? null
+    if (premierChargement.value) selection.value = enCours.value[0] ?? null
+    premierChargement.value = false
   } finally {
     chargement.value = false
   }
-})
+}, { periodique: true })
 
 const express = computed(() => mode.value === 'EXPRESS')
 const euros = (centimes: number) =>

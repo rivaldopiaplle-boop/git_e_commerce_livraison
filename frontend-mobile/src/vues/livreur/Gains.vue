@@ -7,16 +7,17 @@
 import { IonIcon } from '@ionic/vue'
 import { euros, jour } from '@partage/metier'
 import { walletOutline } from 'ionicons/icons'
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useLivreur } from '@/magasins/livreur'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 const livreur = useLivreur()
 const session = useSession()
 
-onMounted(() => livreur.charger())
+useRafraichissement(() => livreur.charger())
 
 const moyenne = computed(() =>
   livreur.gains.courses_terminees

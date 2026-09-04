@@ -5,7 +5,7 @@ Un contrat qui n'est pas respecte par le code n'est plus un contrat.
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from . import views, vues_compteurs, vues_espaces, vues_gestion, vues_profil
+from . import views, vues_accueil, vues_compteurs, vues_espaces, vues_gestion, vues_profil
 
 urlpatterns = [
     path("auth/inscription/client", views.inscription_client, name="inscription-client"),
@@ -20,6 +20,10 @@ urlpatterns = [
 
     path("admin/tableau-de-bord", views.tableau_de_bord_admin, name="tableau-de-bord-admin"),
     path("moi/tableau-de-bord", views.tableau_de_bord_client, name="tableau-client"),
+    # Tout l'ecran d'accueil en un seul appel (O-1, O-5) : sur un telephone,
+    # huit allers-retours font huit fois la latence, et l'ecran se remplit par
+    # morceaux dans le desordre.
+    path("moi/accueil", vues_accueil.accueil, name="mon-accueil"),
     path("admin/validations", views.validations_en_attente, name="validations"),
     path("admin/vendeurs/<int:identifiant>/valider", views.valider_vendeur, name="valider-vendeur"),
     path("admin/vendeurs/<int:identifiant>/rejeter", views.rejeter_vendeur, name="rejeter-vendeur"),

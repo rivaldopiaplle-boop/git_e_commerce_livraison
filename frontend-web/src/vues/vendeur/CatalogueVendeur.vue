@@ -18,8 +18,9 @@ import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { EchecApi } from '../../api/client'
 import { vendeur, type Mouvement, type ProduitCatalogue } from '../../api/vendeur'
 import ActionLigne from '../../composants/ActionLigne.vue'
@@ -85,7 +86,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 const enVente = computed(() => produits.value.filter((p) => p.est_visible))
 const retires = computed(() => produits.value.filter((p) => !p.est_visible))

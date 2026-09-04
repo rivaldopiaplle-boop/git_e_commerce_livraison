@@ -2448,3 +2448,139 @@ gestionnaire, l'annulation vendeur — et deux schémas s'ajoutent à
 Le serveur reste seul juge : ces règles doublent les siennes pour le confort,
 elles ne les remplacent pas. Une validation qui n'existe que dans le navigateur
 ne protège de rien.
+
+
+### D-146 — Rien n'était synchronisé parce que rien ne se rechargeait
+
+**Ton bloc O-5**, souligné quatre fois : *« surtout, surtout, surtout, surtout
+rien n'est synchronisé et dynamique »*. Et **O-7** : *« les comptes mobile et
+web du client ne sont pas synchronisés »*.
+
+**L'API, elle, l'était.** Vérifié en connectant le même compte depuis les deux
+origines : même panier, mêmes adresses, mêmes réglages, à la seconde. Le défaut
+était **entièrement côté écran**, et il tenait en une ligne : chaque vue
+chargeait ses données dans `onMounted`, et jamais plus.
+
+Sur mobile, c'est fatal : **Ionic ne démonte pas les vues.** Il les garde en
+vie pour que le retour arrière soit instantané, donc `onMounted` ne se
+déclenche qu'à la première visite. On ajoutait un article depuis le web, on
+revenait sur l'onglet Panier du téléphone, et il affichait l'état d'il y a dix
+minutes. **Rien ne le disait** — c'est exactement ce qui donne l'impression que
+« rien ne marche ».
+
+`useRafraichissement` remplace `onMounted` sur les vingt-six écrans concernés,
+et recharge à trois moments, chacun répondant à une situation réelle :
+
+| Quand | Pourquoi |
+|---|---|
+| à l'entrée dans l'écran (`ionViewWillEnter`) | on revient d'un autre onglet, ou d'un détail |
+| au retour dans l'application (`visibilitychange`, `resume`) | le téléphone était en veille |
+| en fond, toutes les vingt secondes | un suivi qui n'avance jamais fait croire à une commande bloquée |
+
+Le troisième est bridé volontairement : il ne tourne **que quand l'écran est
+visible**, et un rechargement déjà en vol ne se relance pas. Sans cette
+deuxième précaution, un réseau lent empilerait les appels et une réponse
+ancienne écraserait une plus récente — la liste se mettrait à jour à l'envers.
+
+**Le web avait sa version du même défaut**, plus discrète : changer de page y
+remonte le composant, mais **on ne change pas de page**. Un vendeur laisse
+« Commandes reçues » ouvert toute la journée et ne voit rien arriver. Sept
+écrans de travail se rechargent maintenant en fond.
+
+Une conséquence à laquelle il fallait penser : ces écrans ouvraient d'office la
+première ligne utile dans le volet de droite. Avec un rechargement périodique,
+ils la rouvraient **toutes les vingt secondes**, sous les yeux de la personne en
+train de lire. L'ouverture automatique ne vaut plus qu'au premier chargement.
+
+
+### D-147 — Un compteur qui contredit la page suivante
+
+Trouvé en écrivant l'accueil, et c'est exactement ta remarque O-5 sur
+l'Express : *« je n'ai pas vu de commande à livrer disponible quand le livreur
+est libre »*.
+
+La liste **était** vide, et pour une raison valable : le livreur avait déjà une
+course en route, et on ne propose pas la suivante à quelqu'un qui roule — ce
+serait l'inviter à en accepter deux. Mais **l'écran ne le savait pas**. Il
+affichait un état vide qui proposait deux explications et laissait le livreur
+deviner laquelle était la bonne : *« soit rien n'est libre près de vous, soit
+vous avez déjà une course en cours »*.
+
+Le serveur, lui, sait. Il rend désormais un **code de raison** —
+`course_en_cours`, `hors_ligne`, `mauvais_mode`, `hors_rayon`, `aucune` — que
+l'écran traduit en une phrase qui ne ment pas, avec le bouton correspondant.
+
+Et le même calcul sert la liste **et** le compteur de l'accueil. Avant, deux
+calculs séparés annonçaient « 7 courses disponibles » sur une page et « aucune
+course » sur la suivante. Un chiffre qui contredit la page d'après est pire
+qu'un chiffre absent.
+
+
+### D-148 — Un accueil à trois tuiles n'est pas un accueil
+
+**Ton bloc O-1** : *« les onglets menus sont très peu remplis, surtout le
+premier onglet accueil et son équivalent »*, et **O-2** : *« tu ne t'es pas
+inspiré des vraies applications d'e-commerce et de livraison »*.
+
+L'accueil du client montrait **trois tuiles** : deux compteurs et un bouton vers
+le catalogue. Les vraies applications de livraison se ressemblent toutes, et
+pour de bonnes raisons — elles répondent à quatre questions, dans cet ordre :
+
+1. **où suis-je livré ?** — c'est cette adresse qui décide des boutiques
+   Express visibles (D-09) ;
+2. **où en est ma commande ?** — la seule chose qu'on ouvre l'application pour
+   voir quand on a déjà commandé, avec sa jauge d'avancement **et le code de
+   remise** ;
+3. **qu'est-ce que je cherche ?** — la recherche, et les catégories en
+   pastilles défilantes ;
+4. **qu'est-ce que je peux commander tout de suite ?** — « commander à
+   nouveau », les boutiques Express proches, puis les plus demandés.
+
+Les compteurs, eux, descendent en bas : utiles, mais ce n'est pas ce qu'on vient
+chercher. **Tout est cliquable** (O-8) : chaque chiffre mène à sa liste, chaque
+pastille à sa recherche filtrée, chaque vignette à sa fiche, et le « + » d'une
+vignette ajoute au panier **sans quitter l'écran**.
+
+**Un seul appel** (`GET /moi/accueil`) alimente tout. Sur un téléphone en 4G,
+huit allers-retours font huit fois la latence et l'écran se remplit par morceaux
+dans le désordre ; et comme il se rafraîchit toutes les vingt secondes (D-146),
+ce serait huit fois trop. Le même point sert le client et le livreur : c'est le
+**rôle connecté** qui décide du contenu, jamais un paramètre venu de l'écran —
+un écran qui demande « donne-moi le tableau de bord livreur » est un écran à qui
+l'on peut mentir.
+
+Deux manques criants comblés au passage :
+
+- **le code de remise apparaît enfin côté client.** Ta remarque O-5 : *« le
+  livreur a besoin que le client lui fournisse le code de remise, mais dans
+  l'espace client je n'ai rien vu qui corresponde »*. Il était généré et
+  n'apparaissait nulle part. Un code qu'on ne peut pas lire n'est pas un code ;
+- **un livreur pas encore validé** voyait un tableau de bord vide et une erreur
+  403 sur ses courses, sans explication. L'accueil le dit maintenant.
+
+
+### D-149 — Les vraies photos passent devant
+
+**Ton bloc O-6** : *« web / mobile, les produits avec vraie image en premier si
+ça garde la logique lorsque ce sera en production, et en dernier les produits
+fictifs sans images »*.
+
+Un catalogue dont la première rangée est faite de vignettes dessinées donne
+l'impression d'une boutique vide, même quand tout le reste est correct.
+
+Le tri porte sur un **drapeau** posé une fois — `image_est_illustration` — et
+non sur une heuristique recalculée à chaque affichage. C'est ce qui répond à
+« si ça garde la logique en production » : le jour où un vendeur téléverse sa
+photo, `_rafraichir_image_principale` fait tomber le drapeau, le produit remonte
+tout seul, et **aucune règle de tri n'a à changer**.
+
+Trois rangs, et le troisième compte autant que les deux autres :
+
+| Rang | Ce que c'est |
+|---|---|
+| 0 | une vraie photographie |
+| 1 | une vignette dessinée (D-140) |
+| 2 | **aucune image du tout** |
+
+Un produit sans image passe derrière une illustration : il est plus pauvre
+qu'une vignette dessinée, qui porte au moins le nom et l'univers.

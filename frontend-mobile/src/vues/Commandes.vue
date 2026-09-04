@@ -14,10 +14,11 @@ import {
   checkmarkCircle, documentTextOutline, receiptOutline, shieldOutline, star,
   starOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 type Facture = {
   numero_facture: string | null
@@ -72,7 +73,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger, { periodique: true })
 
 // ── Le recu ──────────────────────────────────────────────────────────────
 const facture = ref<Facture | null>(null)

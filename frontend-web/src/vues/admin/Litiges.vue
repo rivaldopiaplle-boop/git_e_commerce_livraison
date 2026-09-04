@@ -16,8 +16,9 @@
 import {
   AlertTriangle, Ban, Eye, Gavel, Scale, Store, Undo2, User,
 } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { EchecApi } from '../../api/client'
 import { espaces, type Litige } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
@@ -58,7 +59,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger, { periodique: true })
 
 const ouverts = computed(() =>
   litiges.value.filter((d) => ['OUVERT', 'EN_COURS'].includes(d.statut)),

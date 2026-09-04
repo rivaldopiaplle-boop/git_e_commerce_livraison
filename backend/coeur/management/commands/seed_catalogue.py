@@ -500,13 +500,22 @@ class Command(BaseCommand):
             )
             self.reparees += 1
 
+        # O-6 : le catalogue montre les vraies photos en premier. Le drapeau
+        # se pose ici, une fois, plutot que de recalculer la ressemblance a
+        # chaque affichage — et il tombe a faux tout seul le jour ou un vendeur
+        # televerse sa propre photo.
+        dessinee = self.est_dessinee(produit, principale.url)
+        if produit.image_est_illustration != dessinee:
+            produit.image_est_illustration = dessinee
+            produit.save(update_fields=["image_est_illustration"])
+
         combien, avec_apercu = self.profil_media(produit)
         fournis = self.medias_fournis(produit)
         if fournis:
             # Tes fichiers priment sur le profil : si tu as depose cinq photos,
             # le produit en a cinq. Le profil ne sert qu'a ne pas inventer.
             combien = 1 + len(fournis)
-        elif not self.est_dessinee(produit, principale.url):
+        elif not dessinee:
             # **Une photographie ne se complete pas par des schemas.** Vingt
             # produits ont une vraie photo sous licence libre ; leur adjoindre
             # trois dessins ferait une galerie qui change de registre au

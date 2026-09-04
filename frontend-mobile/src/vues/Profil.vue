@@ -23,11 +23,12 @@ import {
   chevronForward, keyOutline, locationOutline, logOutOutline, notificationsOutline,
   shieldOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 type Notification = {
   id: number
@@ -74,7 +75,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 /**
  * Enregistrer tout de suite, et remettre le commutateur en place si ça rate.

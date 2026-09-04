@@ -9,12 +9,13 @@ import { IonButton, IonIcon, IonSpinner } from '@ionic/vue'
 import { euros } from '@partage/metier'
 import { Geolocation } from '@capacitor/geolocation'
 import { locationOutline, storefrontOutline } from 'ionicons/icons'
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useLivreur } from '@/magasins/livreur'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 const livreur = useLivreur()
 const session = useSession()
@@ -32,6 +33,49 @@ const moi = ref<{ lat: number; lon: number } | null>(null)
  * quand l'une est à l'opposé (N-5). On ne trace aucun itinéraire ici : c'est
  * un choix qu'on fait d'un coup d'œil, pas un trajet qu'on suit.
  */
+/**
+ * Ce que l'écran dit quand il n'y a rien à prendre — O-5.
+ *
+ * L'ancien état vide proposait DEUX explications et laissait le livreur
+ * choisir laquelle était vraie : *« soit rien n'est libre près de vous, soit
+ * vous avez déjà une course en cours »*. Le serveur, lui, sait laquelle.
+ */
+const EXPLICATIONS: Record<string, { titre: string; texte: string; route?: string;
+                                     bouton?: string }> = {
+  course_en_cours: {
+    titre: 'Vous avez déjà une course',
+    texte: 'On ne prend qu’une course à la fois : proposer la suivante à '
+      + 'quelqu’un qui roule déjà, c’est l’inviter à en accepter deux.',
+    route: '/courses', bouton: 'Voir ma course',
+  },
+  hors_ligne: {
+    titre: 'Vous êtes hors ligne',
+    texte: 'Aucune course ne vous sera proposée tant que vous n’êtes pas '
+      + 'disponible. Le réglage est sur l’accueil.',
+    route: '/accueil', bouton: 'Me rendre disponible',
+  },
+  mauvais_mode: {
+    titre: 'Vous êtes livreur Standard',
+    texte: 'Les courses à la volée sont pour l’Express. Vous, vous avez une '
+      + 'tournée préparée par l’entrepôt.',
+    route: '/tournee', bouton: 'Voir ma tournée',
+  },
+  hors_rayon: {
+    titre: 'Rien dans votre rayon',
+    texte: 'Des courses attendent, mais aucune à moins de quelques kilomètres. '
+      + 'Déplacez-vous, ou attendez : la liste se rafraîchit toute seule.',
+  },
+  aucune: {
+    titre: 'Aucune course pour le moment',
+    texte: 'Rien n’attend de livreur. La liste se rafraîchit toute seule '
+      + 'toutes les vingt secondes.',
+  },
+}
+
+const explication = computed(() =>
+  EXPLICATIONS[livreur.raisonVide] ?? EXPLICATIONS.aucune,
+)
+
 const pointsCourses = computed(() => {
   const points = livreur.disponibles
     .map((course, rang) => ({
@@ -60,7 +104,7 @@ async function charger() {
   await livreur.chargerDisponibles()
 }
 
-onMounted(charger)
+useRafraichissement(charger, { periodique: true })
 
 async function prendre(identifiant: number) {
   occupe.value = identifiant
@@ -111,14 +155,16 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
 
     <div v-if="!livreur.disponibles.length" class="etat-vide">
       <IonIcon :icon="locationOutline" class="grande-icone" />
-      <b>Aucune course disponible</b>
-      <span>
-        Soit rien n'est libre près de vous, soit vous avez déjà une course en cours —
-        on n'en prend qu'une à la fois.
-      </span>
-      <IonButton fill="outline" size="small" class="ion-margin-top"
-                 @click="routeur.push('/courses')">
-        Voir ma course
+      <b>{{ explication.titre }}</b>
+      <span>{{ explication.texte }}</span>
+      <IonButton
+        v-if="explication.route"
+        fill="outline"
+        size="small"
+        class="ion-margin-top"
+        @click="routeur.push(explication.route)"
+      >
+        {{ explication.bouton }}
       </IonButton>
     </div>
   </Ecran>

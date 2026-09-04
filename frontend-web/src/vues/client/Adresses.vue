@@ -16,8 +16,9 @@
 // quelles boutiques Express apparaissent au catalogue (D-09).
 import { AlertTriangle, Check, MapPin, Pencil, Plus, Star, Trash2 } from '@lucide/vue'
 import { useForm } from 'vee-validate'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { EchecApi } from '../../api/client'
 import { espaces, type Adresse } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
@@ -72,7 +73,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 const principale = computed(() => adresses.value.find((a) => a.est_principale) ?? null)
 

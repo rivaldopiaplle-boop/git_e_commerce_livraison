@@ -9,8 +9,9 @@
 // Une tournée dont les arrêts ne sont pas ordonnés n'est pas une tournée,
 // c'est une liste (D-44) : l'ordre est donc la première chose affichée.
 import { MapPin, Eye, Route, Truck, User } from '@lucide/vue'
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { espaces, type Tournee } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -48,19 +49,31 @@ const pointsTournee = computed(() =>
 // lui, reste le contexte permanent de la ligne active.
 const apercu = ref(false)
 
-onMounted(async () => {
+/**
+ * On n'ouvre la première ligne utile qu'au premier chargement.
+ *
+ * Depuis que l'écran se rafraîchit en fond (O-5), rouvrir d'office à chaque
+ * passage ferait sauter le volet de droite toutes les vingt secondes, sous les
+ * yeux de la personne en train de lire.
+ */
+const premierChargement = ref(true)
+
+useRafraichissement(async () => {
   try {
     const donnees = await espaces.entrepot.tournees()
     tournees.value = donnees.tournees as LigneTournee[]
     enAttente.value = donnees.en_attente
     // On arrive ici pour préparer quelque chose : la première tournée à
     // préparer s'ouvre d'elle-même dans le volet.
-    selection.value =
-      tournees.value.find((t) => ['BROUILLON', 'PRETE'].includes(t.statut)) ?? null
+    if (premierChargement.value) {
+      selection.value =
+        tournees.value.find((t) => ['BROUILLON', 'PRETE'].includes(t.statut)) ?? null
+    }
+    premierChargement.value = false
   } finally {
     chargement.value = false
   }
-})
+}, { periodique: true })
 
 const aPreparer = computed(() =>
   tournees.value.filter((t) => ['BROUILLON', 'PRETE'].includes(t.statut)),

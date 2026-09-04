@@ -71,9 +71,21 @@ def _rafraichir_image_principale(produit):
     """
     premiere = produit.photos.order_by("ordre").first()
     nouvelle = premiere.url if premiere else ""
+    champs = []
     if produit.image_principale_url != nouvelle:
         produit.image_principale_url = nouvelle
-        produit.save(update_fields=["image_principale_url"])
+        champs.append("image_principale_url")
+
+    # O-6 : un produit dont l'image est une illustration passe en fin de
+    # catalogue. Des qu'un vendeur televerse SA photo, ce n'en est plus une.
+    # Le drapeau tombe donc ici, au moment ou l'image change, et le tri du
+    # catalogue n'a rien a savoir de tout cela.
+    if premiere is not None and produit.image_est_illustration:
+        produit.image_est_illustration = False
+        champs.append("image_est_illustration")
+
+    if champs:
+        produit.save(update_fields=champs)
 
 
 @transaction.atomic

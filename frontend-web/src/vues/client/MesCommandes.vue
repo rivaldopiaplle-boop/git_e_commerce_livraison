@@ -15,9 +15,10 @@ import {
   AlertTriangle, Bike, CheckCircle2, CreditCard, Eye, FileText, Package, Receipt,
   ShieldAlert, Star,
 } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { api, EchecApi } from '../../api/client'
 import { useNotification } from '../../notifications'
 import { commandes, type Commande } from '../../api/commandes'
@@ -71,16 +72,25 @@ const choisi = ref<ElementNotable | null>(null)
 const note = ref(5)
 const commentaire = ref('')
 const erreur = ref('')
+/**
+ * On n'ouvre la première ligne utile qu'au premier chargement.
+ *
+ * Depuis que l'écran se rafraîchit en fond (O-5), rouvrir d'office à chaque
+ * passage ferait sauter le volet de droite toutes les vingt secondes, sous les
+ * yeux de la personne en train de lire.
+ */
+const premierChargement = ref(true)
 const occupe = ref(false)
 
-onMounted(async () => {
+useRafraichissement(async () => {
   try {
     liste.value = (await commandes.miennes()) as Ligne[]
-    selection.value = liste.value[0] ?? null
+    if (premierChargement.value) selection.value = liste.value[0] ?? null
+    premierChargement.value = false
   } finally {
     chargement.value = false
   }
-})
+}, { periodique: true })
 
 const euros = (centimes: number) =>
   (centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })

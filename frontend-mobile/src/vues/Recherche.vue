@@ -11,12 +11,13 @@ import {
 import type { Produit } from '@partage/types'
 import { euros } from '@partage/metier'
 import { addOutline, bagHandleOutline, notificationsOutline } from 'ionicons/icons'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { usePanier } from '@/magasins/panier'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 const session = useSession()
 const panier = usePanier()
@@ -40,7 +41,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 // On attend que la frappe se calme : une requête par lettre saturerait le
 // réseau d'un téléphone en 4G.
 let minuteur: ReturnType<typeof setTimeout>

@@ -6,7 +6,7 @@ renvoyes du tout. Ce n'est pas un tri, c'est une absence — c'est ce qui rend
 structurellement impossible une commande Express longue distance.
 """
 from django.db import models
-from django.db.models import Count, Q
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
@@ -64,6 +64,27 @@ def _visibles():
     return (
         Produit.objects.select_related("vendeur", "vendeur__adresse", "categorie")
         .filter(est_visible=True, vendeur__statut_validation=StatutValidation.VALIDE)
+        # O-6 : « les produits avec vraie image en premier, et en dernier les
+        # produits fictifs sans images ». Un catalogue dont la premiere rangee
+        # est faite de vignettes dessinees donne l'impression d'une boutique
+        # vide, meme quand tout le reste est correct.
+        #
+        # Trois rangs, et le troisieme compte autant que les deux autres : un
+        # produit SANS aucune image passe derriere une illustration. C'est le
+        # cas d'un produit cree a la main sans photo, et il est plus pauvre
+        # qu'une vignette dessinee, qui porte au moins le nom et l'univers.
+        #
+        # Le tri porte sur un DRAPEAU, pas sur une heuristique d'affichage :
+        # en production, le vendeur televerse sa photo, le drapeau tombe
+        # (`_rafraichir_image_principale`), et le produit remonte tout seul.
+        # Rien a changer le jour de la mise en ligne.
+        .annotate(rang_media=Case(
+            When(image_principale_url="", then=Value(2)),
+            When(image_est_illustration=True, then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
+        ))
+        .order_by("rang_media", "-date_ajout")
     )
 
 

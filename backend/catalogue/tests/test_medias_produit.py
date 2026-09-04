@@ -156,3 +156,62 @@ class TestLesVuesNeSontPasDesRecadrages:
         )
         assert " cm" not in code
         assert "poids_grammes" in code
+
+
+class TestLOrdreDuCatalogue:
+    """O-6 : les vraies photos d'abord, les produits sans image en dernier."""
+
+    def _catalogue(self, boutique, tmp_path, settings, commande):
+        from catalogue.views import _visibles
+
+        settings.MEDIA_ROOT = str(tmp_path)
+        avec_photo = produit_avec(boutique, "Avec une vraie photo")
+        avec_photo.image_principale_url = "/media/produits/photo.webp"
+        avec_photo.save(update_fields=["image_principale_url"])
+
+        illustration = produit_avec(boutique, "Avec une illustration")
+        illustration.image_principale_url = commande.obtenir_image(
+            illustration.nom, ("aucune", "", 0), "Plats",
+        )
+        illustration.image_est_illustration = True
+        illustration.save(update_fields=["image_principale_url", "image_est_illustration"])
+
+        sans_rien = produit_avec(boutique, "Sans aucune image")
+        return list(_visibles()), avec_photo, illustration, sans_rien
+
+    def test_les_vraies_photos_passent_devant(self, commande, boutique, tmp_path, settings):
+        catalogue, photo, illustration, sans_rien = self._catalogue(
+            boutique, tmp_path, settings, commande,
+        )
+        rangs = {produit.id: rang for rang, produit in enumerate(catalogue)}
+
+        assert rangs[photo.id] < rangs[illustration.id]
+
+    def test_un_produit_sans_image_passe_en_dernier(self, commande, boutique,
+                                                    tmp_path, settings):
+        """Plus pauvre qu'une vignette dessinee, qui porte au moins le nom."""
+        catalogue, photo, illustration, sans_rien = self._catalogue(
+            boutique, tmp_path, settings, commande,
+        )
+        rangs = {produit.id: rang for rang, produit in enumerate(catalogue)}
+
+        assert rangs[illustration.id] < rangs[sans_rien.id]
+
+    def test_televerser_une_photo_fait_remonter_le_produit(self, boutique, db):
+        """En production, rien d'autre ne doit changer : le drapeau tombe seul."""
+        from catalogue.models import PhotoProduit
+        from catalogue.services import _rafraichir_image_principale
+
+        produit = produit_avec(boutique, "Reprend sa vraie photo")
+        produit.image_est_illustration = True
+        produit.save(update_fields=["image_est_illustration"])
+
+        PhotoProduit.objects.create(
+            produit=produit, url="/media/produits/vraie.webp", ordre=1,
+            texte_alternatif="x",
+        )
+        _rafraichir_image_principale(produit)
+
+        produit.refresh_from_db()
+        assert produit.image_est_illustration is False
+        assert produit.image_principale_url == "/media/produits/vraie.webp"

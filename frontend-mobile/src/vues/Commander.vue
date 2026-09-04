@@ -20,7 +20,7 @@ import {
   alertCircleOutline, bicycleOutline, cardOutline, cubeOutline, locationOutline,
   shieldCheckmarkOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { EchecApi } from '@partage/api'
@@ -28,6 +28,7 @@ import { EchecApi } from '@partage/api'
 import Ecran from '@/composants/Ecran.vue'
 import { usePanier } from '@/magasins/panier'
 import { useSession } from '@/magasins/session'
+import { useRafraichissement } from '@/rafraichissement'
 
 type Apercu = {
   type_service: string
@@ -94,7 +95,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 /** Retirer d'un coup ce qui n'est plus commandable, plutôt que bloquer. */
 async function retirerIndisponibles() {

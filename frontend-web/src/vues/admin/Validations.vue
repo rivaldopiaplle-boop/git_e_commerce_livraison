@@ -15,8 +15,9 @@ import { Bike, Check, ShieldCheck, Store, Truck, X } from '@lucide/vue'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { espaces } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
@@ -65,7 +66,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 function ouvrir(candidat: Candidat, genre: 'vendeurs' | 'livreurs',
                 action: 'valider' | 'refuser') {

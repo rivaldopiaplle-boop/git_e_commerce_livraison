@@ -97,26 +97,45 @@ def changer_disponibilite(requete):
     return Response({"data": {"statut_disponibilite": profil.statut_disponibilite}})
 
 
-@api_view(["GET"])
-@permission_classes([EstLivreurValide])
-def livraisons_disponibles(requete):
-    """Les courses Express a prendre, les plus proches d'abord.
+def courses_proposables(profil):
+    """Ce qu'un livreur Express peut prendre maintenant, et POURQUOI pas.
 
-    Elles sont masquees tant qu'une course est en cours : proposer la suivante
-    a quelqu'un qui roule deja, c'est l'inviter a en accepter deux.
+    Ta remarque, O-5 : *« j'ai pas vu de commande a livrer disponible quand le
+    livreur est libre »*. La liste etait bien vide, et pour une raison valable
+    — une course etait deja en route. Mais **l'ecran ne le savait pas** : il
+    affichait un etat vide qui proposait deux explications au livreur en le
+    laissant deviner laquelle etait la bonne.
+
+    Le serveur, lui, sait. Il rend donc un couple `(liste, raison)`, et la
+    raison est un code que l'ecran traduit en une phrase qui ne ment pas :
+
+      · `course_en_cours` — proposer la suivante a quelqu'un qui roule deja,
+        c'est l'inviter a en accepter deux ;
+      · `hors_ligne` — on ne recoit rien quand on a raccroche ;
+      · `mauvais_mode` — un livreur Standard fait des tournees, pas des
+        courses a la volee ;
+      · `hors_rayon` — il y a des courses, mais pas autour de lui ;
+      · `aucune` — il n'y a rien, tout simplement.
+
+    Le meme calcul sert la liste et le compteur de l'ecran d'accueil : deux
+    calculs separes finiraient par annoncer « 7 courses » sur une page et
+    « aucune course » sur la suivante, ce qui est exactement ce qui s'etait
+    produit.
     """
-    profil = _profil(requete)
     if profil.mode_livraison != TypeService.EXPRESS:
-        return Response({"data": []})
+        return [], "mauvais_mode"
 
     if Livraison.objects.filter(
         livreur=profil,
         statut_livraison__in=[StatutLivraison.ATTRIBUEE, StatutLivraison.RECUPEREE,
                               StatutLivraison.EN_ROUTE],
     ).exists():
-        return Response({"data": []})
+        return [], "course_en_cours"
 
-    candidates = (
+    if profil.statut_disponibilite == StatutDisponibilite.HORS_LIGNE:
+        return [], "hors_ligne"
+
+    candidates = list(
         Livraison.objects.filter(
             statut_livraison=StatutLivraison.A_ATTRIBUER,
             livreur__isnull=True,
@@ -125,21 +144,40 @@ def livraisons_disponibles(requete):
         .select_related("commande", "commande__client__utilisateur", "adresse_livraison")
         .prefetch_related("commande__sous_commandes__vendeur")
     )
+    if not candidates:
+        return [], "aucune"
 
-    # Le plus proche d'abord, quand on sait ou est le livreur. Sinon on rend
-    # tout : mieux vaut une liste non triee qu'une liste vide.
-    if profil.position_lat is not None and profil.position_lon is not None:
-        avec_distance = []
-        for livraison in candidates:
-            adresse = livraison.adresse_livraison
-            ecart = distance_km(
-                profil.position_lat, profil.position_lon, adresse.latitude, adresse.longitude
-            )
-            if ecart is None or ecart <= RAYON_PROPOSITION_KM:
-                avec_distance.append((ecart if ecart is not None else 999, livraison))
-        candidates = [livraison for _, livraison in sorted(avec_distance, key=lambda p: p[0])]
+    # Le plus proche d'abord, quand on sait ou est le livreur. Sans position,
+    # on rend tout : mieux vaut une liste non triee qu'une liste vide.
+    if profil.position_lat is None or profil.position_lon is None:
+        return candidates, ""
 
-    return Response({"data": LivraisonSerializer(candidates, many=True).data})
+    avec_distance = []
+    for livraison in candidates:
+        adresse = livraison.adresse_livraison
+        ecart = distance_km(
+            profil.position_lat, profil.position_lon, adresse.latitude, adresse.longitude
+        )
+        if ecart is None or ecart <= RAYON_PROPOSITION_KM:
+            avec_distance.append((ecart if ecart is not None else 999, livraison))
+
+    proches = [livraison for _, livraison in sorted(avec_distance, key=lambda p: p[0])]
+    return proches, ("" if proches else "hors_rayon")
+
+
+@api_view(["GET"])
+@permission_classes([EstLivreurValide])
+def livraisons_disponibles(requete):
+    """Les courses Express a prendre, les plus proches d'abord."""
+    profil = _profil(requete)
+    courses, raison = courses_proposables(profil)
+
+    return Response({"data": {
+        "livraisons": LivraisonSerializer(courses, many=True).data,
+        # Pourquoi la liste est vide. L'ecran n'a plus a le deviner (O-5).
+        "raison": raison,
+        "rayon_km": RAYON_PROPOSITION_KM,
+    }})
 
 
 @api_view(["POST"])

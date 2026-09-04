@@ -7,16 +7,17 @@
 // zone.
 import { IonBadge, IonIcon } from '@ionic/vue'
 import { checkmarkCircle, listOutline, locationOutline } from 'ionicons/icons'
-import { computed, defineAsyncComponent, onMounted } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useLivreur } from '@/magasins/livreur'
+import { useRafraichissement } from '@/rafraichissement'
 
 const livreur = useLivreur()
 const routeur = useRouter()
 
-onMounted(() => livreur.charger())
+useRafraichissement(() => livreur.charger(), { periodique: true })
 
 /**
  * La tournée entière sur une carte, dans son ordre.

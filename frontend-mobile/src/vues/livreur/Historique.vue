@@ -6,15 +6,16 @@
 import { IonBadge, IonIcon, IonSegment, IonSegmentButton } from '@ionic/vue'
 import { jour, tonDuStatut } from '@partage/metier'
 import { receiptOutline } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useLivreur } from '@/magasins/livreur'
+import { useRafraichissement } from '@/rafraichissement'
 
 const livreur = useLivreur()
 const filtre = ref('toutes')
 
-onMounted(() => livreur.charger())
+useRafraichissement(() => livreur.charger())
 
 const TONS: Record<string, string> = {
   succes: 'success', erreur: 'danger', cours: 'primary', attente: 'warning', neutre: 'medium',

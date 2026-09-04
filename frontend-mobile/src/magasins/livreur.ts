@@ -23,6 +23,10 @@ export const useLivreur = defineStore('livreur', () => {
   const enCours = ref<Livraison[]>([])
   const terminees = ref<Livraison[]>([])
   const disponibles = ref<Livraison[]>([])
+  /** Pourquoi il n'y a rien à prendre : `course_en_cours`, `hors_ligne`,
+   *  `mauvais_mode`, `hors_rayon`, `aucune`. Vide quand la liste est pleine. */
+  const raisonVide = ref('')
+  const rayonKm = ref(8)
   const tournee = ref<Tournee | null>(null)
   const gains = ref<Gains>({ courses_terminees: 0, total_centimes: 0, distance_km: 0 })
   const disponibilite = ref('HORS_LIGNE')
@@ -69,7 +73,17 @@ export const useLivreur = defineStore('livreur', () => {
   async function chargerDisponibles() {
     if (!session.estConnecte) return
     try {
-      disponibles.value = await session.client.get<Livraison[]>('/livreurs/disponibles')
+      const reponse = await session.client.get<{
+        livraisons: Livraison[]
+        raison: string
+        rayon_km: number
+      }>('/livreurs/disponibles')
+      disponibles.value = reponse.livraisons
+      // POURQUOI la liste est vide. L'écran l'inventait : il proposait deux
+      // explications au livreur en le laissant deviner laquelle était vraie
+      // (O-5). Le serveur le sait, il le dit.
+      raisonVide.value = reponse.raison
+      rayonKm.value = reponse.rayon_km
     } catch {
       // Une liste vide vaut mieux qu'un écran en erreur : le livreur verra
       // l'état vide rédigé, qui lui dit quoi faire.
@@ -127,6 +141,7 @@ export const useLivreur = defineStore('livreur', () => {
 
   return {
     enCours, terminees, disponibles, tournee, gains, disponibilite, chargement, erreur,
+    raisonVide, rayonKm,
     courseActuelle, prochainArret,
     charger, chargerDisponibles, basculerDisponibilite, accepter,
     recupererColis, confirmerRemise, signalerAbsence,

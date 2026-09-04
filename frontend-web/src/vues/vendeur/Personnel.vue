@@ -18,8 +18,9 @@ import {
   AlertTriangle, Check, Mail, Power, ShieldCheck, UserPlus, Users, X,
 } from '@lucide/vue'
 import { useForm } from 'vee-validate'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useRafraichissement } from '../../rafraichissement'
 import { api, EchecApi } from '../../api/client'
 import { espaces, type MembrePersonnel } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
@@ -62,7 +63,7 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+useRafraichissement(charger)
 
 const actifs = computed(() => personnel.value.filter((membre) => membre.actif).length)
 

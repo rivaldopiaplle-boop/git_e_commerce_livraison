@@ -15,11 +15,12 @@ import { euros } from '@partage/metier'
 import {
   bicycleOutline, callOutline, locationOutline, navigateOutline, storefrontOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
 import { useLivreur } from '@/magasins/livreur'
+import { useRafraichissement } from '@/rafraichissement'
 
 const livreur = useLivreur()
 const routeur = useRouter()
@@ -32,7 +33,7 @@ const commentaire = ref('')
 const occupe = ref(false)
 const erreur = ref('')
 
-onMounted(() => livreur.charger())
+useRafraichissement(() => livreur.charger(), { periodique: true })
 
 /** La position, si le téléphone veut bien la donner.
  *
