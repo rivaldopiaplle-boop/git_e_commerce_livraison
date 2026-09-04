@@ -421,23 +421,59 @@ class Command(BaseCommand):
             )
         self.stdout.write("")
 
-    # Les cadrages de la galerie. Une fiche produit credible en montre
-    # plusieurs : « la seule photo » est ce qui distingue un catalogue
-    # d'exercice d'une vraie boutique.
+    # ── Ce qu'un produit a comme medias ──────────────────────────────────
     #
-    # Ces vues sont DERIVEES de la photo source, et il faut le dire : une
-    # vraie boutique photographie son produit sous plusieurs angles, ce
-    # qu'aucun peuplement ne peut inventer. Ce que la demonstration prouve
-    # ici, c'est que la galerie, ses vignettes et sa navigation fonctionnent
-    # — le jour ou un vendeur televerse ses six photos, rien ne change.
-    CADRAGES = [
-        (2, "detail", "Detail", 0.45),
-        (3, "matiere", "Matiere", 0.28),
-        (4, "situation", "Mise en situation", 0.75),
+    # La version precedente donnait a CHAQUE produit quatre photos et un
+    # apercu anime. Les trois photos supplementaires etaient des recadrages
+    # de la photo principale, et l'apercu un lent zoom sur cette meme photo.
+    # Autrement dit : la meme image, cinq fois, dans cinq tailles.
+    #
+    # Deux defauts, et le second est le plus grave :
+    #
+    #   · **un zoom n'est pas un autre angle.** Une galerie qui repete la
+    #     meme image ne montre rien de plus, elle fait perdre du temps ;
+    #   · **l'uniformite.** Cinquante-huit fiches avec exactement le meme
+    #     nombre de medias, ca ne s'invente pas : ca se genere. Un catalogue
+    #     reel est irregulier — le traiteur du coin a pris une photo au
+    #     telephone, le revendeur de high-tech en a huit fournies par le
+    #     fabricant.
+    #
+    # Le nombre de medias suit donc un profil tire du nom du produit :
+    # stable d'un peuplement a l'autre, different d'un produit a l'autre.
+    # **Un produit sur trois n'a qu'une seule photo, et c'est tres bien.**
+    PROFILS = [
+        (1, False),  # le petit vendeur qui a pris une photo, et c'est tout
+        (1, False),
+        (1, False),
+        (2, False),
+        (2, False),
+        (3, False),
+        (3, True),   # celui qui a fait l'effort d'un apercu
+        (4, True),
     ]
 
+    # Les vues complementaires. Elles ne sont PAS des recadrages : chacune est
+    # une composition differente, dessinee. Elles disent ce qu'elles sont —
+    # des illustrations — parce qu'une fausse photo est pire qu'une absence de
+    # photo, et que c'est ce qu'on m'a deja reproche au bloc J.
+    #
+    # Le jour ou un vendeur televerse ses vraies photos, elles prennent la
+    # place de celles-ci sans qu'une ligne de code change : voir
+    # `medias_fournis()`, qui lit `donnees-demo/images/<slug>-2.jpg` et
+    # suivants.
+    VUES = [
+        (2, "emballage", "Ce que vous recevez"),
+        (3, "fiche", "En bref"),
+        (4, "situation", "En situation"),
+    ]
+
+    def profil_media(self, produit):
+        """Combien de photos, et un apercu ou non."""
+        graine = int(hashlib.md5(produit.nom.encode()).hexdigest()[:8], 16)
+        return self.PROFILS[graine % len(self.PROFILS)]
+
     def completer_les_medias(self, produit, source):
-        """Poser la photo principale, la galerie et l'apercu, s'ils manquent.
+        """Poser la photo principale, puis les medias que le profil prevoit.
 
         Elle ne posait que la galerie, et abandonnait si la photo principale
         manquait. Un produit qui perdait son image — fichier efface, media non
@@ -446,7 +482,8 @@ class Command(BaseCommand):
 
         Meme famille de defaut que les particularites (D-109) : **une commande
         de peuplement doit remettre la demonstration d'aplomb, pas seulement la
-        monter la premiere fois.**
+        monter la premiere fois.** Elle retire donc aussi ce qui est en trop,
+        sans quoi les quatre vues de l'ancienne version survivraient a jamais.
         """
         principale = produit.photos.filter(ordre=1).first()
         if principale is None or self.charger_media(principale.url) is None:
@@ -463,24 +500,124 @@ class Command(BaseCommand):
             )
             self.reparees += 1
 
-        origine = self.charger_media(principale.url)
-        if origine is None:
-            return
+        combien, avec_apercu = self.profil_media(produit)
+        fournis = self.medias_fournis(produit)
+        if fournis:
+            # Tes fichiers priment sur le profil : si tu as depose cinq photos,
+            # le produit en a cinq. Le profil ne sert qu'a ne pas inventer.
+            combien = 1 + len(fournis)
+        elif not self.est_dessinee(produit, principale.url):
+            # **Une photographie ne se complete pas par des schemas.** Vingt
+            # produits ont une vraie photo sous licence libre ; leur adjoindre
+            # trois dessins ferait une galerie qui change de registre au
+            # deuxieme cliquet, et c'est encore plus voyant qu'un zoom.
+            #
+            # Ceux-la gardent donc leur photo, seule. C'est exactement ce que
+            # tu as dit : « parfois une photo suffit. »
+            combien, avec_apercu = 1, False
 
-        for ordre, suffixe, libelle, zoom in self.CADRAGES:
+        # Ce qui depasse le profil s'en va. C'est cette ligne qui efface les
+        # « detail », « matiere » et « situation » de l'ancienne version.
+        produit.photos.filter(ordre__gt=combien).delete()
+
+        for rang, (ordre, cle, libelle) in enumerate(self.VUES):
+            if ordre > combien:
+                break
             if produit.photos.filter(ordre=ordre).exists():
                 continue
-            chemin = self.ecrire_cadrage(produit.nom, suffixe, origine, zoom)
+            if rang < len(fournis):
+                chemin = fournis[rang]
+                alternatif = f"{produit.nom} — {libelle.lower()}"
+            else:
+                chemin = self.ecrire_vue(produit, cle, libelle)
+                alternatif = f"{produit.nom} — {libelle.lower()} (illustration)"
             PhotoProduit.objects.create(
-                produit=produit, url=chemin, ordre=ordre,
-                texte_alternatif=f"{produit.nom} — {libelle.lower()}",
+                produit=produit, url=chemin, ordre=ordre, texte_alternatif=alternatif,
             )
             self.galeries += 1
 
+        if not avec_apercu:
+            if produit.video_url:
+                produit.video_url = ""
+                produit.save(update_fields=["video_url"])
+            return
+
         if not produit.video_url:
-            produit.video_url = self.ecrire_apercu_anime(produit.nom, origine)
+            produit.video_url = self.ecrire_apercu_anime(produit)
             produit.save(update_fields=["video_url"])
             self.animes += 1
+
+    def est_dessinee(self, produit, chemin_public):
+        """Cette image a-t-elle ete DESSINEE par le peuplement ?
+
+        La question decide de tout ce qui suit : **on n'accole pas des schemas
+        a une photographie.** Une galerie qui commence par une vraie photo et
+        continue par trois dessins change de registre au deuxieme cliquet, et
+        cela se voit encore plus qu'un zoom.
+
+        Premiere tentative, abandonnee : compter les couleurs distinctes. Une
+        vignette dessinee en a quelques milliers, une photo plusieurs dizaines
+        de milliers… sauf une photo d'ordinateur sur fond blanc, qui en avait
+        15 000 et passait pour un dessin. **Un seuil est toujours faux quelque
+        part.**
+
+        La bonne methode ne devine pas : elle **redessine** la vignette que ce
+        produit aurait eue, et la compare a l'image stockee. Si elles se
+        ressemblent, l'image EST cette vignette. C'est exact, cela ne demande
+        aucun drapeau en base — qui mentirait le jour ou un vendeur
+        remplacerait sa photo sans le mettre a jour — et cela reste vrai si
+        les couleurs de la maquette changent.
+        """
+        image = self.charger_media(chemin_public)
+        if image is None:
+            return True
+
+        categorie = produit.categorie.nom if produit.categorie_id else "Autres"
+        attendue = self.traiter(self.image_fabriquee(produit.nom, categorie))
+
+        # Comparaison sur une reduction : la compression WebP deplace quelques
+        # niveaux par pixel, elle ne deplace pas une forme.
+        petit = (64, 48)
+        a = image.resize(petit, Image.LANCZOS).getdata()
+        b = attendue.resize(petit, Image.LANCZOS).getdata()
+        ecart = sum(
+            abs(x - y) for pixel_a, pixel_b in zip(a, b, strict=True)
+            for x, y in zip(pixel_a, pixel_b, strict=True)
+        ) / (len(a) * 3)
+        return ecart < 12
+
+    def medias_fournis(self, produit):
+        """Tes propres vues complementaires : `<slug>-2.jpg`, `-3`, `-4`.
+
+        Le peuplement lisait deja `donnees-demo/images/<slug>.jpg` pour la
+        photo principale. Il lit maintenant la suite, dans le meme dossier et
+        avec la meme regle : **ce que tu fournis prime sur ce que je dessine.**
+        C'est la seule facon d'avoir un jour de vraies photos sous plusieurs
+        angles — aucun script ne peut les inventer.
+        """
+        slug = slugify(produit.nom)
+        dossier = os.path.join(settings.RACINE.parent, "donnees-demo", "images")
+        cible = os.path.join(settings.MEDIA_ROOT, DOSSIER)
+        os.makedirs(cible, exist_ok=True)
+
+        trouves = []
+        for rang in (2, 3, 4, 5, 6):
+            for extension in ("jpg", "jpeg", "png", "webp"):
+                origine = os.path.join(dossier, f"{slug}-{rang}.{extension}")
+                if not os.path.exists(origine):
+                    continue
+                destination = os.path.join(cible, f"{slug}-{rang}.webp")
+                chemin_public = f"{settings.MEDIA_URL}{DOSSIER}/{slug}-{rang}.webp"
+                if not os.path.exists(destination):
+                    self.traiter(Image.open(origine)).save(
+                        destination, "WEBP", quality=82, method=5
+                    )
+                    self.fournies += 1
+                trouves.append(chemin_public)
+                break
+            else:
+                break
+        return trouves
 
     def charger_media(self, chemin_public):
         """Relire une image deja ecrite, depuis son chemin public."""
@@ -492,9 +629,19 @@ class Command(BaseCommand):
         image.load()
         return image.convert("RGB")
 
-    def ecrire_cadrage(self, nom_produit, suffixe, origine, zoom):
-        """Un recadrage centre, ecrit une seule fois."""
-        slug = f"{slugify(nom_produit)}-{suffixe}"
+    def ecrire_vue(self, produit, cle, libelle):
+        """Une vue complementaire DESSINEE, pas un recadrage.
+
+        Chaque cle donne une composition differente : un colis pour
+        « ce que vous recevez », une reglette cotee pour « les dimensions »,
+        une scene pour « en situation ». Elles se ressemblent aussi peu que
+        trois photos prises sous trois angles se ressemblent — ce qui etait
+        precisement le reproche fait aux recadrages.
+
+        Elles ne pretendent pas etre des photographies : le texte alternatif
+        dit « illustration », et le cartouche en bas de l'image le repete.
+        """
+        slug = f"{slugify(produit.nom)}-{cle}"
         dossier = os.path.join(settings.MEDIA_ROOT, DOSSIER)
         os.makedirs(dossier, exist_ok=True)
         destination = os.path.join(dossier, f"{slug}.webp")
@@ -502,52 +649,195 @@ class Command(BaseCommand):
         if os.path.exists(destination):
             return chemin_public
 
-        largeur, hauteur = origine.size
-        cadre_l, cadre_h = int(largeur * zoom), int(hauteur * zoom)
-        gauche = (largeur - cadre_l) // 2
-        haut = (hauteur - cadre_h) // 2
-        vue = origine.crop((gauche, haut, gauche + cadre_l, haut + cadre_h))
-        vue.resize((LARGEUR, HAUTEUR), Image.LANCZOS).save(
+        self.dessiner_vue(produit, cle, libelle).save(
             destination, "WEBP", quality=82, method=5
         )
         return chemin_public
 
-    def ecrire_apercu_anime(self, nom_produit, origine):
-        """Un lent zoom, en WebP anime.
+    def dessiner_vue(self, produit, cle, libelle):
+        """La composition elle-meme, en memoire."""
+        categorie = produit.categorie.nom if produit.categorie_id else "Autres"
+        fond, accent, encre = self.TEINTES.get(
+            UNIVERS.get(categorie, "Autres"), self.TEINTES["Autres"]
+        )
+        # Un fond legerement different par vue : deux vignettes cote a cote
+        # dans la bande de miniatures doivent se distinguer au premier regard.
+        decalage = {"emballage": 0.06, "fiche": -0.04, "situation": 0.10}[cle]
+        fond = tuple(
+            max(0, min(255, int(c + (accent[k] - c) * decalage)))
+            for k, c in enumerate(fond)
+        )
 
-        Ce n'est PAS une video, et l'appeler ainsi serait mentir : c'est une
-        image animee de quelques dizaines de kilo-octets, fabriquee sans
-        encodeur ni reseau. Le champ `video_url` accepte les deux, et le front
-        joue une vraie video le jour ou un vendeur en televerse une.
+        image = Image.new("RGB", (LARGEUR, HAUTEUR), fond)
+        dessin = ImageDraw.Draw(image)
+        police = self.police
+        centre_x, centre_y = LARGEUR // 2, HAUTEUR // 2 - 30
+
+        if cle == "emballage":
+            # Un colis vu de trois-quarts, avec l'etiquette de la boutique.
+            largeur, hauteur, profondeur = 300, 210, 90
+            gauche, haut = centre_x - largeur // 2, centre_y - hauteur // 2
+            dessin.polygon(
+                [(gauche, haut), (gauche + profondeur, haut - profondeur // 2),
+                 (gauche + largeur + profondeur, haut - profondeur // 2),
+                 (gauche + largeur, haut)],
+                fill=tuple(int(c * 0.93) for c in fond), outline=accent,
+            )
+            dessin.polygon(
+                [(gauche + largeur, haut), (gauche + largeur + profondeur,
+                                            haut - profondeur // 2),
+                 (gauche + largeur + profondeur, haut + hauteur - profondeur // 2),
+                 (gauche + largeur, haut + hauteur)],
+                fill=tuple(int(c * 0.86) for c in fond), outline=accent,
+            )
+            dessin.rectangle([gauche, haut, gauche + largeur, haut + hauteur],
+                             fill="#ffffff", outline=accent, width=3)
+            # L'etiquette : c'est elle qui rend un colis credible.
+            dessin.rectangle([gauche + 26, haut + 34, gauche + largeur - 26, haut + 118],
+                             fill=fond, outline=accent)
+            dessin.text((gauche + 40, haut + 48), produit.vendeur.nom_boutique[:22],
+                        font=police(22), fill=encre)
+            dessin.text((gauche + 40, haut + 80), "RivDinde", font=police(18), fill=accent)
+            for rang in range(6):
+                x = gauche + 40 + rang * 38
+                dessin.rectangle([x, haut + 140, x + 12 + (rang % 3) * 5, haut + 176],
+                                 fill=encre)
+
+        elif cle == "fiche":
+            # Ce qu'on SAIT du produit, et rien d'autre.
+            #
+            # La premiere version dessinait une reglette cotee « 26 cm × 17 cm »
+            # calculee sur le poids. Autrement dit : des dimensions inventees,
+            # affichees sur une fiche produit. C'est pire qu'un zoom — un zoom
+            # ne fait perdre que du temps, une cote fausse fait acheter un
+            # objet qui n'entre pas.
+            lignes = [
+                ("Poids", f"{produit.poids_grammes} g" if produit.poids_grammes else None),
+                ("Univers", UNIVERS.get(categorie, "Autres")),
+                ("Categorie", categorie),
+                ("Boutique", produit.vendeur.nom_boutique),
+                ("Livraison",
+                 "Express, en moins d'une heure"
+                 if produit.vendeur.type_activite == "EXPRESS"
+                 else "Standard, groupee en tournee"),
+            ]
+            lignes = [(cle_ligne, valeur) for cle_ligne, valeur in lignes if valeur]
+
+            haut = centre_y - (len(lignes) * 58) // 2 - 20
+            dessin.rounded_rectangle([90, haut - 34, LARGEUR - 90, haut + len(lignes) * 58 + 20],
+                                     radius=20, fill="#ffffff", outline=accent, width=3)
+            for rang, (cle_ligne, valeur) in enumerate(lignes):
+                y = haut + rang * 58
+                if rang:
+                    dessin.line([124, y - 12, LARGEUR - 124, y - 12],
+                                fill=tuple(int(c * 0.92) for c in fond), width=2)
+                dessin.text((128, y + 4), cle_ligne.upper(), font=police(19), fill=accent)
+                dessin.text((328, y), str(valeur)[:34], font=police(25), fill=encre)
+
+        else:
+            # En situation : une table, une lumiere, l'objet pose dessus.
+            dessin.ellipse([centre_x - 340, centre_y - 280, centre_x + 340, centre_y + 150],
+                           fill=tuple(int(c * 0.97) for c in fond))
+            table = centre_y + 150
+            dessin.rectangle([0, table, LARGEUR, HAUTEUR],
+                             fill=tuple(int(c * 0.88) for c in fond))
+            dessin.line([0, table, LARGEUR, table], fill=accent, width=4)
+
+            largeur, hauteur = 380, 240
+            gauche = centre_x - largeur // 2
+            # L'ombre portee AVANT l'objet : sans elle, il flotte au lieu
+            # d'etre pose. Dessinee apres, elle passerait par-dessus.
+            dessin.ellipse([gauche - 40, table - 18, gauche + largeur + 40, table + 30],
+                           fill=tuple(int(c * 0.78) for c in fond))
+            dessin.rounded_rectangle([gauche, table - hauteur, gauche + largeur, table],
+                                     radius=20, fill="#ffffff", outline=accent, width=4)
+
+            # Le nom, sur deux lignes au besoin : le tronquer dans sa propre
+            # mise en situation serait absurde.
+            mots, lignes, courante = produit.nom.split(), [], ""
+            for mot in mots:
+                essai = f"{courante} {mot}".strip()
+                if len(essai) > 16 and courante:
+                    lignes.append(courante)
+                    courante = mot
+                else:
+                    courante = essai
+            lignes.append(courante)
+            y = table - hauteur + 42
+            for ligne in lignes[:3]:
+                dessin.text((gauche + 30, y), ligne, font=police(30), fill=encre)
+                y += 42
+
+        # Le cartouche : il nomme la vue ET dit que c'est une illustration.
+        # Sans lui, on croirait a une photographie ratee.
+        #
+        # La mention est ecrite dans un gris clair et non dans l'accent : sur
+        # le fond sombre du cartouche, l'accent bleu etait illisible — la
+        # meme maladie que le bouton blanc sur blanc du bloc M.
+        dessin.rectangle([0, HAUTEUR - 82, LARGEUR, HAUTEUR], fill=encre)
+        dessin.text((40, HAUTEUR - 66), libelle.upper(), font=police(25), fill="#ffffff")
+        dessin.text((40, HAUTEUR - 34), "illustration — non contractuelle",
+                    font=police(18), fill="#c9cfdd")
+        return image
+
+    def police(self, taille):
+        for nom in ("arialbd.ttf", "arial.ttf", "DejaVuSans-Bold.ttf"):
+            try:
+                return ImageFont.truetype(nom, taille)
+            except OSError:
+                continue
+        return ImageFont.load_default()
+
+    def ecrire_apercu_anime(self, produit):
+        """Un enchainement des VUES, en WebP anime.
+
+        L'ancienne version etait un lent zoom sur la photo principale. Tu l'as
+        dit sans detour : « c'est bete ». Une video qui zoome sur une image
+        fixe n'apporte rien qu'un doigt sur un ecran ne fasse deja mieux.
+
+        Celle-ci enchaine les compositions — le produit, son colis, ses
+        dimensions, sa mise en situation — avec une pause sur chacune. C'est
+        ce que fait une vraie video de produit : elle FAIT LE TOUR.
+
+        Ce n'est toujours pas une video, et l'appeler ainsi serait mentir :
+        c'est une image animee de quelques dizaines de kilo-octets, fabriquee
+        sans encodeur ni reseau. Le champ `video_url` accepte les deux, et le
+        front joue une vraie video le jour ou un vendeur en televerse une.
         """
-        slug = slugify(nom_produit)
+        slug = slugify(produit.nom)
         dossier = os.path.join(settings.MEDIA_ROOT, DOSSIER)
         destination = os.path.join(dossier, f"{slug}-apercu.webp")
         chemin_public = f"{settings.MEDIA_URL}{DOSSIER}/{slug}-apercu.webp"
         if os.path.exists(destination):
             return chemin_public
 
-        # Huit images, en demi-format, a qualite moderee : l'apercu doit peser
+        # Le tiers de la taille et une qualite moderee : l'apercu doit peser
         # quelques dizaines de kilo-octets, pas trois cents. Une fiche produit
         # qui met deux secondes a s'afficher sur un telephone en 4G n'aide
         # personne a acheter — et le projet tourne sur une offre gratuite.
-        largeur, hauteur = origine.size
+        petit = (LARGEUR // 3, HAUTEUR // 3)
         images = []
-        for etape in range(8):
-            zoom = 1 - etape * 0.03
-            cadre_l, cadre_h = int(largeur * zoom), int(hauteur * zoom)
-            gauche = (largeur - cadre_l) // 2
-            haut = (hauteur - cadre_h) // 2
-            images.append(
-                origine.crop((gauche, haut, gauche + cadre_l, haut + cadre_h))
-                .resize((LARGEUR // 3, HAUTEUR // 3), Image.LANCZOS)
-            )
-        # Aller puis retour : la boucle ne saute pas.
-        images += images[-2:0:-1]
+        rangs = set()
+        for photo in produit.photos.order_by("ordre"):
+            vue = self.charger_media(photo.url)
+            if vue is not None:
+                images.append(vue.resize(petit, Image.LANCZOS))
+                rangs.add(photo.ordre)
+
+        # Completer avec les vues que le profil n'a pas retenues — celles-la
+        # seulement : un apercu qui repasse deux fois sur la meme image serait
+        # exactement le defaut qu'on vient de corriger.
+        for ordre, cle, libelle in self.VUES:
+            if ordre in rangs:
+                continue
+            images.append(self.dessiner_vue(produit, cle, libelle).resize(petit, Image.LANCZOS))
+
+        if len(images) < 2:
+            return ""
 
         images[0].save(
             destination, "WEBP", save_all=True, append_images=images[1:],
-            duration=140, loop=0, quality=48, method=6,
+            duration=900, loop=0, quality=52, method=6,
         )
         return chemin_public
 
@@ -666,13 +956,7 @@ class Command(BaseCommand):
                 outline=teinte, width=2,
             )
 
-        def police(taille):
-            for nom in ("arialbd.ttf", "arial.ttf", "DejaVuSans-Bold.ttf"):
-                try:
-                    return ImageFont.truetype(nom, taille)
-                except OSError:
-                    continue
-            return ImageFont.load_default()
+        police = self.police
 
         # Le nom du produit, sur deux lignes au besoin : tronquer un nom de
         # produit dans sa propre vignette serait absurde.

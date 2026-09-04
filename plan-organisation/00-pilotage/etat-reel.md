@@ -632,3 +632,34 @@ et les nomment.
 
 `npm test` tourne désormais dans la CI, aux côtés de la vérification des types
 et de la compilation.
+
+
+---
+
+## Les médias du catalogue, après le bloc N-1
+
+Relevé sur la base de démonstration, 59 produits :
+
+| Nombre de vues | Produits |
+|---|---|
+| 1 seule photo | **35** |
+| 2 vues | 9 |
+| 3 vues | 9 |
+| 4 vues | 5 |
+| aucune (produit créé à la main sans image) | 1 |
+
+**11 produits sur 59** ont un aperçu animé. Avant, c'était 58 sur 59, tous avec
+exactement quatre vues.
+
+Le dossier `backend/media/produits/` est passé de **8,9 Mo à 2,6 Mo** : les
+recadrages et les zooms pesaient plus que le catalogue lui-même.
+
+Vingt produits ont une **vraie photo** sous licence libre. Ils gardent cette
+photo seule : on n'accole pas de schémas à une photographie. Les trente-huit
+autres ont une vignette dessinée, et leurs vues complémentaires sont dessinées
+dans le même langage visuel.
+
+`catalogue/tests/test_medias_produit.py` — 7 tests — verrouille les trois
+règles : le profil varie, une photographie reste seule, et deux vues ne se
+ressemblent jamais comme deux recadrages. Le dernier compare réellement les
+images pixel à pixel.

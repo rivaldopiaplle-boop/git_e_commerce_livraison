@@ -7,7 +7,7 @@
 import { IonBadge, IonButton, IonIcon, IonSpinner } from '@ionic/vue'
 import { euros } from '@partage/metier'
 import { notificationsOutline, starOutline } from 'ionicons/icons'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
@@ -18,8 +18,47 @@ const route = useRoute()
 const session = useSession()
 const panier = usePanier()
 
+type Media = { url: string; texte_alternatif: string; anime: boolean }
+
 const produit = ref<Record<string, any> | null>(null)
 const chargement = ref(true)
+
+/**
+ * Les vues du produit, dans l'ordre, l'apercu anime en dernier.
+ *
+ * Le mobile n'affichait que la photo principale, alors que le web avait une
+ * galerie complete. Depuis le bloc N-1, un produit peut avoir une seule photo
+ * comme quatre vues : la bande ne s'affiche donc que s'il y a de quoi la
+ * remplir — un carrousel a une image est un carrousel casse.
+ */
+const medias = computed<Media[]>(() => {
+  const fiche = produit.value
+  if (!fiche) return []
+  const vues: Media[] = (fiche.photos ?? []).map((photo: Record<string, string>) => ({
+    url: photo.url,
+    texte_alternatif: photo.texte_alternatif || fiche.nom,
+    anime: false,
+  }))
+  if (!vues.length && fiche.image) {
+    vues.push({ url: fiche.image, texte_alternatif: fiche.nom, anime: false })
+  }
+  if (fiche.apercu?.url) {
+    vues.push({
+      url: fiche.apercu.url,
+      texte_alternatif: `${fiche.nom} — aperçu animé`,
+      anime: true,
+    })
+  }
+  return vues
+})
+
+const vueActive = ref(0)
+
+/** Le point suit le doigt : sans lui, on ne sait pas combien il reste de vues. */
+function suivreDefilement(evenement: Event) {
+  const bande = evenement.target as HTMLElement
+  vueActive.value = Math.round(bande.scrollLeft / bande.clientWidth)
+}
 
 onMounted(async () => {
   try {
@@ -35,7 +74,32 @@ onMounted(async () => {
     <div v-if="chargement" class="chargement"><IonSpinner name="dots" /></div>
 
     <template v-else-if="produit">
-      <img v-if="produit.image" :src="produit.image" :alt="produit.nom" class="photo" />
+      <!-- Une seule vue : une image, sans habillage inutile. Plusieurs : une
+           bande qu'on fait defiler au pouce, avec un point par vue. -->
+      <img
+        v-if="medias.length === 1"
+        :src="medias[0].url"
+        :alt="medias[0].texte_alternatif"
+        class="photo"
+      />
+      <div v-else-if="medias.length > 1" class="galerie">
+        <div class="bande" @scroll.passive="suivreDefilement">
+          <img
+            v-for="(media, index) in medias"
+            :key="index"
+            :src="media.url"
+            :alt="media.texte_alternatif"
+            class="photo vue"
+          />
+        </div>
+        <div class="points">
+          <span
+            v-for="(media, index) in medias"
+            :key="index"
+            :class="index === vueActive ? 'actif' : ''"
+          />
+        </div>
+      </div>
 
       <div class="carte-mobile">
         <IonBadge :color="produit.boutique.type_service === 'EXPRESS' ? 'warning' : 'medium'">
@@ -84,6 +148,42 @@ onMounted(async () => {
   display: grid;
   place-items: center;
   padding: 40px;
+}
+.galerie {
+  margin-bottom: 12px;
+}
+.bande {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.bande::-webkit-scrollbar {
+  display: none;
+}
+.vue {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  margin-bottom: 0;
+}
+.points {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.points span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rd-trait);
+  transition: background-color 150ms, width 150ms;
+}
+.points span.actif {
+  width: 18px;
+  border-radius: 3px;
+  background: var(--accent);
 }
 .photo {
   width: 100%;

@@ -2141,3 +2141,73 @@ maintenant à `/moi/parametres`, comme le web, et enregistre au geste — sur un
 téléphone, un réglage qu'il faut confirmer est un réglage qu'on croit avoir
 changé. Le changement de mot de passe, présent sur le web et absent ici, a été
 ajouté dans la foulée.
+
+
+### D-140 — Un zoom n'est pas un autre angle, et l'uniformité se voit
+
+**Ton bloc N-1** : *« les 4 vues et l'aperçu animé, c'est bête, c'est plus bête
+qu'avant. Tu as pris la photo d'origine, tu as zoomé, et tu as fait une vidéo du
+zoom. Soit de vraies photos d'autres angles et une vraie vidéo, pas
+systématiquement le même nombre de photos et la présence d'une vidéo — parfois
+une photo suffit. »*
+
+C'était exactement ça : trois recadrages de la photo principale, plus un lent
+zoom sur cette même photo. **La même image, cinq fois, dans cinq tailles.**
+
+Le pire n'était pourtant pas le zoom. C'était **l'uniformité** : cinquante-huit
+produits avec exactement quatre photos et un aperçu. Un catalogue réel est
+irrégulier — le traiteur du coin a pris une photo au téléphone, le revendeur de
+high-tech en a huit fournies par le fabricant. Un nombre identique partout ne
+s'invente pas : il se génère, et cela se voit.
+
+**Trois règles remplacent les recadrages.**
+
+**1. Le nombre de médias suit un profil**, tiré du nom du produit — stable d'un
+peuplement à l'autre, différent d'un produit à l'autre. Le catalogue compte
+aujourd'hui 35 produits à une seule photo, 9 à deux, 9 à trois, 5 à quatre, et
+**11 aperçus sur 59 produits**. « Parfois une photo suffit » est devenu le cas
+le plus fréquent.
+
+**2. On n'accole jamais un schéma à une photographie.** Vingt produits ont une
+vraie photo sous licence libre ; leur ajouter des vues dessinées ferait une
+galerie qui change de registre au deuxième cliquet, et cela se voit encore plus
+qu'un zoom. Ceux-là gardent leur photo, **seule**.
+
+Reconnaître laquelle est laquelle a demandé deux essais. Compter les couleurs
+distinctes semblait suffire — quelques milliers pour un dessin, des dizaines de
+milliers pour une photo — jusqu'à ce qu'une photo d'ordinateur sur fond blanc
+en compte 15 000 et passe pour un dessin. **Un seuil est toujours faux quelque
+part.** La méthode retenue ne devine pas : elle **redessine** la vignette que ce
+produit aurait eue et la compare à l'image stockée. C'est exact, et cela ne
+demande aucun drapeau en base — qui mentirait le jour où un vendeur remplace sa
+photo sans le mettre à jour.
+
+**3. Les vues complémentaires sont des compositions différentes, pas des
+recadrages** : le colis avec l'étiquette de la boutique, une fiche en bref, une
+mise en situation. Chacune porte un cartouche qui dit « illustration — non
+contractuelle », parce qu'**une fausse photo est pire qu'une absence de photo**
+et que c'est ce qu'on m'a déjà reproché au bloc J.
+
+L'aperçu animé enchaîne ces vues au lieu de zoomer : il **fait le tour** du
+produit, comme une vraie vidéo de produit. Sept kilo-octets, quatre images.
+
+### Ce que je ne peux pas faire, et comment tu le pourras
+
+De vraies photographies sous plusieurs angles, **aucun script ne peut les
+inventer**. Le peuplement lisait déjà `donnees-demo/images/<slug>.jpg` pour la
+photo principale ; il lit maintenant `<slug>-2.jpg`, `-3`, `-4` dans le même
+dossier, avec la même règle : **ce que tu fournis prime sur ce que je dessine**,
+et le profil ne s'applique plus. C'est la seule voie honnête vers de vraies
+photos multi-angles.
+
+Une première version de la fiche « en bref » dessinait une réglette cotée
+« 26 cm × 17 cm », calculée sur le poids. Des dimensions **inventées**, sur une
+fiche produit. C'est pire qu'un zoom : un zoom fait perdre du temps, une cote
+fausse fait acheter un objet qui n'entre pas. La fiche ne dit plus que ce qu'on
+sait vraiment — poids, univers, catégorie, boutique, mode de livraison — et un
+test le verrouille.
+
+Le mobile, lui, n'affichait que la photo principale. Il a maintenant la même
+galerie que le web, en bande qu'on fait défiler au pouce, **et elle ne
+s'affiche que s'il y a plus d'une vue** : un carrousel à une image est un
+carrousel cassé.

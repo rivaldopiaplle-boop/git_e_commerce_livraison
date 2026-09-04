@@ -23,6 +23,19 @@ propre résultat est pire qu'un démarreur absent.
 | **2** | **Pour voir la correction à l'œuvre** : `rd /s /q frontend-mobile
 ode_modules` puis relance. Il réinstalle au lieu de te laisser avec `'vite' n'est pas reconnu` | 4 min | D-138 |
 
+## Les quatre vues et la vidéo : le zoom a disparu
+
+**Ta remarque N-1 était juste et je ne la discute pas** : c'était la photo
+d'origine, recadrée trois fois, puis un lent zoom sur cette même photo. Et
+cinquante-huit produits l'avaient tous, à l'identique.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **10** | **Ouvre cinq fiches produit au hasard.** Elles n'ont plus le même nombre de vues : la plupart n'en ont qu'**une** | 3 min | D-140 |
+| **11** | **Cherche « Sirop de sureau » ou « Curry de légumes ».** Quatre vues **différentes** — le colis, la fiche en bref, la mise en situation — et un aperçu qui **fait le tour** au lieu de zoomer | 2 min | D-140 |
+| **12** | **Ouvre « Coffret d'épices » ou « Ordinateur portable ».** Ceux-là ont une **vraie photo**, et elle reste **seule** : je n'accole pas de schémas à une photographie | 2 min | D-140 |
+| **13** | **Si tu veux de vraies photos multi-angles** : dépose-les dans `donnees-demo/images/` sous `<slug>-2.jpg`, `-3`, `-4`, puis `python manage.py seed_catalogue`. Tes fichiers priment sur mes dessins | — | D-140 |
+
 ## Le mobile pouvait remplir un panier, pas commander
 
 **Ta demande N-5** : *« fais attention que le mobile a tout ce qui devait
