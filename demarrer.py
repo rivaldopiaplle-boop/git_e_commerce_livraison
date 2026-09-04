@@ -346,6 +346,50 @@ def preparer_backend():
                 info(ligne.rstrip())
 
 
+def outil_installe(dossier, nom):
+    """L'outil est-il REELLEMENT la, et lancable ?
+
+    La presence de `node_modules/` ne prouve rien. Une installation
+    interrompue — Ctrl+C, disque plein, reseau coupe — laisse un dossier
+    a moitie rempli qui passe tous les tests d'existence et ne fait tourner
+    aucun outil.
+
+    C'est exactement ce qui est arrive au mobile : trois dossiers residuels
+    dans `node_modules/`, `demarrer.py` satisfait, et `npm run dev` qui
+    repondait « 'vite' n'est pas reconnu ». Le message ne parlait meme pas
+    d'installation, donc personne ne pensait a la refaire.
+
+    On teste donc le binaire qu'on va lancer. Sous Windows, npm ecrit
+    `vite.cmd` a cote de `vite` : les deux comptent.
+    """
+    binaire = os.path.join(dossier, "node_modules", ".bin", nom)
+    return any(os.path.exists(binaire + suffixe) for suffixe in ("", ".cmd", ".ps1"))
+
+
+def preparer_npm(dossier, titre, quoi):
+    """Installer les dependances d'un front, et verifier que ca a marche."""
+    etape(titre)
+
+    if not outil_installe(dossier, "vite"):
+        info("Installation des dependances npm %s…" % quoi)
+        code, sortie = executer("npm install --no-fund --no-audit", cwd=dossier)
+        if code != 0:
+            echec(sortie[-1500:])
+            fatal("npm install a echoue %s" % quoi, "Lis le message ci-dessus.")
+
+        # On revérifie APRES : `npm install` peut rendre 0 en ayant laisse le
+        # travail a moitie fait, et c'est precisement ce qu'on essaie
+        # d'attraper. Sans ce second controle, on aurait deplace le probleme
+        # d'un cran sans le resoudre.
+        if not outil_installe(dossier, "vite"):
+            fatal(
+                "npm install s'est termine mais vite n'est pas installe %s" % quoi,
+                "Efface node_modules/ et package-lock.json dans ce dossier, "
+                "puis relance.",
+            )
+    ok("Dependances %s en place" % quoi)
+
+
 def preparer_mobile():
     """Les dependances de l'application mobile.
 
@@ -353,32 +397,22 @@ def preparer_mobile():
     dependances : Ionic et Capacitor n'ont rien a faire dans un paquet web,
     et PrimeVue rien a faire dans une application installee.
     """
-    etape("Application mobile Ionic")
-
-    if not os.path.isdir(os.path.join(MOBILE, "node_modules")):
-        info("Installation des dependances npm du mobile (une seule fois)…")
-        code, sortie = executer("npm install --no-fund --no-audit", cwd=MOBILE)
-        if code != 0:
-            echec(sortie[-1500:])
-            fatal("npm install a echoue cote mobile", "Lis le message ci-dessus.")
-    ok("Dependances du mobile en place")
+    preparer_npm(MOBILE, "Application mobile Ionic", "du mobile")
 
 
 def preparer_web():
-    etape("Front web Vue")
-
     fichier_env = os.path.join(WEB, ".env")
-    if not os.path.exists(fichier_env):
+    env_cree = not os.path.exists(fichier_env)
+    if env_cree:
         shutil.copyfile(os.path.join(WEB, ".env.example"), fichier_env)
-        ok("frontend-web/.env cree depuis .env.example")
 
-    if not os.path.isdir(os.path.join(WEB, "node_modules")):
-        info("Installation des dependances npm (une seule fois, soyons patients)…")
-        code, sortie = executer("npm install --no-fund --no-audit", cwd=WEB)
-        if code != 0:
-            echec(sortie[-1500:])
-            fatal("npm install a echoue", "Lis le message ci-dessus.")
-    ok("Dependances npm en place")
+    # Le meme test que le mobile : le front web avait exactement le meme
+    # defaut, il n'avait simplement pas encore eu la malchance de tomber sur
+    # une installation interrompue.
+    preparer_npm(WEB, "Front web Vue", "npm")
+
+    if env_cree:
+        ok("frontend-web/.env cree depuis .env.example")
 
 
 # ── Lancement ────────────────────────────────────────────────────────────
@@ -403,10 +437,40 @@ def adresse_reseau():
         return None
 
 
+def attendre(nom, processus, url, libelle, secondes, conseil=""):
+    """Attendre qu'un service reponde — ou dire tout de suite qu'il est mort.
+
+    L'ancienne version attendait bêtement la fin du compte a rebours, meme
+    quand le processus s'etait arrete a la premiere seconde. Dans la trace de
+    N-6, le mobile mourait aussitot — `vite` introuvable — et `demarrer.py`
+    patientait quarante secondes, annoncait « Tout tourne », puis signalait
+    l'echec APRES. Le seul message utile arrivait apres celui qui disait le
+    contraire.
+
+    On surveille donc le processus en meme temps que l'adresse, et on rend
+    `False` des qu'il tombe.
+    """
+    for _ in range(secondes):
+        if repond(url):
+            ok("%-22s %s" % (libelle, url))
+            return True
+        if processus.poll() is not None:
+            echec("%s s'est arrete tout de suite (code %s)." % (nom, processus.returncode))
+            if conseil:
+                info(conseil)
+            return False
+        time.sleep(1)
+
+    echec("%s n'a pas repondu en %d secondes — voir sa sortie ci-dessus."
+          % (nom, secondes))
+    return False
+
+
 def lancer(avec_web, avec_mobile=True):
     etape("Demarrage")
 
     processus = []
+    manques = []
 
     api = subprocess.Popen(
         '"%s" manage.py runserver 0.0.0.0:8000' % python_du_venv(),
@@ -414,32 +478,25 @@ def lancer(avec_web, avec_mobile=True):
         shell=True,
     )
     processus.append(("API", api))
-
-    for _ in range(30):
-        if repond("http://localhost:8000/api/v1/sante"):
-            ok("API                    http://localhost:8000/api/v1/sante")
-            break
-        time.sleep(1)
-    else:
-        echec("L'API n'a pas repondu en 30 secondes — voir sa sortie ci-dessus.")
+    if not attendre("L'API", api, "http://localhost:8000/api/v1/sante",
+                    "API", 30):
+        manques.append("l'API")
 
     if avec_web:
         web = subprocess.Popen("npm run dev", cwd=WEB, shell=True)
         processus.append(("Front web", web))
-        for _ in range(30):
-            if repond("http://localhost:5173"):
-                ok("Front web              http://localhost:5173")
-                break
-            time.sleep(1)
+        if not attendre("Le front web", web, "http://localhost:5173",
+                        "Front web", 30,
+                        "Essaie : cd frontend-web && npm install"):
+            manques.append("le front web")
 
     if avec_mobile:
         mobile = subprocess.Popen("npm run dev", cwd=MOBILE, shell=True)
         processus.append(("Application mobile", mobile))
-        for _ in range(40):
-            if repond("http://localhost:5174"):
-                ok("Application mobile     http://localhost:5174")
-                break
-            time.sleep(1)
+        if not attendre("L'application mobile", mobile, "http://localhost:5174",
+                        "Application mobile", 40,
+                        "Essaie : cd frontend-mobile && npm install"):
+            manques.append("l'application mobile")
 
         adresse = adresse_reseau()
         if adresse:
@@ -452,7 +509,14 @@ def lancer(avec_web, avec_mobile=True):
     ok("Administration Django  http://localhost:8000/admin/")
     ok("Courriels captures     http://localhost:8026")
 
-    print("\n" + _c("1", "Tout tourne.") + " Ctrl+C pour arreter.\n")
+    if manques:
+        # Dire ce qui manque, plutot qu'un « tout tourne » que la ligne
+        # precedente contredit deja.
+        print("\n" + _c("1", "Ce qui tourne est en place, mais %s n'a pas demarre."
+                         % " et ".join(manques)))
+        print("Le reste continue de tourner. Ctrl+C pour arreter.\n")
+    else:
+        print("\n" + _c("1", "Tout tourne.") + " Ctrl+C pour arreter.\n")
 
     try:
         while True:

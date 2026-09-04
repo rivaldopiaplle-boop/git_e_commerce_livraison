@@ -2072,3 +2072,72 @@ Le `README` du dépôt public dit donc franchement que l'application mobile
 existe, qu'elle vit ailleurs, et renvoie aux deux décisions qui expliquent
 pourquoi il n'y a **qu'une** application pour deux rôles et pourquoi le vendeur
 et l'administrateur n'y sont pas.
+
+
+### D-138 — `demarrer.py` teste l'outil, pas le dossier
+
+**Ton bloc N-6** : *« demarrer.py ne lance pas le mobile »*, avec la trace où
+`npm run dev` répond `'vite' n'est pas reconnu`.
+
+La cause n'était pas le mobile, c'était **le test**. `demarrer.py` vérifiait
+`os.path.isdir('node_modules')`, ce qui n'est pas la même chose qu'une
+installation utilisable : le dossier du mobile ne contenait plus que trois
+résidus d'une installation interrompue. Assez pour passer le test, pas assez
+pour faire tourner quoi que ce soit.
+
+Le test porte désormais sur **le binaire qu'on va lancer** —
+`node_modules/.bin/vite`, avec ses variantes `.cmd` et `.ps1` sous Windows — et
+il est **rejoué après `npm install`** : `npm install` peut rendre 0 en ayant
+laissé le travail à moitié fait, et c'est précisément ce qu'on essaie
+d'attraper.
+
+Le front web souffrait exactement du même défaut ; il n'avait simplement pas
+encore eu la malchance de tomber sur une installation interrompue. Les deux
+passent maintenant par la même fonction.
+
+**Le deuxième défaut de la trace était pire que le premier** : le mobile mourait
+à la première seconde, `demarrer.py` attendait quarante secondes une réponse qui
+ne viendrait jamais, affichait **« Tout tourne »**, puis signalait l'échec.
+Le seul message utile arrivait après celui qui disait le contraire.
+
+`attendre()` surveille désormais le processus en même temps que l'adresse et
+rend la main dès qu'il tombe, avec le conseil correspondant. Le résumé final dit
+*« Ce qui tourne est en place, mais l'application mobile n'a pas démarré »* —
+un démarreur qui ment sur son propre résultat est pire qu'un démarreur absent.
+
+
+### D-139 — Le mobile pouvait remplir un panier, pas commander
+
+**Ton bloc N-5** : *« fais attention que le mobile a tout ce qui devait
+avoir »*. En cherchant ce qui manquait, le trou le plus grave ne se voyait pas :
+le bouton « Passer commande » du panier **se contentait de naviguer vers la
+liste des commandes**. On parcourait le catalogue, on remplissait son panier, et
+on s'arrêtait là. Une application de livraison où l'on ne peut pas commander
+n'est pas une application de livraison.
+
+`Commander.vue` fait maintenant le parcours complet — découpage du panier,
+adresse, paiement — en **un seul écran** là où le web en a deux
+([D-101](#d-101--lécran-de-paiement-règle-toutes-les-commandes-en-attente)). Sur le web, un client peut
+revenir plus tard régler une commande laissée en attente ; sur un téléphone, un
+écran de plus entre le panier et le paiement est un abandon de plus. La
+réservation de stock ([D-99](#d-99--la-réservation-de-stock-na-quun-seul-auteur))
+rend l'enchaînement sûr : elle est posée à la création, rien ne peut partir
+entre les deux appels.
+
+Quatre autres manques ont été comblés dans le même passage, parce que chercher
+un trou en révèle toujours d'autres :
+
+| Ce qui manquait | Où c'est maintenant |
+|---|---|
+| **Donner son avis** (R-06) | une feuille sur la carte de commande livrée |
+| **Signaler un problème** ([D-94](#d-94--un-litige-a-deux-parties-et-chacune-sexprime)) | idem, sur les commandes terminées |
+| **Le reçu détaillé** ([D-78](#d-78--la-facture-simprime-par-le-navigateur-rien-de-plus)) | une feuille ; imprimer n'a pas de sens sur un téléphone, savoir ce qu'on a payé si |
+| **Ses notifications** | le profil, avec le compteur de non-lues |
+
+Le bouton « Notifications poussées » du profil, lui, était un
+`:checked="true"` **sans gestionnaire** : il ne lisait rien et n'enregistrait
+rien. C'est le pire genre de bouton, celui qui a l'air de marcher. Il parle
+maintenant à `/moi/parametres`, comme le web, et enregistre au geste — sur un
+téléphone, un réglage qu'il faut confirmer est un réglage qu'on croit avoir
+changé. Le changement de mot de passe, présent sur le web et absent ici, a été
+ajouté dans la foulée.

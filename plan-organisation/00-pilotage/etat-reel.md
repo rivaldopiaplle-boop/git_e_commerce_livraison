@@ -5,7 +5,7 @@
 > une intention. Il est établi en listant les routes que l'API expose et les
 > écrans que le front compile, puis en les confrontant au dossier de conception.
 >
-> Mis à jour le 1er septembre, après la tranche paiement du bloc L.
+> Mis à jour le 4 septembre, après le relevé du mobile (bloc N).
 
 ---
 
@@ -573,3 +573,62 @@ signale.
 sens ce que le code lit et ce que la configuration propose. Vérifié par
 injection : sans les corrections, trois des quatre tests échouent et nomment les
 cinq variables fautives.
+
+
+---
+
+## Le mobile, relevé écran par écran (bloc N)
+
+**Ta demande N-5** : *« fais attention que le mobile a tout ce qui devait
+avoir »*. Le relevé a été fait en confrontant les routes de l'API aux appels
+réellement écrits dans `frontend-mobile/src`, pas en relisant les intentions.
+
+### Ce qui manquait, et qui existe maintenant
+
+| Manque | Gravité | Où c'est |
+|---|---|---|
+| **Commander** — le bouton du panier ne faisait que naviguer | **le parcours s'arrêtait au panier** | `vues/Commander.vue` |
+| Donner son avis | le web l'avait, pas le téléphone | `vues/Commandes.vue` |
+| Signaler un problème | idem | `vues/Commandes.vue` |
+| Le reçu détaillé | idem | `vues/Commandes.vue` |
+| Lire ses notifications | absent alors que c'est l'appareil qui les reçoit | `vues/Profil.vue` |
+| Changer son mot de passe | absent | `vues/Profil.vue` |
+| Le commutateur de notifications | **présent mais décoratif** | `vues/Profil.vue` |
+
+Le dernier est le plus instructif : un `:checked="true"` sans gestionnaire. Il
+basculait à l'écran, n'enregistrait rien, et revenait à sa position d'origine au
+rechargement. Ni les types, ni la compilation, ni une relecture rapide ne
+voient ce genre de manque.
+
+### Ce qui était déjà complet
+
+Le **livreur** a ses quatre gestes — accepter, récupérer, livrer, signaler une
+absence — plus la disponibilité et la position. Ils passent tous par
+`magasins/livreur.ts` et tapent les routes correspondantes de
+`backend/livraisons/urls.py`. Rien ne manquait de ce côté.
+
+### Vérifié en marche, pas seulement compilé
+
+| Ce qui a été exercé contre l'API vivante | Résultat |
+|---|---|
+| Panier → commande → paiement, depuis le mobile | `RD-260904-8BB570` → `CAPTURE` → `PAYEE`, panier vidé |
+| `GET` puis `POST /commandes/{id}/avis` | 3 cibles notables, note enregistrée et relue |
+| `POST /commandes/{id}/litiges` | refus argumenté sous 20 caractères, `201 Ouvert` au-delà |
+| `GET` / `PATCH /moi/parametres` | la bascule est relue après un aller-retour |
+| `POST /moi/mot-de-passe` | mauvais ancien refusé, mot de passe faible refusé, changement puis retour |
+| `GET /commandes/{id}/facture` | 4 commandes, tous statuts, lignes et total cohérents |
+
+Les données de démonstration ont été **remises dans leur état d'origine** après
+ces essais : le litige et les avis créés pour l'occasion ont été retirés, et la
+répartition vendeur remise en `TRANSFERE`.
+
+### Les gardes
+
+`frontend-mobile/src/qualite.test.ts` — 32 tests. Ils ne montent pas d'écran :
+ils **relisent la source**, parce que ce qu'on cherche est un manque, et qu'un
+manque ne lève aucune erreur. Vérifiés par injection : en remettant le
+commutateur décoratif et le bouton de panier qui navigue, deux tests échouent
+et les nomment.
+
+`npm test` tourne désormais dans la CI, aux côtés de la vérification des types
+et de la compilation.

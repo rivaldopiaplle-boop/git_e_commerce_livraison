@@ -52,7 +52,7 @@ onMounted(() => panier.charger())
           <span class="sous-titre">Total</span>
           <b>{{ euros(panier.contenu.total_centimes) }}</b>
         </span>
-        <IonButton v-if="session.estConnecte" @click="routeur.push('/commandes')">
+        <IonButton v-if="session.estConnecte" @click="routeur.push('/commander')">
           Passer commande
         </IonButton>
         <IonButton v-else @click="routeur.push({ path: '/connexion', query: { suite: '/panier' } })">

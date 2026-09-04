@@ -8,7 +8,47 @@
 
 ---
 
-# ⬛ À FAIRE MAINTENANT — bloc M, 2 septembre
+# ⬛ À FAIRE MAINTENANT — bloc N, 4 septembre
+
+## `demarrer.py` lance enfin le mobile — et te le dit s'il n'y arrive pas
+
+**Ta trace N-6 disait deux choses, pas une.** La première : `vite` n'était pas
+installé côté mobile. La seconde, plus grave : le démarreur affichait
+**« Tout tourne »** avant de signaler l'échec. Un démarreur qui ment sur son
+propre résultat est pire qu'un démarreur absent.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **1** | **`python demarrer.py`.** Les trois adresses s'affichent, dont `http://localhost:5174` | 2 min | D-138 |
+| **2** | **Pour voir la correction à l'œuvre** : `rd /s /q frontend-mobile
+ode_modules` puis relance. Il réinstalle au lieu de te laisser avec `'vite' n'est pas reconnu` | 4 min | D-138 |
+
+## Le mobile pouvait remplir un panier, pas commander
+
+**Ta demande N-5** : *« fais attention que le mobile a tout ce qui devait
+avoir »*. Le trou le plus grave ne se voyait pas — le bouton « Passer commande »
+**naviguait** vers la liste des commandes au lieu de commander.
+
+Ouvre `http://localhost:5174`, réduis la fenêtre au format téléphone
+(Ctrl+Maj+M), connecte-toi en **`lea@exemple.fr` / `Demonstration!2026`**.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **3** | **Recherche → un produit → Ajouter → Panier → Passer commande.** Tu arrives sur un écran qui montre le découpage, l'adresse et le total — et le bouton **paie vraiment** | 3 min | D-139 |
+| **4** | **Commandes → une commande livrée → « Donner mon avis ».** Tu notes la boutique, chaque produit reçu, et le livreur | 2 min | D-139 |
+| **5** | **La même carte → « Signaler un problème ».** Motif, récit, et le compte à rebours de 48 heures du vendeur démarre | 2 min | D-139 |
+| **6** | **N'importe quelle commande payée → « Mon reçu ».** Les mêmes chiffres que la facture du web | 1 min | D-139 |
+| **7** | **Profil → « Notifications poussées ».** Bascule-le, quitte l'écran, reviens : **il a gardé ta position**. Avant, il ne parlait à personne | 2 min | D-139 |
+| **8** | **Profil → « Mes notifications ».** La pastille rouge montre les non-lues, la liste s'ouvre, et le compteur retombe | 1 min | D-139 |
+| **9** | **Profil → « Changer mon mot de passe ».** Essaie avec un mauvais mot de passe actuel : il refuse en le disant | 2 min | D-139 |
+
+> Le mobile a maintenant ses propres tests — 32 gardes qui relisent la source et
+> échouent si un commutateur redevient décoratif ou si un bouton se remet à
+> naviguer au lieu d'agir. Elles tournent dans la CI.
+
+---
+
+# 🗂 Bloc M, 2 septembre
 
 ## ⚠ Le bouton invisible : trouvé, expliqué, corrigé
 

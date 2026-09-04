@@ -25,6 +25,9 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true } },
   { path: '/panier', name: 'panier', component: () => import('./vues/Panier.vue'),
     meta: { public: true } },
+  // Commander ET payer, en un seul ecran (N-6). Le bouton du panier ne faisait
+  // que naviguer vers la liste : on ne pouvait pas commander depuis le mobile.
+  { path: '/commander', name: 'commander', component: () => import('./vues/Commander.vue') },
   { path: '/commandes', name: 'commandes', component: () => import('./vues/Commandes.vue') },
   { path: '/produit/:id', name: 'produit', component: () => import('./vues/Produit.vue'),
     meta: { public: true } },

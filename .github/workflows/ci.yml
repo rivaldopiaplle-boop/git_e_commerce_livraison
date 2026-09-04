@@ -132,7 +132,7 @@ jobs:
         run: npm run build
 
   mobile:
-    name: Application mobile — types + build
+    name: Application mobile — types + tests + build
     runs-on: ubuntu-latest
 
     defaults:
@@ -156,6 +156,12 @@ jobs:
         # côté web qui casserait le mobile se voit ici, pas trois semaines
         # plus tard.
         run: npm run verifier
+
+      - name: Tester
+        # Les gardes de `src/qualite.test.ts` : elles attrapent les manques —
+        # un commutateur sans gestionnaire, un bouton qui navigue au lieu
+        # d'agir — que ni les types ni la compilation ne voient (D-139).
+        run: npm test
 
       - name: Compiler
         run: npm run build
