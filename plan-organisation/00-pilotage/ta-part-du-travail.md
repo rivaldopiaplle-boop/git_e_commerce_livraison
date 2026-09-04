@@ -233,7 +233,7 @@ tout le reste.
 
 | Fichier | Ce qu'il couvre |
 |---|---|
-| [`frontend-mobile/LISEZ-MOI.md`](../../frontend-mobile/LISEZ-MOI.md) | lancer le mobile, dans le navigateur et sur un vrai téléphone, en client **et** en livreur |
+| `frontend-mobile/LISEZ-MOI.md` *(dépôt privé)* | lancer le mobile, dans le navigateur et sur un vrai téléphone, en client **et** en livreur |
 | [`deploiement/LISEZ-MOI.md`](../../deploiement/LISEZ-MOI.md) | la mise en ligne, étape par étape, avec une section entière de pièges |
 
 **Une précision sur ta formulation** : tu parles des « deux mobile client et

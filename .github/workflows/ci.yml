@@ -3,11 +3,10 @@
 # ajoutée, et elle est verte au moment où elle a le moins de raisons d'être
 # rouge.
 #
-# Quatre travaux, un par morceau qui peut casser tout seul :
+# Trois travaux, un par morceau qui peut casser tout seul :
 #
 #   backend   ruff + pytest sur un vrai Postgres
 #   web       types + tests + build
-#   mobile    types + build (Ionic partage le paquet `partager/` avec le web)
 #   qualite   les vérifications transverses qui ne tiennent dans aucun des trois
 
 name: Vérification
@@ -126,41 +125,6 @@ jobs:
       - name: Lancer les tests
         # Ils contiennent le garde-fou sur les jetons CSS (D-47) : sans lui,
         # un renommage laisse des écrans sans style, en silence.
-        run: npm test
-
-      - name: Compiler
-        run: npm run build
-
-  mobile:
-    name: Application mobile — types + tests + build
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: frontend-mobile
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend-mobile/package-lock.json
-
-      - name: Installer les dépendances
-        run: npm ci || npm install
-
-      - name: Vérifier les types
-        # Elle compile le paquet `partager/` en même temps : un type modifié
-        # côté web qui casserait le mobile se voit ici, pas trois semaines
-        # plus tard.
-        run: npm run verifier
-
-      - name: Tester
-        # Les gardes de `src/qualite.test.ts` : elles attrapent les manques —
-        # un commutateur sans gestionnaire, un bouton qui navigue au lieu
-        # d'agir — que ni les types ni la compilation ne voient (D-139).
         run: npm test
 
       - name: Compiler

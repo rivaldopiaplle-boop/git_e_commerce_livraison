@@ -82,11 +82,19 @@ rivdinde/
 ├── plan-organisation/     Toute la conception : décisions, modèle, contrats, maquettes
 ├── backend/               Django 5 + Django REST Framework
 ├── frontend-web/          Vue 3 + Vite + TypeScript
-├── frontend-mobile/       Ionic Vue + Capacitor          (tranche 7)
 ├── donnees-demo/          Catalogue et images de démonstration
 ├── docker-compose.yml     Postgres + attrapeur de courriels
 └── demarrer.py            Une commande pour tout lancer
 ```
+
+> **L'application mobile n'est pas dans ce dépôt.** Elle existe — Ionic Vue et
+> Capacitor, une seule application dont la barre d'onglets change selon le rôle
+> (client ou livreur) — mais elle vit dans un dépôt séparé. Les décisions qui la
+> concernent, [D-20](plan-organisation/00-pilotage/journal-decisions.md) et
+> [D-40](plan-organisation/00-pilotage/journal-decisions.md), restent écrites
+> dans le dossier de conception : c'est là qu'on lit *pourquoi* le vendeur et
+> l'administrateur ne sont pas sur mobile, et pourquoi il n'y a qu'une
+> application pour deux rôles.
 
 ---
 

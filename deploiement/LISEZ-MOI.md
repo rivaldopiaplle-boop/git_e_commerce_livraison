@@ -181,26 +181,12 @@ rien à montrer.
 
 ## 6. L'application mobile
 
-```
-cd frontend-mobile
-echo "VITE_API_URL=https://rivdinde-api.onrender.com/api/v1" > .env
-npm run build
-npx cap add android      # la première fois seulement
-npx cap sync android
-npx cap open android     # Android Studio prend le relais pour signer l'APK
-```
+Elle n'est pas dans ce dépôt : elle vit dans un dépôt séparé, avec son propre
+guide de lancement et de fabrication d'APK.
 
-Deux choses à vérifier **avant** de fabriquer l'APK que tu distribues :
-
-1. **`server.url` doit être commenté** dans `capacitor.config.ts`. S'il pointe
-   encore vers ton IP de développement, l'application cherchera ta machine chez
-   la personne qui l'installe, et n'affichera rien du tout ;
-2. **l'API doit être en HTTPS.** Android bloque le HTTP en clair depuis la
-   version 9. `cleartext: true` le rétablit, mais c'est une porte ouverte à ne
-   garder qu'en développement.
-
-Le lancement en local est décrit dans
-[`frontend-mobile/LISEZ-MOI.md`](../frontend-mobile/LISEZ-MOI.md).
+Ce qu'il faut savoir depuis ici : elle appelle **la même API**. Son adresse doit
+donc figurer dans `CORS_ORIGINS` si tu la sers depuis un domaine, et l'API doit
+être en **HTTPS** — Android bloque le HTTP en clair depuis la version 9.
 
 ---
 

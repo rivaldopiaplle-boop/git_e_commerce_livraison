@@ -16,19 +16,13 @@ manque : interpreteur, environnement virtuel, dependances, .env, migrations.
 
     --etat          ne demarre rien : dit ce qui tourne et ce qui repond
     --sans-web      ne lance pas le front Vue
-    --sans-mobile   ne lance pas l'application mobile
     --preparer      installe et migre, puis rend la main sans rien lancer
     --arreter       arrete les conteneurs
 
 Ports utilises : 5433 (base), 1026 et 8026 (courriels), 8000 (API), 5173
-(front web), 5174 (application mobile). Ils sont decales de ceux du projet
+(front web). Ils sont decales de ceux du projet
 banque, qui occupe deja 5432, 1025 et 8025 sur cette machine : les deux
 projets tournent en meme temps sans se marcher dessus.
-
-L'application mobile s'ouvre aussi depuis un VRAI telephone : le serveur
-ecoute sur le reseau local, et l'adresse est affichee au demarrage. C'est la
-seule facon de tester ce qui n'existe que sur mobile — la geolocalisation, le
-retour tactile, la barre d'onglets du bas.
 
 Ce script ne sert qu'en developpement. En ligne, chaque morceau est deploye
 separement et supervise par son hebergeur — raison pour laquelle il tient en
@@ -45,7 +39,6 @@ import time
 RACINE = os.path.dirname(os.path.abspath(__file__))
 BACKEND = os.path.join(RACINE, "backend")
 WEB = os.path.join(RACINE, "frontend-web")
-MOBILE = os.path.join(RACINE, "frontend-mobile")
 WINDOWS = platform.system() == "Windows"
 
 PYTHON_MINIMUM = (3, 10)  # Django 5 n'accepte pas moins
@@ -354,7 +347,7 @@ def outil_installe(dossier, nom):
     a moitie rempli qui passe tous les tests d'existence et ne fait tourner
     aucun outil.
 
-    C'est exactement ce qui est arrive au mobile : trois dossiers residuels
+    C'est exactement ce qui est arrive une fois : trois dossiers residuels
     dans `node_modules/`, `demarrer.py` satisfait, et `npm run dev` qui
     repondait « 'vite' n'est pas reconnu ». Le message ne parlait meme pas
     d'installation, donc personne ne pensait a la refaire.
@@ -390,25 +383,15 @@ def preparer_npm(dossier, titre, quoi):
     ok("Dependances %s en place" % quoi)
 
 
-def preparer_mobile():
-    """Les dependances de l'application mobile.
-
-    Elle partage le paquet `partager/` avec le front web, mais pas ses
-    dependances : Ionic et Capacitor n'ont rien a faire dans un paquet web,
-    et PrimeVue rien a faire dans une application installee.
-    """
-    preparer_npm(MOBILE, "Application mobile Ionic", "du mobile")
-
-
 def preparer_web():
     fichier_env = os.path.join(WEB, ".env")
     env_cree = not os.path.exists(fichier_env)
     if env_cree:
         shutil.copyfile(os.path.join(WEB, ".env.example"), fichier_env)
 
-    # Le meme test que le mobile : le front web avait exactement le meme
-    # defaut, il n'avait simplement pas encore eu la malchance de tomber sur
-    # une installation interrompue.
+    # Le test porte sur le BINAIRE, pas sur le dossier : une installation
+    # interrompue laisse un `node_modules/` a moitie rempli qui passe tous les
+    # tests d'existence et ne fait tourner aucun outil.
     preparer_npm(WEB, "Front web Vue", "npm")
 
     if env_cree:
@@ -417,56 +400,7 @@ def preparer_web():
 
 # ── Lancement ────────────────────────────────────────────────────────────
 
-def adresse_reseau():
-    """L'adresse de cette machine sur le reseau local.
-
-    Une application installee sur un telephone n'a AUCUN moyen de joindre le
-    `localhost` de l'ordinateur : `localhost`, pour elle, c'est le telephone.
-    C'est le premier piege du developpement mobile, et il coute une soiree a
-    qui ne le sait pas — alors on affiche la bonne adresse.
-    """
-    import socket
-
-    try:
-        prise = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        prise.connect(("8.8.8.8", 80))
-        adresse = prise.getsockname()[0]
-        prise.close()
-        return adresse
-    except Exception:
-        return None
-
-
-def attendre(nom, processus, url, libelle, secondes, conseil=""):
-    """Attendre qu'un service reponde — ou dire tout de suite qu'il est mort.
-
-    L'ancienne version attendait bêtement la fin du compte a rebours, meme
-    quand le processus s'etait arrete a la premiere seconde. Dans la trace de
-    N-6, le mobile mourait aussitot — `vite` introuvable — et `demarrer.py`
-    patientait quarante secondes, annoncait « Tout tourne », puis signalait
-    l'echec APRES. Le seul message utile arrivait apres celui qui disait le
-    contraire.
-
-    On surveille donc le processus en meme temps que l'adresse, et on rend
-    `False` des qu'il tombe.
-    """
-    for _ in range(secondes):
-        if repond(url):
-            ok("%-22s %s" % (libelle, url))
-            return True
-        if processus.poll() is not None:
-            echec("%s s'est arrete tout de suite (code %s)." % (nom, processus.returncode))
-            if conseil:
-                info(conseil)
-            return False
-        time.sleep(1)
-
-    echec("%s n'a pas repondu en %d secondes — voir sa sortie ci-dessus."
-          % (nom, secondes))
-    return False
-
-
-def lancer(avec_web, avec_mobile=True):
+def lancer(avec_web):
     etape("Demarrage")
 
     processus = []
@@ -490,21 +424,6 @@ def lancer(avec_web, avec_mobile=True):
                         "Essaie : cd frontend-web && npm install"):
             manques.append("le front web")
 
-    if avec_mobile:
-        mobile = subprocess.Popen("npm run dev", cwd=MOBILE, shell=True)
-        processus.append(("Application mobile", mobile))
-        if not attendre("L'application mobile", mobile, "http://localhost:5174",
-                        "Application mobile", 40,
-                        "Essaie : cd frontend-mobile && npm install"):
-            manques.append("l'application mobile")
-
-        adresse = adresse_reseau()
-        if adresse:
-            info("Depuis un VRAI telephone, sur le meme reseau Wi-Fi :")
-            info("    http://%s:5174" % adresse)
-            info("Pense a mettre VITE_API_URL=http://%s:8000/api/v1 dans" % adresse)
-            info("    frontend-mobile/.env — sinon le telephone cherchera l'API")
-            info("    chez lui et ne trouvera rien.")
 
     ok("Administration Django  http://localhost:8000/admin/")
     ok("Courriels captures     http://localhost:8026")
@@ -575,20 +494,17 @@ def main():
 
     node_present = verifier_outils()
     avec_web = node_present and "--sans-web" not in options
-    avec_mobile = node_present and "--sans-mobile" not in options
 
     demarrer_conteneurs()
     preparer_backend()
     if avec_web:
         preparer_web()
-    if avec_mobile:
-        preparer_mobile()
 
     if "--preparer" in options:
         print("\n" + _c("1", "Tout est pret.") + " Relance sans --preparer pour demarrer.\n")
         return
 
-    lancer(avec_web, avec_mobile)
+    lancer(avec_web)
 
 
 if __name__ == "__main__":
