@@ -98,3 +98,28 @@ def test_le_resume_suit_le_meme_cloisonnement(adresse):
     """Une ligne de liste ne doit pas en dire plus que l'ecran de detail."""
     assert resume(adresse, VENDEUR) == "69002 Lyon"
     assert resume(adresse, LIVREUR) == "8 rue Victor Hugo, 69002 Lyon"
+
+
+@pytest.mark.django_db
+def test_l_entrepot_recoit_les_coordonnees_pour_sa_carte(adresse):
+    """Ajoute au bloc N-5, avec la carte des tournees.
+
+    Sans coordonnees, l'ecran des tournees ne peut placer aucun arret. Elles
+    n'ouvrent rien de nouveau : l'entrepot voit deja la rue, qui en dit
+    strictement plus qu'un couple de nombres.
+    """
+    vue = adresse_pour(ENTREPOT, adresse)
+
+    assert vue["latitude"] == pytest.approx(45.7550)
+    assert vue["longitude"] == pytest.approx(4.8320)
+    # Et toujours pas les instructions de porte : la carte n'y change rien.
+    assert "instructions" not in vue
+
+
+@pytest.mark.django_db
+def test_le_vendeur_ne_recoit_toujours_pas_de_coordonnees(adresse):
+    """La carte de l'entrepot ne devait pas elargir la vue du vendeur."""
+    vue = adresse_pour(VENDEUR, adresse)
+
+    assert "latitude" not in vue
+    assert "rue" not in vue

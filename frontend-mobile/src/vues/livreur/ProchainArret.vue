@@ -7,7 +7,7 @@
 import { IonButton, IonIcon, IonInput, IonModal } from '@ionic/vue'
 import { Geolocation } from '@capacitor/geolocation'
 import { checkmarkDoneOutline, locationOutline, navigateOutline } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
@@ -17,12 +17,40 @@ const livreur = useLivreur()
 const routeur = useRouter()
 
 const arret = computed(() => livreur.prochainArret)
+
+/** Ma position, quand le navigateur veut bien la donner. */
+const moi = ref<{ lat: number; lon: number } | null>(null)
+
+/**
+ * Les deux points du trajet : moi, puis l'arrêt.
+ *
+ * Sans ma position — géolocalisation refusée, origine non sécurisée — il ne
+ * reste que l'arrêt, et la carte le montre seul plutôt que de disparaître.
+ * Un écran qui s'efface parce qu'une permission manque punit la personne pour
+ * un choix qu'elle avait le droit de faire.
+ */
+const trajet = computed(() => {
+  const adresse = arret.value?.livraison.adresse
+  const points = []
+  if (moi.value) points.push({ ...moi.value, depart: true })
+  if (adresse?.latitude && adresse?.longitude) {
+    points.push({
+      lat: Number(adresse.latitude),
+      lon: Number(adresse.longitude),
+      rang: arret.value?.ordre,
+    })
+  }
+  return points
+})
 const remise = ref(false)
 const code = ref('')
 const occupe = ref(false)
 const erreur = ref('')
 
-onMounted(() => livreur.charger())
+onMounted(async () => {
+  livreur.charger()
+  moi.value = (await position()) ?? null
+})
 
 async function position() {
   try {
@@ -66,6 +94,11 @@ function guider() {
   )
   window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_system')
 }
+
+// MapLibre pese pres d'un mega-octet. Charge paresseusement, il n'arrive
+// qu'au moment ou une carte s'affiche : un livreur en 4G ne telecharge pas un
+// moteur de cartographie pour consulter ses gains.
+const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
 </script>
 
 <template>
@@ -84,6 +117,9 @@ function guider() {
           « {{ arret.livraison.adresse.instructions }} »
         </p>
       </div>
+
+      <!-- La carte AVANT les boutons : on regarde où c'est, puis on agit. -->
+      <Carte v-if="trajet.length" :points="trajet" profil="voiture" hauteur="220px" />
 
       <IonButton expand="block" fill="outline" @click="guider">
         <IonIcon slot="start" :icon="navigateOutline" />

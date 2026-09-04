@@ -20,9 +20,15 @@ Ce que ca evite, concretement :
      eparpilles dans les vues.
 """
 import hashlib
+import json
+import logging
 import os
 import random
 from dataclasses import dataclass
+from urllib.request import Request, urlopen
+
+logger = logging.getLogger(__name__)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Le paiement (D-12, D-18)
@@ -54,23 +60,38 @@ class PaiementSimule:
     Il sait aussi **echouer** : un montant se terminant par 99 centimes est
     refuse. Sans un moyen simple de provoquer un echec, le chemin d'erreur
     n'est jamais teste — et c'est celui qui se voit en production.
+
+    **Le refus est inscrit dans la reference**, par un prefixe, et non deduit
+    de ses derniers caracteres. La premiere version rendait `ECHOUE` pour
+    toute reference finissant par « 99 » — or la reference est un condensat du
+    numero de commande, qui n'a rien a voir avec le montant. Une commande sur
+    deux cent cinquante-six echouait donc **au hasard**, sans que rien
+    l'explique, ni a l'ecran ni dans les journaux.
+
+    C'est un test intermittent qui l'a revele, et c'etait bien pire qu'un test
+    intermittent : la meme loterie tournait dans la demonstration.
     """
 
     nom = "simulateur"
 
+    #: Ce qui marque une intention vouee a l'echec. Le simulateur est le seul
+    #: a fabriquer ses references, donc le seul a poser ce prefixe.
+    PREFIXE_REFUS = "pi_sim_refuse_"
+
     def ouvrir(self, montant_centimes: int, reference_commande: str) -> IntentionPaiement:
         graine = hashlib.sha256(reference_commande.encode()).hexdigest()[:16]
         refuse = montant_centimes % 100 == 99
+        reference = f"{self.PREFIXE_REFUS if refuse else 'pi_sim_'}{graine}"
         return IntentionPaiement(
-            reference=f"pi_sim_{graine}",
-            secret_client=f"pi_sim_{graine}_secret",
+            reference=reference,
+            secret_client=f"{reference}_secret",
             montant_centimes=montant_centimes,
             statut="REFUSE" if refuse else "AUTORISE",
             simule=True,
         )
 
     def capturer(self, reference: str) -> str:
-        return "ECHOUE" if reference.endswith("99") else "CAPTURE"
+        return "ECHOUE" if reference.startswith(self.PREFIXE_REFUS) else "CAPTURE"
 
     def rembourser(self, reference: str, montant_centimes: int) -> str:
         return "REMBOURSE"
@@ -234,26 +255,132 @@ class AssistantSimule:
 
 
 class AssistantParApi:
-    """Le vrai assistant, quand une cle de modele existe (D-43).
+    """Le vrai assistant, quand une cle de modele existe (D-43, D-141).
 
-    Non implemente pour la meme raison que Stripe : du code non testable
-    donne une fausse impression d'avancement.
+    **Un modele de langage branche sur un catalogue est un generateur de faux
+    delais de livraison** si on le laisse repondre librement. C'est le risque
+    principal, et il est traite ici par la construction, pas par une consigne
+    polie :
+
+      · le modele ne recoit QUE la base de connaissances du simulateur et le
+        contexte de la personne. Rien d'autre. Il n'a pas acces a la base ;
+      · la consigne systeme lui interdit d'inventer un delai, un prix, un
+        statut ou une politique qui ne sont pas dans ce qu'on lui donne, et
+        lui demande de dire qu'il ne sait pas plutot que de meubler ;
+      · la reponse est bornee en longueur : un assistant de support qui ecrit
+        six paragraphes n'est pas lu.
+
+    Ce que le modele apporte reellement par rapport au simulateur : la
+    **reformulation** — comprendre « ma commande est ou ? » comme « livraison »
+    — et les questions ouvertes qu'aucune liste de mots-cles n'attrape.
+
+    **Il ne recommande pas.** Une recommandation, c'est « ce que les gens qui
+    ont achete ceci ont aussi achete » : une requete. Payer un modele pour
+    melanger une liste serait plus lent, plus cher et moins juste que le
+    simulateur, qui garde donc ce role.
     """
 
-    nom = "api"
+    nom = "mistral"
 
-    def __init__(self, cle: str):
+    # Compatible avec l'API de Mistral, et avec toute API qui parle le meme
+    # dialecte que `chat/completions` — c'est devenu le format commun.
+    ADRESSE = "https://api.mistral.ai/v1/chat/completions"
+    MODELE_PAR_DEFAUT = "mistral-small-latest"
+
+    # Six secondes : au-dela, la personne a deja referme le volet. Mieux vaut
+    # la reponse seche du simulateur tout de suite qu'une belle reponse trop
+    # tard.
+    DELAI_SECONDES = 6
+
+    CONSIGNE = (
+        "Tu es l'assistant de RivDinde, une place de marche de livraison. "
+        "Tu reponds en francais, en trois phrases au maximum, sur un ton simple.\n\n"
+        "REGLE ABSOLUE : tu ne reponds QU'A PARTIR des informations ci-dessous. "
+        "Tu n'inventes jamais un delai, un prix, un statut de commande, un numero "
+        "de commande ni une politique commerciale. Si la reponse ne s'y trouve pas, "
+        "tu dis que tu ne sais pas et tu invites la personne a ouvrir un "
+        "signalement depuis la commande concernee.\n\n"
+        "Ce que tu sais :\n{connaissances}"
+    )
+
+    def __init__(self, cle: str, modele: str = ""):
         self.cle = cle
+        self.modele = modele or os.environ.get("MODELE_IA", "").strip() or self.MODELE_PAR_DEFAUT
+        # Le simulateur reste la, et sert de filet : voir `repondre`.
+        self.repli = AssistantSimule()
+
+    def _connaissances(self) -> str:
+        return "\n".join(f"- {reponse}" for _, reponse in AssistantSimule.CONNAISSANCES)
 
     def repondre(self, question: str, contexte: dict | None = None) -> ReponseAssistant:
-        raise NotImplementedError(
-            "Le branchement du modele s'ecrira avec la cle sous la main."
+        """Interroger le modele — et retomber sur le simulateur si quoi que ce soit rate.
+
+        Cle expiree, quota depasse, reseau coupe, service en panne : aucun de
+        ces cas ne doit rendre l'assistant muet. La demonstration doit tenir
+        debout sans reseau (D-18), et une reponse seche vaut mieux qu'une
+        erreur affichee a un visiteur.
+        """
+        situation = ""
+        if contexte:
+            role = contexte.get("role")
+            ecran = contexte.get("ecran")
+            if role:
+                situation += f"\nLa personne est connectee en tant que {role}."
+            if ecran:
+                situation += f"\nElle est sur l'ecran : {ecran}."
+
+        corps = json.dumps({
+            "model": self.modele,
+            "messages": [
+                {"role": "system",
+                 "content": self.CONSIGNE.format(connaissances=self._connaissances()) + situation},
+                {"role": "user", "content": question[:1000]},
+            ],
+            # Peu de creativite : on veut une reformulation fidele, pas une
+            # invention. Et une reponse courte, qui sera lue.
+            "temperature": 0.2,
+            "max_tokens": 320,
+        }).encode()
+
+        requete = Request(
+            self.ADRESSE, data=corps, method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": f"Bearer {self.cle}",
+            },
+        )
+        try:
+            with urlopen(requete, timeout=self.DELAI_SECONDES) as reponse:
+                charge = json.loads(reponse.read())
+            texte = charge["choices"][0]["message"]["content"].strip()
+        except Exception as souci:  # noqa: BLE001 — tout echec mene au repli
+            logger.warning("Assistant %s indisponible (%s) : repli sur le simulateur.",
+                           self.modele, type(souci).__name__)
+            return self.repli.repondre(question, contexte)
+
+        if not texte:
+            return self.repli.repondre(question, contexte)
+
+        return ReponseAssistant(
+            texte=texte,
+            # La source nomme le modele : une reponse rediger par une machine
+            # doit se presenter comme telle.
+            sources=[f"modele {self.modele}"],
+            simule=False,
         )
 
     def recommander(self, produits_vus: list, catalogue: list, combien: int = 4) -> list:
-        raise NotImplementedError
+        """Deleguee au simulateur, volontairement : ce n'est pas un travail de modele."""
+        return self.repli.recommander(produits_vus, catalogue, combien)
 
 
 def assistant():
+    """L'assistant en service : le vrai s'il y a une cle, le simulateur sinon.
+
+    Aucune variable a basculer, aucun drapeau : **poser la cle suffit**, et la
+    retirer suffit a revenir au simulateur. C'est ce qui rend la demonstration
+    faisable sans reseau et sans compte chez qui que ce soit (D-18).
+    """
     cle = os.environ.get("CLE_MODELE_IA", "").strip()
     return AssistantParApi(cle) if cle else AssistantSimule()

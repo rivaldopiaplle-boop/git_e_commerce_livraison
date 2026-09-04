@@ -14,6 +14,7 @@ import pytest
 from django.urls import reverse
 
 from catalogue.models import MouvementStock, Produit, TypeMouvement
+from coeur.services_externes import PaiementSimule
 from commandes.models import Commande, StatutCommande
 from comptes.models import (
     Adresse,
@@ -208,9 +209,10 @@ def test_un_paiement_refuse_rend_le_stock_et_laisse_la_commande_payable(client, 
     commande, entetes = commander(client, produit, quantite=2)
     reference = ouvrir(client, commande, entetes).json()["data"]["reference"]
 
-    # Le simulateur refuse toute reference se terminant par 99 (D-18).
+    # Le simulateur refuse les references qu'il a marquees a l'ouverture, quand
+    # le montant se termine par 99 centimes (D-18). On simule ici cette marque.
     paiement = Paiement.objects.get(commande=commande)
-    paiement.reference_stripe = reference[:-2] + "99"
+    paiement.reference_stripe = PaiementSimule.PREFIXE_REFUS + reference.split("_")[-1]
     paiement.save(update_fields=["reference_stripe"])
 
     reponse = confirmer(client, paiement.reference_stripe)
@@ -416,3 +418,35 @@ def test_une_commande_payee_n_est_jamais_touchee_par_l_expiration(client, lea, p
     produit.refresh_from_db()
     assert produit.stock_disponible == 6, "le stock vendu ne revient pas par magie"
     assert produit.stock_reserve == 0
+
+
+@pytest.mark.django_db
+def test_aucun_paiement_n_echoue_par_hasard():
+    """La loterie a un sur deux cent cinquante-six, trouvee au bloc N.
+
+    Le simulateur rendait `ECHOUE` pour toute reference finissant par « 99 ».
+    Or la reference est un condensat du NUMERO DE COMMANDE, sans rapport avec
+    le montant : une commande sur 256 echouait donc au hasard, dans les tests
+    comme dans la demonstration, sans que rien l'explique.
+
+    On rejoue mille numeros de commande plausibles : aucun ne doit etre refuse
+    si son montant ne se termine pas par 99 centimes.
+    """
+    simulateur = PaiementSimule()
+    refuses = [
+        numero for rang in range(1000)
+        for numero in [f"RD-260904-{rang:06d}"]
+        if simulateur.capturer(simulateur.ouvrir(2500, numero).reference) != "CAPTURE"
+    ]
+
+    assert refuses == [], f"{len(refuses)} paiement(s) refuses sans raison"
+
+
+@pytest.mark.django_db
+def test_un_montant_en_99_centimes_est_toujours_refusable():
+    """Le moyen de provoquer un echec doit rester, sinon le chemin d'erreur meurt."""
+    simulateur = PaiementSimule()
+    intention = simulateur.ouvrir(2499, "RD-260904-000042")
+
+    assert intention.statut == "REFUSE"
+    assert simulateur.capturer(intention.reference) == "ECHOUE"

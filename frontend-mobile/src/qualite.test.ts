@@ -106,6 +106,44 @@ describe('le livreur a ses quatre gestes', () => {
   })
 })
 
+describe('la carte ne porte aucun secret', () => {
+  const carte = readFileSync(join(SOURCE, 'composants', 'Carte.vue'), 'utf8')
+
+  it('le tracé est demandé à notre API, pas au fournisseur', () => {
+    // La clé d'itinéraire est un vrai secret. Dans une application qu'on
+    // installe, tout ce qui est écrit dans le paquet est lisible.
+    expect(carte).toContain("'/itineraire'")
+    expect(carte).not.toContain('openrouteservice')
+    expect(carte).not.toContain('CLE_ITINERAIRE')
+  })
+
+  it('le fond de carte est choisi une seule fois, dans le paquet partagé', () => {
+    expect(carte).toContain("from '@partage/carte'")
+  })
+
+  it('un tracé estimé se présente comme estimé', () => {
+    // Faire passer une ligne droite pour un itinéraire routier tromperait le
+    // livreur sur la durée de son trajet.
+    expect(carte).toContain('simule')
+    expect(carte).toContain('line-dasharray')
+  })
+})
+
+describe('le moteur de cartographie ne se télécharge pas pour rien', () => {
+  const ecrans = ECRANS.filter((e) => e.source.includes('<Carte'))
+
+  it('au moins trois écrans du livreur montrent une carte', () => {
+    expect(ecrans.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it.each(ecrans)('$nom charge la carte paresseusement', ({ source }) => {
+    // MapLibre pèse près d'un mégaoctet : un livreur en 4G ne doit pas le
+    // télécharger pour consulter ses gains.
+    expect(source).toContain('defineAsyncComponent')
+    expect(source).not.toMatch(/^import Carte from/m)
+  })
+})
+
 describe('le routeur ne pointe sur rien d’absent', () => {
   const routeur = readFileSync(join(SOURCE, 'routeur.ts'), 'utf8')
   const cibles = [...routeur.matchAll(/import\('\.\/(vues\/[^']+)'\)/g)].map((m) => m[1])

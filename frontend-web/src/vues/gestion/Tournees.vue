@@ -9,14 +9,14 @@
 // Une tournée dont les arrêts ne sont pas ordonnés n'est pas une tournée,
 // c'est une liste (D-44) : l'ordre est donc la première chose affichée.
 import { MapPin, Eye, Route, Truck, User } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 
 import { espaces, type Tournee } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
-import Onglets from '../../composants/Onglets.vue'
 import FicheContextuelle from '../../composants/FicheContextuelle.vue'
+import Onglets from '../../composants/Onglets.vue'
 
 type LigneTournee = Tournee & { [cle: string]: unknown }
 
@@ -25,6 +25,25 @@ const enAttente = ref(0)
 const chargement = ref(true)
 const onglet = ref('a-preparer')
 const selection = ref<LigneTournee | null>(null)
+
+/**
+ * Les arrêts de la tournée choisie, prêts pour la carte.
+ *
+ * L'entrepôt lisait ses tournées comme une liste numérotée. Une liste dit
+ * l'ordre, elle ne dit pas si l'ordre est **bon** : deux arrêts voisins
+ * séparés de dix rangs ne se voient que sur une carte (N-5).
+ */
+const pointsTournee = computed(() =>
+  (selection.value?.arrets ?? [])
+    .map((arret) => ({
+      lat: Number(arret.livraison.adresse?.latitude),
+      lon: Number(arret.livraison.adresse?.longitude),
+      rang: arret.ordre,
+      libelle: `${arret.ordre}. ${arret.livraison.client} — ${
+        arret.livraison.adresse?.rue ?? ''}`,
+    }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon)),
+)
 // L'oeil ouvre une popup par-dessus la liste (M-1) : le panneau de droite,
 // lui, reste le contexte permanent de la ligne active.
 const apercu = ref(false)
@@ -89,6 +108,11 @@ const BADGES_ARRET: Record<string, string> = {
   ECHOUE: 'badge-erreur',
   REPORTE: 'badge-attente',
 }
+
+// MapLibre pese pres d'un mega-octet. Charge paresseusement, il n'arrive
+// qu'au moment ou une carte s'affiche vraiment : personne ne telecharge un
+// moteur de cartographie pour lire une liste de tournees.
+const Carte = defineAsyncComponent(() => import('../../composants/Carte.vue'))
 </script>
 
 <template>
@@ -193,6 +217,16 @@ const BADGES_ARRET: Record<string, string> = {
           <dd class="font-semibold">{{ selection.distance_totale_km ?? '—' }} km</dd>
         </div>
       </dl>
+
+      <!-- La carte AVANT la liste : on regarde la forme de la tournée, puis
+           on lit le détail. L'inverse oblige à tout lire pour comprendre. -->
+      <Carte
+        v-if="pointsTournee.length > 1"
+        :points="pointsTournee"
+        profil="voiture"
+        hauteur="220px"
+        class="mb-3"
+      />
 
       <b class="text-[11px] font-bold tracking-wider text-encre-douce uppercase">
         {{ selection.arrets.length }} arrêt(s), dans l'ordre

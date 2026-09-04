@@ -23,6 +23,36 @@ propre résultat est pire qu'un démarreur absent.
 | **2** | **Pour voir la correction à l'œuvre** : `rd /s /q frontend-mobile
 ode_modules` puis relance. Il réinstalle au lieu de te laisser avec `'vite' n'est pas reconnu` | 4 min | D-138 |
 
+## ⚠ Deux clés à prendre, et une réponse à ta question sur Mistral
+
+**N-4 — oui, je veux bien ta clé Mistral.** Mais **ne me l'écris pas** : colle-la
+toi-même dans `backend/.env`, à la ligne `CLE_MODELE_IA=`. Ce fichier n'est pas
+versionné et la CI échoue si un `.env` arrive sur le dépôt. Ne la mets ni dans
+`questions.txt`, ni dans un message. Une fois posée, l'assistant passe tout seul
+du simulateur au vrai modèle — rien d'autre à toucher.
+
+**N-5 — la carte : une seule clé vaut la peine d'être prise, et elle est
+gratuite sans carte bancaire.**
+
+| Ce que c'est | Quoi prendre | Où la coller |
+|---|---|---|
+| **Le fond de carte** | **rien** — OpenFreeMap s'affiche sans clé | — |
+| Un rendu plus soigné *(facultatif)* | une URL de style MapTiler | `frontend-web/.env` → `VITE_STYLE_CARTE` |
+| **L'itinéraire routier** | **`openrouteservice.org`** — inscription gratuite, 2 000 requêtes/jour, **aucune carte bancaire** | `backend/.env` → `CLE_ITINERAIRE` |
+
+Google, Mapbox et HERE exigent tous un moyen de paiement pour délivrer une clé.
+OpenRouteService non, il est bâti sur OpenStreetMap, et il connaît le profil
+**vélo** — ce qui compte ici, puisque la moitié des courses sont des livraisons
+Express à vélo.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **14** | **`rachid@exemple.fr` → Tournées → clique une tournée.** Le volet de droite montre les arrêts **sur une carte**, dans leur ordre | 2 min | D-142 |
+| **15** | **Mobile, `julien@exemple.fr` → Ma tournée.** La même carte, au pouce | 2 min | D-142 |
+| **16** | **Mobile, `amine@exemple.fr` → À proximité.** Les courses libres sur une carte : deux courses à 2,4 km ne se valent pas quand l'une part à l'opposé | 2 min | D-142 |
+| **17** | **Regarde le tracé.** Il est en **pointillés** et l'écran écrit « trajet estimé ». Prends la clé OpenRouteService, relance, et il passe en trait plein avec la vraie durée | 5 min | D-142 |
+| **18** | **`GET /api/v1/services`** te dit lequel de chaque service tourne pour de vrai | 1 min | D-18 |
+
 ## Les quatre vues et la vidéo : le zoom a disparu
 
 **Ta remarque N-1 était juste et je ne la discute pas** : c'était la photo

@@ -92,11 +92,13 @@ def etat_services(requete):
     merite une reponse honnete affichable a l'ecran, pas une explication
     embarrassee.
     """
+    from .services_carte import service_itineraire
     from .services_externes import fournisseur_de_paiement
 
     return Response({"data": {
         "paiement": fournisseur_de_paiement().nom,
         "assistant": assistant().nom,
+        "itineraire": service_itineraire().nom,
         "explication": (
             "Les services payants sont derriere une interface, avec un simulateur "
             "(D-18) : le projet se demontre entierement sans cle, et le jour ou une "

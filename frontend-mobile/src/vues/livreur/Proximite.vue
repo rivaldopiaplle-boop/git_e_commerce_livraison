@@ -9,7 +9,7 @@ import { IonButton, IonIcon, IonSpinner } from '@ionic/vue'
 import { euros } from '@partage/metier'
 import { Geolocation } from '@capacitor/geolocation'
 import { locationOutline, storefrontOutline } from 'ionicons/icons'
-import { onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
@@ -22,12 +22,34 @@ const routeur = useRouter()
 
 const occupe = ref(0)
 const erreur = ref('')
+const moi = ref<{ lat: number; lon: number } | null>(null)
+
+/**
+ * Les courses libres, sur une carte.
+ *
+ * La liste dit « 2,4 km » ; elle ne dit pas si la course part dans la
+ * direction où l'on va déjà. Deux courses à la même distance ne se valent pas
+ * quand l'une est à l'opposé (N-5). On ne trace aucun itinéraire ici : c'est
+ * un choix qu'on fait d'un coup d'œil, pas un trajet qu'on suit.
+ */
+const pointsCourses = computed(() => {
+  const points = livreur.disponibles
+    .map((course, rang) => ({
+      lat: Number(course.adresse?.latitude),
+      lon: Number(course.adresse?.longitude),
+      rang: rang + 1,
+      libelle: `${course.client} — ${course.adresse?.ville ?? ''}`,
+    }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon))
+  return moi.value ? [{ ...moi.value, depart: true }, ...points] : points
+})
 
 /** On envoie la position AVANT de demander la liste : c'est elle qui décide
  *  du tri, et une liste non triée oblige à comparer huit adresses de tête. */
 async function charger() {
   try {
     const p = await Geolocation.getCurrentPosition({ timeout: 4000 })
+    moi.value = { lat: p.coords.latitude, lon: p.coords.longitude }
     await session.client.post('/livreurs/position', {
       latitude: p.coords.latitude,
       longitude: p.coords.longitude,
@@ -53,11 +75,20 @@ async function prendre(identifiant: number) {
     occupe.value = 0
   }
 }
+
+// MapLibre pese pres d'un mega-octet. Charge paresseusement, il n'arrive
+// qu'au moment ou une carte s'affiche : un livreur en 4G ne telecharge pas un
+// moteur de cartographie pour consulter ses gains.
+const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
 </script>
 
 <template>
   <Ecran titre="À proximité" sous-titre="Livreur · Express" :rafraichir="charger">
     <p v-if="erreur" class="erreur">{{ erreur }}</p>
+
+    <!-- Où sont les courses, avant de lire ce qu'elles rapportent -->
+    <Carte v-if="pointsCourses.length" :points="pointsCourses" :itineraire="false"
+           hauteur="200px" />
 
     <div v-for="course in livreur.disponibles" :key="course.id" class="carte-mobile">
       <div class="entete">

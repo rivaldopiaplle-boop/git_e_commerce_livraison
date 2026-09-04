@@ -14,7 +14,7 @@ Chacun recoit **ce dont son metier a besoin**, et rien de plus :
 | Qui | Ce qu'il voit | Pourquoi pas plus |
 |---|---|---|
 | Vendeur, son personnel | ville, code postal | il prepare un colis, il n'a pas a connaitre l'etage de quelqu'un |
-| Gestionnaire d'entrepot | rue, ville, code postal, zone | il ORDONNE des arrets : sans la rue, il ne peut pas |
+| Gestionnaire d'entrepot | rue, ville, code postal, zone, coordonnees | il ORDONNE des arrets, et les place sur une carte |
 | Livreur | tout, instructions comprises | c'est lui qui sonne a la porte |
 | Admin | tout | il arbitre les litiges, avec les deux versions |
 
@@ -58,6 +58,13 @@ def adresse_pour(role, adresse):
             **vue,
             "rue": adresse.rue,
             "zone": adresse.zone.nom if adresse.zone_id else None,
+            # Les coordonnees, ajoutees au bloc N-5 : sans elles, l'ecran des
+            # tournees ne peut pas placer un seul arret sur une carte. Elles
+            # n'ouvrent aucun acces nouveau — l'entrepot voit deja la rue, qui
+            # en dit strictement plus qu'un couple de nombres. Les instructions
+            # de porte, elles, restent hors de sa vue.
+            "latitude": float(adresse.latitude) if adresse.latitude is not None else None,
+            "longitude": float(adresse.longitude) if adresse.longitude is not None else None,
         }
 
     # Livreur et admin : tout, instructions comprises.

@@ -2211,3 +2211,160 @@ Le mobile, lui, n'affichait que la photo principale. Il a maintenant la même
 galerie que le web, en bande qu'on fait défiler au pouce, **et elle ne
 s'affiche que s'il y a plus d'une vue** : un carrousel à une image est un
 carrousel cassé.
+
+
+### D-141 — L'assistant est branché sur Mistral, et il ne peut pas inventer
+
+**Ta question, N-4** : *« je veux l'IA ; veux-tu ma clé Mistral ? »*
+
+**Oui, et voici exactement quoi en faire** : la coller dans `backend/.env`, à la
+ligne `CLE_MODELE_IA=`. Ce fichier n'est pas versionné, un test de la CI échoue
+si un `.env` arrive sur le dépôt, et il ne faut la coller nulle part ailleurs —
+ni dans `questions.txt`, ni dans un message. Poser la clé suffit : l'assistant
+passe du simulateur au vrai modèle sans aucun autre réglage, et la retirer
+suffit à revenir en arrière.
+
+`AssistantParApi` levait `NotImplementedError`. Il est écrit.
+
+**Le vrai risque d'un modèle branché sur une place de marché, c'est qu'il
+invente un délai de livraison.** Un client à qui l'on annonce « demain matin »
+et qui reçoit son colis jeudi ne fera plus jamais confiance à un seul chiffre du
+site. Ce risque est traité par la construction, pas par une consigne polie :
+
+- **le modèle ne voit pas la base.** Il reçoit la base de connaissances écrite à
+  la main — celle qui sert déjà au simulateur — et rien d'autre. Aucune commande,
+  aucun stock, aucun prix ;
+- la consigne système lui **interdit** d'inventer un délai, un prix, un statut ou
+  une politique, et lui demande de dire qu'il ne sait pas plutôt que de meubler ;
+- la réponse est bornée : `temperature` à 0,2 et 320 jetons. On veut une
+  reformulation fidèle, pas une rédaction.
+
+Ce que le modèle apporte réellement : **la reformulation**. Comprendre « ma
+commande est où ? » comme une question de livraison, ce qu'aucune liste de
+mots-clés ne fait proprement.
+
+**Il ne recommande rien.** Une recommandation, c'est « ceux qui ont acheté ceci
+ont aussi acheté » : une requête. Payer un modèle pour mélanger une liste serait
+plus lent, plus cher et moins juste. `recommander` reste au simulateur.
+
+**Toute panne retombe sur le simulateur** — clé expirée, quota dépassé, réseau
+coupé, réponse vide, format inattendu. Le délai est de six secondes : au-delà,
+la personne a refermé le volet, et une réponse sèche tout de suite vaut mieux
+qu'une belle réponse trop tard.
+
+`coeur/tests/test_assistant.py` — 15 tests, dont quatre pannes distinctes. Aucun
+ne touche le réseau (D-37).
+
+
+### D-142 — Une vraie carte, et la clé qu'il faut prendre
+
+**Ta demande, N-5** : *« je veux une vraie API de carte sophistiquée ; dis-moi
+quelle clé prendre pour le meilleur résultat. »*
+
+Il y a **deux services distincts** derrière le mot « carte », et les confondre
+mène à payer deux fois pour un seul besoin.
+
+| | Ce que c'est | Où ça vit | Clé |
+|---|---|---|---|
+| **Le fond de carte** | les tuiles, le dessin des rues | dans le navigateur | publique |
+| **L'itinéraire** | le tracé routier, la distance et la durée réelles | sur le serveur | **secrète** |
+
+**Le moteur : MapLibre GL JS**, et pas Leaflet. Les tuiles sont vectorielles :
+le texte reste net à tous les niveaux de zoom, la rotation existe, et le rendu
+ressemble à une application de livraison plutôt qu'à une mosaïque d'images.
+MapLibre est la branche libre de Mapbox GL, sous licence BSD — pas de clé, pas
+de compteur d'affichages, pas de conditions qui changent du jour au lendemain.
+
+**Le fond de carte : rien à faire.** Par défaut, OpenFreeMap sert des tuiles
+OpenStreetMap sans clé, sans quota et sans inscription. C'est le seul
+fournisseur sérieux dans ce cas. Le rendu est correct.
+
+Pour un rendu plus soigné, `VITE_STYLE_CARTE` accepte une URL de style
+complète — MapTiler, Stadia, n'importe laquelle. Une clé de tuiles est
+**publique par nature** : elle part dans chaque requête du navigateur, et elle
+se protège par la liste des domaines autorisés chez le fournisseur, jamais par
+le secret.
+
+**L'itinéraire : la seule clé qui vaille la peine, et c'est OpenRouteService.**
+
+| Fournisseur | Palier gratuit | Carte bancaire exigée |
+|---|---|---|
+| **OpenRouteService** *(retenu)* | 2 000 requêtes / jour | **non** |
+| Google Directions | crédit mensuel | oui |
+| Mapbox Directions | 100 000 / mois | oui |
+| HERE | 1 000 / jour | oui |
+
+C'est le seul dont la clé s'obtient sans donner un moyen de paiement — ce qui
+compte sur un projet qu'on met en ligne pour le montrer et qu'on oublie ensuite.
+Il est bâti sur OpenStreetMap, donc les rues sont les vraies rues, et il connaît
+le profil vélo : la moitié des courses de RivDinde sont des livraisons Express à
+vélo, et une durée calculée en voiture serait fausse pour elles.
+
+Inscription sur `openrouteservice.org`, puis la clé va dans `backend/.env` à la
+ligne `CLE_ITINERAIRE=`. **Elle ne quitte jamais le serveur** — c'est pour cela
+que le front demande le tracé à `POST /itineraire` au lieu d'appeler le
+fournisseur lui-même.
+
+**Sans aucune clé, tout fonctionne** (D-18) : la carte s'affiche, les arrêts
+sont placés, et le trajet est calculé en local — vol d'oiseau majoré du détour
+urbain, ce qui donne une distance à 10-15 % du réel en ville. Un tracé estimé
+est dessiné en **pointillés** et l'écran écrit « trajet estimé » ; un tracé
+routier réel est en trait plein. Faire passer l'un pour l'autre serait
+exactement le genre de détail qui trahit un travail bâclé.
+
+### Où la carte sert, et un cloisonnement qui a dû bouger
+
+Quatre écrans, tous choisis parce qu'une liste n'y suffisait pas :
+
+- **entrepôt, les tournées** — une liste dit l'ordre, elle ne dit pas si l'ordre
+  est *bon*. Deux arrêts voisins séparés de dix rangs ne se voient que sur une
+  carte ;
+- **livreur Standard, sa tournée** — il ne réordonne rien (D-86), mais voir la
+  forme de sa journée lui permet de la signaler à l'entrepôt ;
+- **livreur Express, à proximité** — deux courses à 2,4 km ne se valent pas
+  quand l'une part à l'opposé ;
+- **livreur, prochain arrêt** — sa position et l'arrêt, avec la durée.
+
+Le gestionnaire d'entrepôt ne recevait pas les coordonnées des adresses
+([D-74](#d-74--ladresse-de-livraison-suit-la-commande-jusquau-livreur)). Sans
+elles, aucun arrêt ne se place. Elles lui sont maintenant transmises : cela
+**n'ouvre aucun accès nouveau**, puisqu'il voit déjà la rue, qui en dit
+strictement plus qu'un couple de nombres. Les instructions de porte, elles,
+restent hors de sa vue — un test le vérifie explicitement.
+
+Enfin, MapLibre pèse près d'un mégaoctet. Il est chargé **paresseusement** :
+un livreur en 4G ne télécharge pas un moteur de cartographie pour consulter ses
+gains. L'écran des tournées est passé de 1 003 ko à 7 ko, la carte vivant
+désormais dans son propre morceau.
+
+
+### D-143 — Un paiement sur deux cent cinquante-six échouait au hasard
+
+Trouvé au bloc N, par un test qui a échoué **une seule fois** sur une suite qui
+passait depuis des semaines. C'était bien pire qu'un test intermittent.
+
+Le simulateur de paiement sait échouer à la demande — c'est nécessaire, sans
+quoi le chemin d'erreur ne serait jamais parcouru. La règle annoncée est simple
+et documentée : **un montant se terminant par 99 centimes est refusé**.
+
+Sauf que la capture ne reçoit pas le montant : elle reçoit une **référence**.
+Et le code répondait `ECHOUE` pour toute référence finissant par « 99 » — or
+cette référence est un condensat du **numéro de commande**, qui n'a aucun
+rapport avec le montant.
+
+Résultat : **une commande sur deux cent cinquante-six était refusée au hasard**,
+dans la démonstration comme dans les tests, sans qu'aucun message, aucun
+journal, aucune trace ne l'explique. Rejoué sur mille numéros de commande
+plausibles, l'ancien code en refuse deux.
+
+Le refus est désormais **inscrit dans la référence à l'ouverture**, par le
+préfixe `pi_sim_refuse_`, là où le montant est connu. Le simulateur est le seul
+à fabriquer ses références, donc le seul à poser ce préfixe.
+
+Deux tests le verrouillent : mille numéros de commande dont aucun ne doit être
+refusé sans raison, et un montant en 99 centimes qui doit toujours l'être — le
+moyen de provoquer un échec ne devait pas disparaître avec le défaut.
+
+**La leçon, au-delà du cas** : un simulateur qui décide à partir d'une valeur
+qu'il n'a pas reçue devine, et deviner produit exactement ce genre de panne —
+rare, non reproductible, et impossible à expliquer à la personne qui la subit.

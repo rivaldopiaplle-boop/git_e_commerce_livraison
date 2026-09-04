@@ -107,6 +107,16 @@ export type AdresseLivraison = {
   code_postal: string
   ville: string
   instructions: string
+  /**
+   * Les coordonnées, quand le rôle y a droit (D-74, D-123).
+   *
+   * Facultatives et non « nombre ou null » : le vendeur ne reçoit pas du tout
+   * ces champs, il ne reçoit pas des champs vides. La différence compte —
+   * `undefined` dit « pas votre affaire », `null` dirait « adresse non
+   * géocodée », et ce ne sont pas les mêmes cas.
+   */
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export type Livraison = {

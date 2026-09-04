@@ -663,3 +663,57 @@ dans le même langage visuel.
 règles : le profil varie, une photographie reste seule, et deux vues ne se
 ressemblent jamais comme deux recadrages. Le dernier compare réellement les
 images pixel à pixel.
+
+
+---
+
+## Les services externes, service par service (bloc N)
+
+| Service | Sans clé | Avec clé | Variable |
+|---|---|---|---|
+| Paiement | simulateur, aucun débit | Stripe en mode test | `STRIPE_SECRET_KEY` |
+| **Assistant** | base de connaissances écrite à la main | **Mistral**, borné à cette base | `CLE_MODELE_IA` |
+| **Itinéraire** | vol d'oiseau majoré, tracé en pointillés | **OpenRouteService**, vraies rues | `CLE_ITINERAIRE` |
+| **Fond de carte** | **OpenFreeMap, sans clé** | style MapTiler ou autre | `VITE_STYLE_CARTE` |
+| Photos | fichiers locaux | Cloudinary | trois variables |
+
+`GET /api/v1/services` dit lequel tourne réellement, à l'écran. C'est utile en
+entretien : la question « et le paiement, il marche vraiment ? » mérite une
+réponse affichable, pas une explication embarrassée.
+
+**Aucun de ces services n'est obligatoire.** Le projet se clone et se démontre
+entièrement sans une seule clé (D-18), et chaque implémentation réelle retombe
+sur son simulateur à la moindre panne — clé expirée, quota dépassé, réseau
+coupé, réponse vide, format inattendu. Ces quatre cas sont testés pour
+l'assistant comme pour l'itinéraire, sans jamais toucher le réseau (D-37).
+
+### Ce que la carte a demandé de changer
+
+Le gestionnaire d'entrepôt ne recevait pas les coordonnées des adresses : sans
+elles, aucun arrêt ne pouvait être placé. Elles lui sont maintenant transmises,
+et cela n'ouvre rien — il voit déjà la rue, qui en dit plus. Les instructions de
+porte restent hors de sa vue, et deux tests le vérifient.
+
+### Le poids
+
+MapLibre pèse 982 ko. Chargé paresseusement, il n'arrive qu'au moment où une
+carte s'affiche : l'écran des tournées est passé de **1 003 ko à 7 ko**.
+
+
+---
+
+## Un défaut trouvé par un test intermittent (bloc N)
+
+La suite backend a échoué **une seule fois**, sur un test de paiement qui
+passait depuis des semaines. La cause n'était pas dans le test.
+
+Le simulateur de paiement refusait toute référence finissant par « 99 », alors
+que la règle annoncée porte sur le **montant**. La référence étant un condensat
+du numéro de commande, **une commande sur 256 était refusée au hasard** — dans
+la démonstration comme dans les tests, sans aucune trace. Rejoué sur mille
+numéros plausibles, l'ancien code en refuse deux.
+
+Corrigé par [D-143](journal-decisions.md) : le refus est inscrit dans la
+référence à l'ouverture, là où le montant est connu.
+
+**Compte des tests à la fin du bloc N** : 225 backend, 107 front web, 39 mobile.

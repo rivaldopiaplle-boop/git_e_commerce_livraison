@@ -50,7 +50,8 @@ export type Livraison = {
   statut_commande: string
   client: string
   adresse: { id: number; libelle: string; rue: string; code_postal: string; ville: string
-             instructions: string } | null
+             instructions: string
+             latitude?: number | null; longitude?: number | null } | null
   boutiques: string[]
   distance_km: string | null
   remuneration_livreur_centimes: number

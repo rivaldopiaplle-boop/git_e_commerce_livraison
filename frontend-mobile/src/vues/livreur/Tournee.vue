@@ -7,7 +7,7 @@
 // zone.
 import { IonBadge, IonIcon } from '@ionic/vue'
 import { checkmarkCircle, listOutline, locationOutline } from 'ionicons/icons'
-import { onMounted } from 'vue'
+import { computed, defineAsyncComponent, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Ecran from '@/composants/Ecran.vue'
@@ -17,6 +17,28 @@ const livreur = useLivreur()
 const routeur = useRouter()
 
 onMounted(() => livreur.charger())
+
+/**
+ * La tournée entière sur une carte, dans son ordre.
+ *
+ * Le livreur ne réordonne rien (D-86), mais **voir** la forme de sa journée
+ * change tout : il sait s'il redescend une avenue ou s'il zigzague, et il
+ * peut le dire à l'entrepôt. Une liste de quinze adresses ne dit jamais ça.
+ */
+const pointsTournee = computed(() =>
+  (livreur.tournee?.arrets ?? [])
+    .map((arret) => ({
+      lat: Number(arret.livraison.adresse?.latitude),
+      lon: Number(arret.livraison.adresse?.longitude),
+      rang: arret.ordre,
+    }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon)),
+)
+
+// MapLibre pese pres d'un mega-octet. Charge paresseusement, il n'arrive
+// qu'au moment ou une carte s'affiche : un livreur en 4G ne telecharge pas un
+// moteur de cartographie pour consulter ses gains.
+const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
 </script>
 
 <template>
@@ -33,6 +55,9 @@ onMounted(() => livreur.charger())
         </div>
         <IonBadge>{{ livreur.tournee.libelle_statut }}</IonBadge>
       </div>
+
+      <Carte v-if="pointsTournee.length > 1" :points="pointsTournee" profil="voiture"
+             hauteur="220px" />
 
       <button
         v-for="arret in livreur.tournee.arrets"
