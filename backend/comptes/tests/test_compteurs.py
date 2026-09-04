@@ -25,6 +25,22 @@ from comptes.models import (
     Vendeur,
 )
 
+# Payer exige desormais une carte (O-5) : « payer est valide sans carte, pas de
+# demande de carte meme la premiere fois ». Les tests qui payent font donc ce
+# que fait un vrai client — ils en posent une, une fois.
+CARTE_D_ESSAI = {
+    "numero": "4242424242424242", "mois": "12", "annee": "30", "cryptogramme": "123",
+}
+
+
+def poser_une_carte(client, entetes):
+    return client.post(
+        reverse("mes-cartes"), CARTE_D_ESSAI,
+        content_type="application/json", headers=entetes,
+    )
+
+
+
 MOT_DE_PASSE = "UnMotDePasseSolide!2026"
 SESSION = "session-compteurs"
 
@@ -107,6 +123,7 @@ def test_la_pastille_descend_quand_le_travail_est_fait(client, lea, produit):
     reponse = commander(client, produit, entetes)
     commande = Commande.objects.get(pk=reponse.json()["data"][0]["id"])
 
+    poser_une_carte(client, entetes)
     intention = client.post(reverse("ouvrir-intention", args=[commande.id]), {},
                             content_type="application/json", headers=entetes)
     client.post(reverse("confirmer-paiement"),
@@ -121,6 +138,7 @@ def test_le_vendeur_voit_ce_qu_il_doit_preparer(client, lea, produit, boutique):
     entetes = connecter(client, "lea@exemple.fr")
     reponse = commander(client, produit, entetes)
     commande = Commande.objects.get(pk=reponse.json()["data"][0]["id"])
+    poser_une_carte(client, entetes)
     intention = client.post(reverse("ouvrir-intention", args=[commande.id]), {},
                             content_type="application/json", headers=entetes)
     client.post(reverse("confirmer-paiement"),
@@ -168,6 +186,7 @@ def test_le_vendeur_ne_voit_pas_les_commandes_d_une_autre_boutique(client, lea, 
     entetes = connecter(client, "lea@exemple.fr")
     reponse = commander(client, produit, entetes)
     commande = Commande.objects.get(pk=reponse.json()["data"][0]["id"])
+    poser_une_carte(client, entetes)
     intention = client.post(reverse("ouvrir-intention", args=[commande.id]), {},
                             content_type="application/json", headers=entetes)
     client.post(reverse("confirmer-paiement"),
@@ -223,6 +242,7 @@ def test_l_admin_ne_compte_que_les_litiges_qu_il_a_le_droit_de_trancher(client, 
     entetes = connecter(client, "lea@exemple.fr")
     reponse = commander(client, produit, entetes)
     commande = Commande.objects.get(pk=reponse.json()["data"][0]["id"])
+    poser_une_carte(client, entetes)
     intention = client.post(reverse("ouvrir-intention", args=[commande.id]), {},
                             content_type="application/json", headers=entetes)
     client.post(reverse("confirmer-paiement"),
@@ -230,17 +250,23 @@ def test_l_admin_ne_compte_que_les_litiges_qu_il_a_le_droit_de_trancher(client, 
                 content_type="application/json")
     Commande.objects.filter(pk=commande.id).update(statut_actuel=StatutCommande.LIVREE)
 
-    client.post(
+    ouverture = client.post(
         reverse("ouvrir-litige", args=[commande.id]),
         {"motif": "INCOMPLET", "description": "Il manquait un article a l arrivee."},
         content_type="application/json", headers=entetes,
     )
+    assert ouverture.status_code == 201, ouverture.json()
+    # L'identifiant vient de la REPONSE, et non d'un « 1 » ecrit en dur : les
+    # sequences de PostgreSQL ne reviennent pas en arriere entre deux tests,
+    # donc le premier litige d'une suite n'est pas forcement le numero 1. Ce
+    # test tombait des qu'un fichier de tests changeait d'ordre.
+    id_litige = ouverture.json()["data"]["id"]
 
     # Le delai court encore : rien a arbitrer.
     assert "admin-litiges" not in compteurs(client, "fatou@exemple.fr")
 
     client.post(
-        reverse("repondre-litige", args=[1]),
+        reverse("repondre-litige", args=[id_litige]),
         {"reponse": "Le colis est parti complet, photo a l appui."},
         content_type="application/json", headers=connecter(client, "karim@exemple.fr"),
     )

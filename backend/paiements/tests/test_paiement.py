@@ -28,6 +28,22 @@ from comptes.models import (
 )
 from paiements.models import Facture, Paiement, RepartitionVendeur, StatutPaiement
 
+# Payer exige desormais une carte (O-5) : « payer est valide sans carte, pas de
+# demande de carte meme la premiere fois ». Les tests qui payent font donc ce
+# que fait un vrai client — ils en posent une, une fois.
+CARTE_D_ESSAI = {
+    "numero": "4242424242424242", "mois": "12", "annee": "30", "cryptogramme": "123",
+}
+
+
+def poser_une_carte(client, entetes):
+    return client.post(
+        reverse("mes-cartes"), CARTE_D_ESSAI,
+        content_type="application/json", headers=entetes,
+    )
+
+
+
 MOT_DE_PASSE = "UnMotDePasseSolide!2026"
 SESSION = "session-paiement"
 
@@ -85,6 +101,9 @@ def commander(client, produit, quantite=1, entetes=None):
 
 
 def ouvrir(client, commande, entetes):
+    # La carte d'abord : depuis O-5, une commande ne s'ouvre plus au paiement
+    # sans moyen de paiement. La reposer est sans effet — le jeton est le meme.
+    poser_une_carte(client, entetes)
     return client.post(
         reverse("ouvrir-intention", args=[commande.id]), {},
         content_type="application/json", headers=entetes,

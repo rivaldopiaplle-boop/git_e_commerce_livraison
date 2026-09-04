@@ -3,7 +3,7 @@
 // elevation au survol, image qui grandit un peu, badge d'etat, prix lisible.
 // Ce sont ces details qui font la difference entre une grille figee et un
 // catalogue vivant.
-import { Bike, ImageOff, Package, Plus } from '@lucide/vue'
+import { Bike, ImageOff, Package, Plus, Star } from '@lucide/vue'
 import { computed } from 'vue'
 
 import { usePanier } from '../stores/panier'
@@ -16,6 +16,10 @@ export type Produit = {
   disponible: boolean
   distance_km: number | null
   boutique: { id: number; nom: string; type_service: string; ville: string }
+  /** La note publique (O-5). `sur` dit si elle porte sur le produit ou sa
+   *  boutique : faire passer l'une pour l'autre serait un petit mensonge que
+   *  les gens repèrent. */
+  note?: { moyenne: number; nombre: number; sur: 'produit' | 'boutique' } | null
 }
 
 const props = defineProps<{ produit: Produit }>()
@@ -90,6 +94,24 @@ const estExpress = computed(() => props.produit.boutique.type_service === 'EXPRE
         {{ produit.boutique.nom }}
         <template v-if="produit.distance_km"> · {{ produit.distance_km }} km</template>
       </span>
+
+      <!-- La note se lit AVANT d'ouvrir la fiche : c'est à ce moment-là qu'un
+           avis sert à choisir entre deux produits (O-5). Elle était visible
+           uniquement dans la fiche, donc trop tard. -->
+      <span
+        v-if="produit.note"
+        class="mt-1.5 inline-flex items-center gap-1 text-[12px]"
+        :title="produit.note.sur === 'boutique'
+          ? `Note de la boutique, sur ${produit.note.nombre} avis`
+          : `Note du produit, sur ${produit.note.nombre} avis`"
+      >
+        <Star :size="12" class="fill-[#e0a106] text-[#e0a106]" />
+        <b class="text-encre">{{ produit.note.moyenne }}</b>
+        <span class="text-encre-douce">
+          ({{ produit.note.nombre }}{{ produit.note.sur === 'boutique' ? ' · boutique' : '' }})
+        </span>
+      </span>
+
       <span class="mt-3 text-[16px] font-bold text-[color:var(--accent)]">{{ prix }}</span>
     </div>
   </RouterLink>

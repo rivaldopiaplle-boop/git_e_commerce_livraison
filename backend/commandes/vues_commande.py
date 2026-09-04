@@ -1,6 +1,7 @@
 """Passer commande, suivre ses commandes, preparer celles qu'on recoit."""
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -384,7 +385,20 @@ def avancer_preparation(requete, identifiant):
 
     avant = sous.statut_preparation
     sous.statut_preparation = vise
-    sous.save(update_fields=["statut_preparation"])
+    champs = ["statut_preparation"]
+
+    # « Expedier vers l'entrepot » n'expediait vers aucun entrepot : le champ
+    # n'etait rempli que par le jeu de demonstration, si bien qu'un vrai colis
+    # n'arrivait jamais sur l'ecran de l'entrepot (O-5). Il est choisi ici —
+    # le plus proche du client — et la date est posee.
+    if vise == StatutPreparation.EXPEDIEE and sous.entrepot_id is None:
+        from livraisons.attribution import entrepot_pour
+
+        sous.entrepot = entrepot_pour(sous.commande.adresse_livraison)
+        sous.date_expedition_entrepot = timezone.now()
+        champs += ["entrepot", "date_expedition_entrepot"]
+
+    sous.save(update_fields=champs)
 
     # La trace porte sur la SOUS-commande : c'est elle qui a un statut de
     # preparation. L'ecrire sur la commande melangeait les avancements de trois
@@ -437,3 +451,13 @@ def _synchroniser_commande(commande, utilisateur=None):
         statut_avant=avant, statut_apres=nouveau, utilisateur=utilisateur,
         commentaire="Suit l'avancement des boutiques",
     )
+
+    # **Le chainon qui manquait** (O-5). Rien ne creait de livraison en dehors
+    # du jeu de demonstration : une commande payee et preparee pour de vrai
+    # n'arrivait chez aucun livreur, et toutes les courses visibles venaient du
+    # peuplement. C'est ici, et nulle part ailleurs, qu'une commande prete
+    # devient une course.
+    if nouveau == StatutCommande.PRETE:
+        from livraisons.attribution import creer_livraison
+
+        creer_livraison(commande)

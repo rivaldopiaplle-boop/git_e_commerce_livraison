@@ -155,12 +155,65 @@ def liste_produits(requete):
     ]
 
     serializer = ProduitListeSerializer(
-        resultat, many=True, context={"request": requete, "distances": distances}
+        resultat, many=True,
+        context={
+            "request": requete,
+            "distances": distances,
+            "notes": notes_publiques(resultat),
+        },
     )
     return Response({
         "data": serializer.data,
         "meta": {"total": len(resultat), "total_avant_filtres": len(base), "facettes": facettes},
     })
+
+
+def notes_publiques(produits):
+    """La note moyenne de chaque produit, en UNE seule requete.
+
+    Sans ce pre-calcul, afficher soixante vignettes couterait soixante
+    requetes — le probleme des N+1, et il ne se voit qu'en production, quand
+    la page met deux secondes a repondre.
+    """
+    from django.db.models import Avg, Count
+
+    from engagement.models import Avis, CibleAvis, StatutModeration
+
+    produits = list(produits)
+    if not produits:
+        return {}
+
+    def agreger(cible, identifiants):
+        return {
+            entree["id_cible"]: {
+                "moyenne": round(float(entree["moyenne"]), 1),
+                "nombre": entree["nombre"],
+            }
+            for entree in (
+                Avis.objects.exclude(statut_moderation=StatutModeration.MASQUE)
+                .filter(cible=cible, id_cible__in=identifiants)
+                .values("id_cible")
+                .annotate(moyenne=Avg("note"), nombre=Count("id"))
+            )
+        }
+
+    par_produit = agreger(CibleAvis.PRODUIT, [produit.id for produit in produits])
+    par_boutique = agreger(CibleAvis.VENDEUR, {produit.vendeur_id for produit in produits})
+
+    # Un produit neuf n'a pas encore d'avis, mais sa boutique en a. Montrer la
+    # note de la boutique EN LE DISANT vaut mieux que ne rien montrer — et
+    # bien mieux que la faire passer pour celle du produit, ce qui serait un
+    # petit mensonge que les gens reperent.
+    notes = {}
+    for produit in produits:
+        sienne = par_produit.get(produit.id)
+        if sienne:
+            notes[produit.id] = {**sienne, "sur": "produit"}
+            continue
+        boutique = par_boutique.get(produit.vendeur_id)
+        if boutique:
+            notes[produit.id] = {**boutique, "sur": "boutique"}
+    return notes
 
 
 def _facettes(produits):

@@ -28,6 +28,7 @@ from coeur.services_externes import fournisseur_de_paiement
 from commandes import reservation
 from commandes.models import Commande, HistoriqueStatut, StatutCommande
 
+from .cartes import MoyenPaiement
 from .models import Facture, Paiement, RepartitionVendeur, StatutPaiement
 
 
@@ -67,6 +68,39 @@ def ouvrir_intention(requete, identifiant):
             status=status.HTTP_409_CONFLICT,
         )
 
+    # ── La carte, qui n'etait jamais demandee (O-5) ─────────────────────
+    #
+    # Ton reproche : « payer est valide sans carte, pas de demande de carte
+    # meme la premiere fois ». Le bouton ouvrait une intention et la confirmait
+    # dans la foulee. Un paiement sans moyen de paiement n'est pas un paiement,
+    # c'est un bouton.
+    #
+    # Le client envoie l'identifiant d'une carte de SON carnet. Le numero, lui,
+    # n'a jamais transite par ici : il est valide et remplace par un jeton au
+    # moment de l'enregistrement (`paiements/cartes.py`).
+    carte = None
+    id_carte = requete.data.get("id_carte")
+    if id_carte:
+        carte = MoyenPaiement.objects.filter(pk=id_carte, client=profil).first()
+        if carte is None:
+            return _refus("carte_inconnue",
+                          "Cette carte n'est pas dans votre carnet.",
+                          status.HTTP_404_NOT_FOUND)
+    else:
+        carte = profil.moyens_paiement.filter(par_defaut=True).first()
+
+    if carte is None:
+        return _refus(
+            "carte_absente",
+            "Ajoutez une carte avant de payer. Elle sera enregistree pour vos "
+            "prochaines commandes : vous ne la saisirez qu'une fois.",
+            status.HTTP_400_BAD_REQUEST,
+        )
+    if carte.expiree:
+        return _refus("carte_expiree",
+                      f"Votre carte {carte.marque} se terminant par "
+                      f"{carte.quatre_derniers} est expiree.")
+
     intention = fournisseur_de_paiement().ouvrir(
         commande.montant_total_centimes, commande.numero_commande
     )
@@ -77,6 +111,7 @@ def ouvrir_intention(requete, identifiant):
             "montant_centimes": commande.montant_total_centimes,
             "statut_paiement": StatutPaiement.EN_ATTENTE,
             "reference_stripe": intention.reference,
+            "methode": f"{carte.marque}-{carte.quatre_derniers}",
         },
     )
 
@@ -88,6 +123,9 @@ def ouvrir_intention(requete, identifiant):
         "simule": intention.simule,
         "reservation_expire_dans_minutes": reservation.DUREE_MINUTES,
         "identifiant_paiement": paiement.id,
+        # De quoi ecrire la reconfirmation : « payer 24,90 EUR avec Visa 4242 »
+        # dit ce qui va se passer, la ou « Payer » ne dit rien (O-5).
+        "carte": carte.en_dictionnaire(),
     }})
 
 

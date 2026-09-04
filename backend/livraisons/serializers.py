@@ -33,13 +33,15 @@ class LivraisonSerializer(serializers.ModelSerializer):
     adresse = serializers.SerializerMethodField()
     boutiques = serializers.SerializerMethodField()
     nombre_tentatives = serializers.SerializerMethodField()
+    calcul_remuneration = serializers.SerializerMethodField()
 
     class Meta:
         model = Livraison
         fields = [
             "id", "numero_commande", "type_service", "statut_livraison", "libelle_statut",
             "statut_commande", "client", "adresse", "boutiques", "distance_km",
-            "remuneration_livreur_centimes", "code_confirmation", "date_estimee",
+            "remuneration_livreur_centimes", "calcul_remuneration",
+            "code_confirmation", "date_estimee",
             "date_reelle", "nombre_tentatives",
         ]
 
@@ -63,6 +65,21 @@ class LivraisonSerializer(serializers.ModelSerializer):
 
     def get_nombre_tentatives(self, livraison):
         return livraison.tentatives.count()
+
+    def get_calcul_remuneration(self, livraison):
+        """« Ca sort d'ou ? » — la reponse, en une phrase.
+
+        Ta remarque O-5 : *« la distance du trajet et le prix pour vous ne sont
+        pas vraiment calcules ou mis par l'admin, ca sort de nulle part »*. La
+        distance etait tiree au hasard par le peuplement, et la formule enfouie
+        dans un script. Elle est maintenant publiee (`livraisons/tarifs.py`) et
+        le detail accompagne le montant : un livreur doit pouvoir verifier ce
+        qu'on lui doit.
+        """
+        from .tarifs import remuneration
+
+        _, detail = remuneration(livraison.commande.type_service, livraison.distance_km)
+        return detail
 
 
 class ArretSerializer(serializers.ModelSerializer):

@@ -45,6 +45,7 @@ class _ProduitBase(serializers.ModelSerializer):
     prix_centimes = serializers.IntegerField(source="prix_unitaire_centimes", read_only=True)
     disponible = serializers.SerializerMethodField()
     distance_km = serializers.SerializerMethodField()
+    note = serializers.SerializerMethodField()
 
     def get_image(self, produit):
         return url_absolue(produit.image_principale_url, self.context.get("request"))
@@ -66,13 +67,37 @@ class _ProduitBase(serializers.ModelSerializer):
     def get_distance_km(self, produit):
         return self.context.get("distances", {}).get(produit.id)
 
+    def get_note(self, produit):
+        """La note publique du produit, telle qu'un visiteur la voit.
+
+        Elle existait deja dans la fiche, mais il fallait OUVRIR la fiche pour
+        la lire — autrement dit, la note n'aidait jamais a choisir entre deux
+        produits d'une liste. C'est pourtant a ce moment-la qu'un avis sert
+        (O-5).
+
+        Les notes sont pre-calculees en une seule requete par le contexte
+        quand il est fourni (`notes`) ; sinon on interroge, ce qui reste juste
+        mais coute une requete par produit — acceptable sur une fiche, pas sur
+        une grille de soixante.
+        """
+        cache = self.context.get("notes")
+        if cache is not None:
+            return cache.get(produit.id)
+
+        from catalogue.views import notes_publiques
+
+        return notes_publiques([produit]).get(produit.id)
+
 
 class ProduitListeSerializer(_ProduitBase):
     """La vignette du catalogue : le strict necessaire pour une carte."""
 
     class Meta:
         model = Produit
-        fields = ["id", "nom", "prix_centimes", "image", "boutique", "disponible", "distance_km"]
+        fields = [
+            "id", "nom", "prix_centimes", "image", "boutique", "disponible",
+            "distance_km", "note",
+        ]
 
 
 class ProduitDetailSerializer(_ProduitBase):

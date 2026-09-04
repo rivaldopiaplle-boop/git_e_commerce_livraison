@@ -16,7 +16,9 @@
 //     apprendre que le produit n'est pas disponible.
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import { euros } from '@partage/metier'
-import { addOutline, bicycleOutline, checkmarkOutline, cubeOutline } from 'ionicons/icons'
+import {
+  addOutline, bicycleOutline, checkmarkOutline, cubeOutline, star,
+} from 'ionicons/icons'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -30,6 +32,10 @@ type Produit = {
   disponible?: boolean
   distance_km?: number | null
   boutique?: { nom: string; type_service?: string }
+  /** La note publique. `sur` dit si elle porte sur le produit ou sa boutique :
+   *  faire passer l'une pour l'autre serait un petit mensonge que les gens
+   *  repèrent (O-5). */
+  note?: { moyenne: number; nombre: number; sur: 'produit' | 'boutique' } | null
 }
 
 const proprietes = withDefaults(defineProps<{
@@ -100,8 +106,19 @@ async function ajouter() {
         {{ produit.boutique.nom }}
       </span>
     </span>
-    <span v-if="produit.distance_km != null" class="distance">
-      à {{ produit.distance_km }} km
+    <span class="bas">
+      <!-- La note se lit AVANT d'ouvrir la fiche : c'est à ce moment-là qu'un
+           avis sert à choisir entre deux produits (O-5). -->
+      <span v-if="produit.note" class="note" :title="produit.note.sur === 'boutique'
+        ? `Note de la boutique (${produit.note.nombre} avis)`
+        : `Note du produit (${produit.note.nombre} avis)`">
+        <IonIcon :icon="star" />
+        {{ produit.note.moyenne }}
+        <span class="portee">{{ produit.note.sur === 'boutique' ? 'boutique' : '' }}</span>
+      </span>
+      <span v-if="produit.distance_km != null" class="distance">
+        {{ produit.distance_km }} km
+      </span>
     </span>
   </button>
 </template>
@@ -207,8 +224,29 @@ async function ajouter() {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.distance {
+.bas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 10.5px;
   color: var(--rd-encre-douce);
+}
+.note {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+  color: var(--ion-text-color);
+}
+.note ion-icon {
+  color: #e0a106;
+  font-size: 11px;
+}
+.portee {
+  font-weight: 400;
+  color: var(--rd-encre-douce);
+}
+.distance {
+  font-size: 10.5px;
 }
 </style>

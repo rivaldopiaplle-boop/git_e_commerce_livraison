@@ -37,9 +37,13 @@ COMBIEN_BOUTIQUES = 8
 
 def _produits(requete, produits):
     from catalogue.serializers import ProduitListeSerializer
+    from catalogue.views import notes_publiques
 
+    # Les notes en une seule requete : sans elle, huit vignettes couteraient
+    # huit requetes, et l'accueil se recharge toutes les vingt secondes.
     return ProduitListeSerializer(
-        produits, many=True, context={"request": requete}
+        produits, many=True,
+        context={"request": requete, "notes": notes_publiques(produits)},
     ).data
 
 

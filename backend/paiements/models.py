@@ -126,3 +126,9 @@ class UtilisationPromotion(models.Model):
 
     def __str__(self):
         return f"{self.promotion_id} sur {self.commande_id}"
+
+
+# Le carnet de cartes vit dans `cartes.py`, avec la validation qui va avec :
+# un fichier qui contient a la fois le modele, la cle de Luhn et la liste des
+# cartes d'essai se lit d'un bloc, et c'est un sujet a lui tout seul (O-5).
+from .cartes import MoyenPaiement  # noqa: E402, F401

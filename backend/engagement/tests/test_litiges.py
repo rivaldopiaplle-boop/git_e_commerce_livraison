@@ -29,6 +29,22 @@ from comptes.models import (
 from engagement.models import Litige, StatutLitige
 from paiements.models import Paiement, Remboursement, RepartitionVendeur
 
+# Payer exige desormais une carte (O-5) : « payer est valide sans carte, pas de
+# demande de carte meme la premiere fois ». Les tests qui payent font donc ce
+# que fait un vrai client — ils en posent une, une fois.
+CARTE_D_ESSAI = {
+    "numero": "4242424242424242", "mois": "12", "annee": "30", "cryptogramme": "123",
+}
+
+
+def poser_une_carte(client, entetes):
+    return client.post(
+        reverse("mes-cartes"), CARTE_D_ESSAI,
+        content_type="application/json", headers=entetes,
+    )
+
+
+
 MOT_DE_PASSE = "UnMotDePasseSolide!2026"
 SESSION = "session-litige"
 DESCRIPTION = "Le colis est arrive ouvert et deux articles manquaient a l appel."
@@ -94,6 +110,7 @@ def commande_livree(client, produit, quantite=2):
                           headers=entetes)
     commande = Commande.objects.get(pk=reponse.json()["data"][0]["id"])
 
+    poser_une_carte(client, entetes)
     intention = client.post(reverse("ouvrir-intention", args=[commande.id]), {},
                             content_type="application/json", headers=entetes)
     client.post(reverse("confirmer-paiement"),

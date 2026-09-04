@@ -1,12 +1,25 @@
 from django.urls import path
 
-from . import views, vues_livreur
+from . import views, vues_entrepot, vues_livreur
 
 urlpatterns = [
     # Entrepot — gestionnaire staff entrepot
     path("entrepots/colis", views.colis_recus, name="colis-recus"),
     path("entrepots/tournees", views.tournees_entrepot, name="tournees-entrepot"),
     path("entrepots/tableau-de-bord", views.tableau_de_bord_entrepot, name="tableau-entrepot"),
+
+    # Ce que le gestionnaire d'entrepot FAIT (O-5). Il ne faisait que
+    # consulter : les tournees venaient toutes du jeu de demonstration.
+    path("entrepots/colis/<int:identifiant>/reception", vues_entrepot.confirmer_reception,
+         name="confirmer-reception"),
+    path("entrepots/tournees/calculer", vues_entrepot.calculer_tournee,
+         name="calculer-tournee"),
+    path("entrepots/tournees/<int:identifiant>/livreur", vues_entrepot.attribuer_tournee,
+         name="attribuer-tournee"),
+    path("entrepots/tournees/<int:identifiant>/depart", vues_entrepot.faire_partir,
+         name="faire-partir-tournee"),
+    path("entrepots/livreurs", vues_entrepot.livreurs_disponibles,
+         name="livreurs-pour-tournee"),
 
     # Livreur — lecture seule au web, l'action se fait sur le mobile (D-40)
     path("livreurs/mes-courses", views.mes_courses, name="mes-courses"),

@@ -51,6 +51,24 @@ class EstGestionnaire(_RoleRequis):
     message = "Reserve au personnel."
 
 
+class EstGestionnaireEntrepot(EstGestionnaire):
+    """Le personnel d'ENTREPOT, pas celui d'une boutique.
+
+    Les deux sont des gestionnaires (D-05), et ils ne font pas le meme metier :
+    l'un range des colis et monte des tournees, l'autre prepare les commandes
+    d'une boutique. Sans cette distinction, le personnel d'un vendeur pourrait
+    attribuer une tournee.
+    """
+
+    message = "Reserve au personnel d'entrepot."
+
+    def has_permission(self, requete, vue):
+        if not super().has_permission(requete, vue):
+            return False
+        profil = getattr(requete.user, "profil_gestionnaire", None)
+        return getattr(profil, "type_gestionnaire", None) == "STAFF_ENTREPOT"
+
+
 class EstLivreur(_RoleRequis):
     role = Role.LIVREUR
     message = "Reserve aux livreurs."
