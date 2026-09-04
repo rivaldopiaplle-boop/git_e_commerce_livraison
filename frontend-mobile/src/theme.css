@@ -31,15 +31,46 @@
   --rd-atelier: #f4f5f8;
 }
 
-/* Une barre d'onglets qui ne dépasse pas sous l'encoche. */
+/* ── La barre d'onglets et la barre d'Android — O-3 ───────────────────────
+ *
+ * Ton reproche : *« les 3 onglets naturels d'Android cassent mes 5 onglets
+ * mécaniques »*. Deux barres se retrouvaient collées l'une à l'autre, et le
+ * pouce visait entre les deux.
+ *
+ * `env(safe-area-inset-bottom)` seul ne suffit pas, et c'est le piège : sur un
+ * iPhone il vaut 34 pixels et tout va bien, mais **sur un Android à trois
+ * boutons il vaut ZÉRO**. La WebView n'y est pas dessinée bord à bord, donc le
+ * système ne déclare aucune marge — et nos onglets se retrouvent posés
+ * directement sur les siens.
+ *
+ * `max(…, 12px)` garantit une clairière dans tous les cas : la marge du
+ * système quand il y en a une, douze pixels sinon. C'est peu, et c'est
+ * exactement ce qui sépare deux barres de deux barres collées.
+ *
+ * La barre elle-même passe de 58 à 54 pixels : cinq onglets sur un écran de
+ * 360 points, c'est 72 points chacun, et chaque pixel de hauteur repris est un
+ * pixel rendu au contenu.
+ */
+:root {
+  --rd-marge-basse: max(env(safe-area-inset-bottom), 12px);
+}
+
 ion-tab-bar {
   border-top: 1px solid var(--rd-trait);
-  padding-bottom: env(safe-area-inset-bottom);
-  height: calc(58px + env(safe-area-inset-bottom));
+  padding-bottom: var(--rd-marge-basse);
+  height: calc(54px + var(--rd-marge-basse));
 }
 ion-tab-button {
   font-size: 9.5px;
   font-weight: 700;
+}
+
+/* Ionic mesure la hauteur de l'écran en `vh`, qui ignore la barre d'URL des
+   navigateurs mobiles : celle-ci recouvre alors le bas de la page. `dvh` suit
+   la hauteur RÉELLEMENT visible, barre comprise. */
+ion-app,
+ion-content {
+  min-height: 100dvh;
 }
 
 /* Le troisième emplacement : le « + », posé en relief au-dessus de la barre
@@ -88,4 +119,48 @@ ion-tab-button {
 }
 .etat-vide span {
   font-size: 12px;
+}
+
+/* ── L'impression d'un reçu — O-5 ─────────────────────────────────────────
+ *
+ * « Mon reçu, qui n'est pas imprimable. » Le navigateur sait imprimer et
+ * propose lui-même « Enregistrer au format PDF », sur Android comme sur iOS.
+ * On ne refait pas son travail : on lui donne une feuille propre.
+ *
+ * La règle tient en une phrase, la même que la facture du web (D-78) : **tout
+ * ce qui sert à naviguer disparaît**. Un reçu imprimé avec une barre d'onglets
+ * dessus est le genre de détail qui trahit un travail bâclé.
+ *
+ * `impression-recu` est posée sur le corps par le bouton, et retirée après.
+ * Sans elle, `@media print` toucherait aussi les impressions faites depuis le
+ * menu du navigateur, où la feuille ouverte n'est pas forcément le reçu.
+ */
+@media print {
+  body.impression-recu ion-tab-bar,
+  body.impression-recu ion-header,
+  body.impression-recu ion-refresher,
+  body.impression-recu ion-button,
+  body.impression-recu .voile {
+    display: none !important;
+  }
+
+  /* Ionic empile ses écrans en position absolue et masque ce qui déborde :
+     à l'impression, tout se retrouve coupé à la hauteur de l'écran. On rend
+     le flux normal le temps de l'impression. */
+  body.impression-recu ion-modal,
+  body.impression-recu ion-content,
+  body.impression-recu ion-page {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    contain: none !important;
+  }
+
+  body.impression-recu .feuille {
+    padding: 0 !important;
+  }
+
+  body.impression-recu {
+    background: #fff;
+  }
 }

@@ -131,6 +131,15 @@ export type Livraison = {
   boutiques: string[]
   distance_km: string | null
   remuneration_livreur_centimes: number
+  /**
+   * D'où sort la rémunération, en une phrase — O-5.
+   *
+   * « 1,50 € de base + 0,35 €/km × 4,35 km = 3,02 € ». Ta remarque était que
+   * la distance et le prix « sortaient de nulle part » : un chiffre qui ne
+   * s'explique pas ne se vérifie pas, et un livreur doit pouvoir vérifier ce
+   * qu'on lui doit.
+   */
+  calcul_remuneration?: string
   code_confirmation: string
   date_estimee: string | null
   date_reelle: string | null

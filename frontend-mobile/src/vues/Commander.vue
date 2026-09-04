@@ -408,7 +408,7 @@ async function payer() {
   background: #fff;
   border-top: 1px solid var(--rd-trait);
   margin: 12px -14px -24px;
-  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  padding: 10px 14px calc(10px + var(--rd-marge-basse, 12px));
 }
 .barre b {
   display: block;
@@ -421,7 +421,7 @@ async function payer() {
   color: var(--rd-trait);
 }
 .feuille {
-  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 20px 16px calc(20px + var(--rd-marge-basse, 12px));
   display: flex;
   flex-direction: column;
   gap: 10px;

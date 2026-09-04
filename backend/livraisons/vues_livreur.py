@@ -372,6 +372,27 @@ def signaler_absence(requete, identifiant):
     )
 
     derniere = numero >= 2
+
+    if not derniere:
+        # **La suite qui manquait** (O-5). Sur la premiere tentative, l'arret
+        # restait `A_FAIRE` : « prochain arret » redonnait donc la MEME adresse,
+        # indefiniment. Le livreur signalait une absence et rien ne bougeait —
+        # c'est exactement ce que tu decrivais.
+        #
+        # Il passe en REPORTE et part **a la fin de la tournee** : on repasse
+        # apres avoir fait le reste, ce que fait tout livreur, plutot que de
+        # rester planté devant une porte fermee.
+        arret = ArretTournee.objects.filter(livraison=livraison).first()
+        if arret is not None:
+            dernier = (
+                ArretTournee.objects.filter(tournee=arret.tournee)
+                .order_by("-ordre").values_list("ordre", flat=True).first() or 0
+            )
+            arret.statut = StatutArret.REPORTE
+            if arret.ordre != dernier:
+                arret.ordre = dernier + 1
+            arret.save(update_fields=["statut", "ordre"])
+
     if derniere:
         livraison.statut_livraison = StatutLivraison.ECHOUEE
         livraison.save(update_fields=["statut_livraison"])

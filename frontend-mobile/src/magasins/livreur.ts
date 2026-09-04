@@ -41,9 +41,19 @@ export const useLivreur = defineStore('livreur', () => {
    *
    *  Un livreur n'a pas besoin de rouvrir sa tournée entière dix fois par jour
    *  pour savoir où il va maintenant (D-90). */
-  const prochainArret = computed(
-    () => (tournee.value?.arrets ?? []).find((arret) => arret.statut === 'A_FAIRE') ?? null,
-  )
+  /**
+   * L'arrêt suivant : ce qui reste à faire, puis ce qui a été reporté.
+   *
+   * Un arrêt reporté — personne à l'adresse à la première tentative — repart
+   * en fin de tournée (O-5). Sans cette seconde recherche, le livreur ne
+   * repasserait jamais, et le colis partirait en retour sans deuxième chance.
+   */
+  const prochainArret = computed(() => {
+    const arrets = tournee.value?.arrets ?? []
+    return arrets.find((arret) => arret.statut === 'A_FAIRE')
+      ?? arrets.find((arret) => arret.statut === 'REPORTE')
+      ?? null
+  })
 
   async function charger() {
     if (!session.estConnecte) return
@@ -135,8 +145,13 @@ export const useLivreur = defineStore('livreur', () => {
 
   /** Signaler une absence. Deux tentatives gratuites, puis retour (D-23). */
   async function signalerAbsence(idLivraison: number, commentaire: string) {
-    await session.client.post(`/livreurs/livraisons/${idLivraison}/absence`, { commentaire })
+    // Le retour porte le NUMERO de tentative : l'écran doit pouvoir dire
+    // lequel des deux cas s'est produit — on repasse, ou le colis repart (O-5).
+    const retour = await session.client.post<{ tentative: number }>(
+      `/livreurs/livraisons/${idLivraison}/absence`, { commentaire },
+    )
     await charger()
+    return retour
   }
 
   return {

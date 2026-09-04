@@ -382,3 +382,131 @@ class TestConfierLaTournee:
                               headers=connecter(client, "boutique.staff@exemple.fr"))
 
         assert reponse.status_code == 403
+
+
+class TestPersonneALAdresse:
+    """O-5 : « personne a l'adresse n'a pas de suite »."""
+
+    @pytest.fixture
+    def en_tournee(self, client, scene):
+        """Deux arrets confies a un livreur et partis."""
+        autre_client = Client.objects.create(
+            utilisateur=_utilisateur("cliente2@exemple.fr", "CLIENT")
+        )
+        autre_adresse = Adresse.objects.create(
+            libelle="Bureau", rue="20 rue de la Paix", code_postal="69003", ville="Lyon",
+            latitude=45.7620, longitude=4.8570,
+        )
+        seconde = Commande.objects.create(
+            numero_commande="RD-TEST-CHAINE-2", client=autre_client,
+            adresse_livraison=autre_adresse, type_service="STANDARD",
+            statut_actuel=StatutCommande.PAYEE,
+            montant_produits_centimes=900, montant_livraison_centimes=490,
+            montant_total_centimes=1390,
+        )
+        sous2 = SousCommande.objects.create(
+            commande=seconde, vendeur=scene["boutique"],
+            statut_preparation=StatutPreparation.A_PREPARER,
+        )
+        LigneCommande.objects.create(
+            sous_commande=sous2, nom_produit_capture="Miel",
+            prix_unitaire_centimes=900, quantite=1, sous_total_centimes=900,
+        )
+
+        vendeur = connecter(client, "boutique@exemple.fr")
+        for sous in (scene["sous"], sous2):
+            for statut in ("EN_PREPARATION", "PRETE", "EXPEDIEE"):
+                client.patch(
+                    reverse("avancer-preparation", args=[sous.id]),
+                    {"statut": statut}, content_type="application/json", headers=vendeur,
+                )
+        entrepot = connecter(client, "entrepot@exemple.fr")
+        for sous in (scene["sous"], sous2):
+            client.post(reverse("confirmer-reception", args=[sous.id]), {},
+                        content_type="application/json", headers=entrepot)
+        tournee = client.post(reverse("calculer-tournee"), {},
+                              content_type="application/json",
+                              headers=entrepot).json()["data"]
+        client.post(reverse("attribuer-tournee", args=[tournee["id"]]),
+                    {"id_livreur": scene["livreur"].id},
+                    content_type="application/json", headers=entrepot)
+        client.post(reverse("faire-partir-tournee", args=[tournee["id"]]), {},
+                    content_type="application/json", headers=entrepot)
+        return tournee, connecter(client, "julien@exemple.fr")
+
+    def test_une_premiere_absence_reporte_l_arret_en_fin_de_tournee(self, client,
+                                                                    en_tournee):
+        """Le défaut : l'arrêt restait « à faire », donc « prochain arrêt »
+        redonnait la MEME adresse indefiniment. Le livreur signalait, et rien
+        ne bougeait."""
+        from livraisons.models import ArretTournee, StatutArret
+
+        tournee, entetes = en_tournee
+        premier = ArretTournee.objects.filter(tournee_id=tournee["id"]).order_by("ordre").first()
+
+        reponse = client.post(
+            reverse("signaler-absence", args=[premier.livraison_id]),
+            {"commentaire": "Personne a l'adresse."},
+            content_type="application/json", headers=entetes,
+        )
+
+        assert reponse.status_code == 200
+        premier.refresh_from_db()
+        assert premier.statut == StatutArret.REPORTE
+        # Il passe DERRIERE l'autre arret : on repasse apres avoir fait le reste.
+        dernier = ArretTournee.objects.filter(
+            tournee_id=tournee["id"]
+        ).order_by("-ordre").first()
+        assert dernier.id == premier.id
+
+    def test_la_livraison_reste_en_cours_apres_une_seule_absence(self, client, en_tournee):
+        """Un colis n'est pas perdu au premier passage : il reste deux chances."""
+        from livraisons.models import ArretTournee
+
+        tournee, entetes = en_tournee
+        premier = ArretTournee.objects.filter(tournee_id=tournee["id"]).order_by("ordre").first()
+
+        client.post(reverse("signaler-absence", args=[premier.livraison_id]),
+                    {"commentaire": "Personne."},
+                    content_type="application/json", headers=entetes)
+
+        livraison = Livraison.objects.get(pk=premier.livraison_id)
+        assert livraison.statut_livraison != StatutLivraison.ECHOUEE
+
+    def test_la_deuxieme_absence_fait_repartir_le_colis(self, client, en_tournee):
+        from livraisons.models import ArretTournee, StatutArret
+
+        tournee, entetes = en_tournee
+        premier = ArretTournee.objects.filter(tournee_id=tournee["id"]).order_by("ordre").first()
+        for _ in range(2):
+            client.post(reverse("signaler-absence", args=[premier.livraison_id]),
+                        {"commentaire": "Personne."},
+                        content_type="application/json", headers=entetes)
+
+        premier.refresh_from_db()
+        assert premier.statut == StatutArret.ECHOUE
+        assert Livraison.objects.get(
+            pk=premier.livraison_id
+        ).statut_livraison == StatutLivraison.ECHOUEE
+        assert Commande.objects.get(
+            pk=premier.livraison.commande_id
+        ).statut_actuel == StatutCommande.ECHEC_LIVRAISON
+
+    def test_le_client_est_prevenu_a_chaque_passage(self, client, en_tournee):
+        """Un avis de passage qui n'arrive nulle part n'est pas un avis."""
+        from engagement.models import Notification
+        from livraisons.models import ArretTournee
+
+        tournee, entetes = en_tournee
+        premier = ArretTournee.objects.filter(tournee_id=tournee["id"]).order_by("ordre").first()
+        destinataire = premier.livraison.commande.client.utilisateur
+
+        client.post(reverse("signaler-absence", args=[premier.livraison_id]),
+                    {"commentaire": "Personne."},
+                    content_type="application/json", headers=entetes)
+
+        notification = Notification.objects.filter(
+            utilisateur=destinataire
+        ).order_by("-id").first()
+        assert notification is not None
+        assert "manqu" in notification.titre.lower()

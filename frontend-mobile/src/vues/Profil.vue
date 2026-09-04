@@ -338,7 +338,7 @@ function partir() {
   padding: 0 4px;
 }
 .feuille {
-  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 20px 16px calc(20px + var(--rd-marge-basse, 12px));
   display: flex;
   flex-direction: column;
   gap: 12px;

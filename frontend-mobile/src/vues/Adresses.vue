@@ -143,7 +143,7 @@ async function definirPrincipale(adresse: Adresse) {
   color: var(--rd-trait);
 }
 .feuille {
-  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  padding: 20px 18px calc(20px + var(--rd-marge-basse, 12px));
   display: flex;
   flex-direction: column;
   gap: 12px;

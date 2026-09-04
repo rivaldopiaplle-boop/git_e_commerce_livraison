@@ -306,7 +306,7 @@ function guider() {
   color: var(--rd-trait);
 }
 .feuille {
-  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  padding: 20px 18px calc(20px + var(--rd-marge-basse, 12px));
 }
 .feuille h2 {
   margin: 0 0 4px;

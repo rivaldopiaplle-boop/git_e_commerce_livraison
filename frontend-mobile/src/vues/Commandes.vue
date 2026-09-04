@@ -11,8 +11,8 @@ import type { Commande } from '@partage/types'
 import { ETAPES_SUIVI, LIBELLES_STATUT, euros, jour, positionSuivi, tonDuStatut }
   from '@partage/metier'
 import {
-  checkmarkCircle, documentTextOutline, receiptOutline, shieldOutline, star,
-  starOutline,
+  checkmarkCircle, chevronDown, documentTextOutline, printOutline, receiptOutline,
+  shieldOutline, star, starOutline,
 } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
@@ -38,6 +38,21 @@ type Facture = {
   }[]
 }
 
+type Litige = {
+  id: number
+  libelle_motif: string
+  description: string
+  statut: string
+  libelle_statut: string
+  resolution: string
+  montant_rembourse_centimes: number
+  date_ouverture: string
+  date_limite_reponse: string | null
+  reponse_vendeur: string
+  delai_expire: boolean
+  id_commande: number
+}
+
 type Notable = {
   cible: string
   id_cible: number
@@ -50,6 +65,30 @@ type Notable = {
 const session = useSession()
 const commandes = ref<Commande[]>([])
 const chargement = ref(true)
+
+/**
+ * Ce qui est déplié — O-5.
+ *
+ * *« Mes commandes, avec tous les reçus dépliés à la figure. »* Chaque
+ * commande montrait sa frise de six étapes, ses boutons et son pied :
+ * quatre commandes faisaient un mur où l'on ne trouvait plus rien.
+ *
+ * La carte repliée garde ce qu'on cherche — numéro, boutique, état, montant,
+ * jauge — et le reste s'ouvre d'un appui. **La commande en cours reste
+ * ouverte** : c'est celle qu'on vient voir.
+ */
+const depliees = ref<Set<number>>(new Set())
+
+const TERMINES = ['LIVREE', 'ANNULEE', 'REMBOURSEE', 'ECHEC_LIVRAISON']
+const estDepliee = (commande: Commande) =>
+  depliees.value.has(commande.id) || !TERMINES.includes(commande.statut_actuel)
+
+function basculer(commande: Commande) {
+  const suivant = new Set(depliees.value)
+  if (suivant.has(commande.id)) suivant.delete(commande.id)
+  else suivant.add(commande.id)
+  depliees.value = suivant
+}
 
 const TONS: Record<string, string> = {
   succes: 'success', erreur: 'danger', cours: 'primary', attente: 'warning', neutre: 'medium',
@@ -64,10 +103,35 @@ function message(souci: unknown, defaut: string) {
   return souci instanceof EchecApi ? souci.erreur.message : defaut
 }
 
+/**
+ * Les signalements en cours — O-5.
+ *
+ * *« Signaler un problème n'a pas de suite, n'est pas synchronisé aux autres
+ * rôles, surtout l'admin. »* La suite existait — le vendeur a quarante-huit
+ * heures pour donner sa version, puis un administrateur tranche — mais **le
+ * client ne la voyait nulle part**. Un signalement dont on n'apprend jamais
+ * l'issue est un formulaire, pas un recours.
+ *
+ * Le dossier s'affiche donc sur la commande concernée, avec ce qui manque
+ * pour avancer : la réponse du vendeur, le délai, puis la décision.
+ */
+const litiges = ref<Record<number, Litige>>({})
+
+const ETAPES_LITIGE: Record<string, string> = {
+  OUVERT: 'La boutique a 48 h pour donner sa version.',
+  EN_COURS: 'La boutique a répondu. Un administrateur va trancher.',
+  RESOLU: 'Dossier tranché en votre faveur.',
+  REJETE: 'Dossier tranché : la réclamation n’a pas été retenue.',
+}
+
 async function charger() {
   chargement.value = true
   try {
     commandes.value = await session.client.get<Commande[]>('/mes-commandes')
+    const dossiers = await session.client.get<Litige[]>('/mes-litiges')
+    litiges.value = Object.fromEntries(
+      dossiers.map((dossier) => [dossier.id_commande, dossier]),
+    )
   } finally {
     chargement.value = false
   }
@@ -89,6 +153,25 @@ const recuOuvert = ref(false)
  */
 const SANS_RECU = ['EN_ATTENTE_PAIEMENT', 'ANNULEE']
 const aUnRecu = (commande: Commande) => !SANS_RECU.includes(commande.statut_actuel)
+
+/**
+ * Imprimer le reçu, ou l'enregistrer en PDF — O-5.
+ *
+ * *« Mon reçu, qui n'est pas imprimable. »* Le navigateur sait imprimer et
+ * propose lui-même « Enregistrer au format PDF », y compris sur Android et
+ * iOS : on ne refait pas son travail, on lui donne une feuille propre. La
+ * règle d'impression tient en une phrase, la même que la facture du web
+ * (D-78) : **tout ce qui sert à naviguer disparaît**.
+ */
+function imprimerRecu() {
+  document.body.classList.add('impression-recu')
+  // Le retrait après coup : sans lui, l'application resterait en mode
+  // impression une fois la boîte de dialogue fermée.
+  const nettoyer = () => document.body.classList.remove('impression-recu')
+  window.addEventListener('afterprint', nettoyer, { once: true })
+  window.print()
+  setTimeout(nettoyer, 2000)
+}
 
 async function ouvrirRecu(commande: Commande) {
   erreur.value = ''
@@ -200,7 +283,10 @@ async function envoyerLitige() {
       description: recit.value,
     })
     litigePour.value = null
-    succes.value = 'Signalement enregistre. La boutique a 48 heures pour repondre.'
+    succes.value = 'Signalement enregistré. La boutique a 48 heures pour répondre.'
+    // On recharge : le dossier doit apparaître tout de suite sur la commande,
+    // sinon on croit que rien ne s'est passé (O-5).
+    await charger()
   } catch (souci) {
     erreur.value = message(souci, "Le signalement n'a pas ete pris.")
   } finally {
@@ -212,18 +298,36 @@ async function envoyerLitige() {
 <template>
   <Ecran titre="Mes commandes" sous-titre="Espace client" :rafraichir="charger">
     <div v-for="commande in commandes" :key="commande.id" class="carte-mobile">
-      <div class="entete">
-        <span>
+      <!-- L'en-tête EST le bouton : sur un téléphone, une petite flèche à
+           viser au pouce est une flèche qu'on rate (O-8). -->
+      <button type="button" class="entete" @click="basculer(commande)">
+        <span class="min">
           <b>{{ commande.numero_commande }}</b>
           <span class="sous-titre">
             {{ jour(commande.date_commande) }} · {{ commande.boutiques.join(', ') }}
           </span>
         </span>
-        <IonBadge :color="TONS[tonDuStatut(commande.statut_actuel)]">
-          {{ LIBELLES_STATUT[commande.statut_actuel] }}
-        </IonBadge>
-      </div>
+        <span class="droite">
+          <IonBadge :color="TONS[tonDuStatut(commande.statut_actuel)]">
+            {{ LIBELLES_STATUT[commande.statut_actuel] }}
+          </IonBadge>
+          <b class="prix">{{ euros(commande.montant_total_centimes) }}</b>
+        </span>
+        <IonIcon :icon="chevronDown" class="chevron"
+                 :class="estDepliee(commande) ? 'ouvert' : ''" />
+      </button>
 
+      <!-- Repliée, la carte garde l'essentiel : où en est la commande. -->
+      <span v-if="!estDepliee(commande)" class="jauge">
+        <span
+          v-for="(etape, index) in ETAPES_SUIVI[commande.type_service]"
+          :key="etape"
+          :class="index <= positionSuivi(commande.type_service, commande.statut_actuel)
+            ? 'faite' : ''"
+        />
+      </span>
+
+      <template v-if="estDepliee(commande)">
       <ol class="frise">
         <li
           v-for="(etape, index) in ETAPES_SUIVI[commande.type_service]"
@@ -248,20 +352,61 @@ async function envoyerLitige() {
 
       <!-- Noter et signaler, la ou l'on est quand le colis arrive : sur son
            telephone. Les deux gestes manquaient (N-6). -->
-      <div v-if="estContestable(commande) || aUnRecu(commande)" class="actions">
-        <IonButton v-if="aUnRecu(commande)" size="small" fill="outline"
-                   @click="ouvrirRecu(commande)">
-          <IonIcon :icon="documentTextOutline" slot="start" /> Mon reçu
-        </IonButton>
-        <IonButton v-if="estNotable(commande)" size="small" fill="outline"
-                   @click="ouvrirAvis(commande)">
-          <IonIcon :icon="starOutline" slot="start" /> Donner mon avis
-        </IonButton>
-        <IonButton size="small" fill="outline" color="danger"
-                   @click="ouvrirLitige(commande)">
-          <IonIcon :icon="shieldOutline" slot="start" /> Signaler un probleme
-        </IonButton>
+      <!-- La suite du signalement, là où on l'a ouvert (O-5) -->
+      <div v-if="litiges[commande.id]" class="litige">
+        <span class="entete-litige">
+          <b>Signalement : {{ litiges[commande.id].libelle_motif }}</b>
+          <IonBadge :color="litiges[commande.id].statut === 'RESOLU' ? 'success'
+            : litiges[commande.id].statut === 'REJETE' ? 'medium' : 'warning'">
+            {{ litiges[commande.id].libelle_statut }}
+          </IonBadge>
+        </span>
+        <span class="etape">{{ ETAPES_LITIGE[litiges[commande.id].statut] }}</span>
+
+        <span v-if="litiges[commande.id].reponse_vendeur" class="version">
+          <b>La boutique répond</b>
+          « {{ litiges[commande.id].reponse_vendeur }} »
+        </span>
+        <span v-else-if="litiges[commande.id].delai_expire" class="version">
+          La boutique n’a pas répondu dans les 48 heures : un administrateur
+          tranchera avec ce qu’il a.
+        </span>
+
+        <span v-if="litiges[commande.id].resolution" class="version">
+          <b>Décision</b>
+          {{ litiges[commande.id].resolution }}
+          <template v-if="litiges[commande.id].montant_rembourse_centimes">
+            — {{ euros(litiges[commande.id].montant_rembourse_centimes) }} remboursés.
+          </template>
+        </span>
       </div>
+
+      <!-- Trois boutons de largeur inégale qui passent à la ligne donnent une
+           rangée bancale — tu l'as dit : « mal positionnés et laids » (O-5).
+           Une grille à parts égales, symbole au-dessus du mot : ils font la
+           même taille quel que soit le texte, et ils restent sur une ligne. -->
+      <div v-if="estContestable(commande) || aUnRecu(commande)" class="actions">
+        <button v-if="aUnRecu(commande)" type="button" class="geste"
+                @click="ouvrirRecu(commande)">
+          <IonIcon :icon="documentTextOutline" />
+          <span>Mon reçu</span>
+        </button>
+        <button v-if="estNotable(commande)" type="button" class="geste"
+                @click="ouvrirAvis(commande)">
+          <IonIcon :icon="starOutline" />
+          <span>Mon avis</span>
+        </button>
+        <button
+          v-if="estContestable(commande) && !litiges[commande.id]"
+          type="button"
+          class="geste danger"
+          @click="ouvrirLitige(commande)"
+        >
+          <IonIcon :icon="shieldOutline" />
+          <span>Un problème</span>
+        </button>
+      </div>
+      </template>
     </div>
 
     <div v-if="!chargement && !commandes.length" class="etat-vide">
@@ -303,9 +448,16 @@ async function envoyerLitige() {
             <b>{{ euros(facture.montant_total_centimes) }}</b>
           </div>
           <span class="aide">
-            TVA {{ (facture.taux_tva * 100).toFixed(0) }} % incluse. La facture
-            imprimable est dans l'espace web.
+            TVA {{ (facture.taux_tva * 100).toFixed(0) }} % incluse.
           </span>
+
+          <!-- « Mon reçu n'est pas imprimable » (O-5). Le navigateur sait
+               imprimer ET proposer « Enregistrer en PDF » : on ne refait pas
+               son travail, on lui donne une feuille propre. Tout ce qui sert à
+               naviguer disparaît à l'impression. -->
+          <IonButton size="small" fill="outline" @click="imprimerRecu">
+            <IonIcon :icon="printOutline" slot="start" /> Imprimer ou enregistrer
+          </IonButton>
         </template>
         <p v-else-if="!erreur" class="aide">Chargement…</p>
         <p v-if="erreur" class="erreur">{{ erreur }}</p>
@@ -396,14 +548,74 @@ async function envoyerLitige() {
 </template>
 
 <style scoped>
-.actions {
+.litige {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff6ea;
+  border: 1px solid #ffe2b3;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #7a4a06;
+}
+.entete-litige {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 10px;
+}
+.entete-litige b {
+  font-size: 12.5px;
+}
+.etape {
+  font-weight: 600;
+}
+.version {
+  display: block;
+  padding-top: 6px;
+  border-top: 1px solid #ffe2b3;
+}
+.version b {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  margin-top: 12px;
+  border-top: 1px solid var(--rd-trait-doux);
+  padding-top: 10px;
+}
+.geste {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 4px;
+  border: 1px solid var(--rd-trait);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+.geste ion-icon {
+  font-size: 17px;
+  color: var(--accent);
+}
+.geste.danger,
+.geste.danger ion-icon {
+  color: #9c2116;
 }
 .feuille {
-  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 20px 16px calc(20px + var(--rd-marge-basse, 12px));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -516,12 +728,55 @@ async function envoyerLitige() {
 }
 .entete {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.entete .min {
+  flex: 1;
+  min-width: 0;
 }
 .entete b {
+  display: block;
   font-size: 13.5px;
+}
+.entete .droite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.entete .prix {
+  font-size: 13px;
+  color: var(--accent);
+}
+.chevron {
+  font-size: 15px;
+  color: var(--rd-encre-douce);
+  flex-shrink: 0;
+  transition: transform 160ms ease;
+}
+.chevron.ouvert {
+  transform: rotate(180deg);
+}
+.jauge {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+.jauge span {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--rd-trait);
+}
+.jauge span.faite {
+  background: var(--accent);
 }
 .frise {
   list-style: none;

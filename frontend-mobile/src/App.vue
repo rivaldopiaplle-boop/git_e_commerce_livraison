@@ -106,7 +106,7 @@ function ouvrir(action: { route: string }) {
   width: 100%;
   background: #fff;
   border-radius: 20px 20px 0 0;
-  padding: 14px 16px calc(20px + 58px + env(safe-area-inset-bottom));
+  padding: 14px 16px calc(20px + 54px + var(--rd-marge-basse, 12px));
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
 }
 .poignee {

@@ -81,11 +81,35 @@ async function confirmer() {
   }
 }
 
+/**
+ * « Personne à l'adresse » — et ce qui se passe ensuite (O-5).
+ *
+ * Ta remarque : *« personne à l'adresse n'a pas de suite »*. C'était vrai, et
+ * la cause était côté serveur : l'arrêt restait « à faire », donc « prochain
+ * arrêt » redonnait la même adresse indéfiniment. Le livreur signalait, et
+ * rien ne bougeait.
+ *
+ * Il part maintenant **en fin de tournée** à la première tentative, et l'écran
+ * dit lequel des deux cas s'est produit — un geste dont on ne voit pas l'effet
+ * est un geste qu'on refait trois fois.
+ */
+const resultatAbsence = ref('')
+
 async function absent() {
   if (!arret.value) return
   occupe.value = true
+  erreur.value = ''
   try {
-    await livreur.signalerAbsence(arret.value.livraison.id, 'Personne à l’adresse.')
+    const retour = await livreur.signalerAbsence(
+      arret.value.livraison.id, 'Personne à l’adresse.',
+    )
+    resultatAbsence.value = retour?.tentative >= 2
+      ? 'Deuxième passage sans réponse : le colis repart chez le vendeur, et le '
+        + 'client est prévenu.'
+      : 'Tentative 1 sur 2. Cet arrêt repasse en fin de tournée : continuez, vous '
+        + 'y reviendrez.'
+  } catch (echec) {
+    erreur.value = echec instanceof Error ? echec.message : 'Signalement refusé.'
   } finally {
     occupe.value = false
   }
@@ -137,6 +161,9 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
       <IonButton expand="block" fill="clear" color="medium" :disabled="occupe" @click="absent">
         Personne à l'adresse
       </IonButton>
+
+      <p v-if="resultatAbsence" class="suite">{{ resultatAbsence }}</p>
+      <p v-if="erreur" class="erreur">{{ erreur }}</p>
     </template>
 
     <div v-else class="etat-vide">
@@ -204,7 +231,7 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
   color: var(--rd-trait);
 }
 .feuille {
-  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  padding: 20px 18px calc(20px + var(--rd-marge-basse, 12px));
 }
 .feuille h2 {
   margin: 0 0 4px;
@@ -223,5 +250,14 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
 }
 .erreur {
   color: #9c2116;
+}
+.suite {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--accent-doux);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--rd-encre-douce);
 }
 </style>

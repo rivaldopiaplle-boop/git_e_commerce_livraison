@@ -239,7 +239,7 @@ h1 {
   background: #fff;
   border-top: 1px solid var(--rd-trait);
   margin: 12px -14px -24px;
-  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  padding: 10px 14px calc(10px + var(--rd-marge-basse, 12px));
 }
 .prix {
   font-size: 20px;
