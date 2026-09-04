@@ -119,3 +119,51 @@ serait écrit disparaîtrait au prochain `git rebase main`.
 
 Cette branche n'a qu'un seul rôle : porter le commit de retrait. Le travail se
 fait sur `main`, toujours.
+
+---
+
+## Le piège du commit de retrait, découvert au bloc O
+
+Le commit de retrait supprimait **la liste des fichiers mobiles qui existaient
+le jour où il a été écrit**. Entre-temps, huit fichiers étaient nés — la carte,
+le carnet de cartes bancaires, le rafraîchissement, la vignette produit — et
+aucun n'y figurait.
+
+**Ils seraient partis sur le dépôt public sans que rien ne le signale.** Le
+rebase aurait réussi, le `push` aussi, et la moitié de l'application mobile se
+serait retrouvée en ligne.
+
+Le commit retire désormais **le dossier entier** :
+
+```bash
+git rm -r --cached frontend-mobile
+```
+
+C'est la différence entre une liste et une règle. Une liste vieillit ; une
+règle non.
+
+### Deuxième piège, du même passage
+
+Le commit de retrait d'origine supprimait aussi `outil_installe` et
+`preparer_npm` de `demarrer.py`, parce qu'ils avaient été écrits pour le mobile.
+Depuis [D-138](journal-decisions.md), **le front web s'en sert** : reprendre le
+retrait tel quel cassait le démarreur du dépôt public.
+
+La leçon vaut au-delà de ce fichier : **un retrait qui n'est jamais relu
+retire un jour ce qui est devenu commun.** Après chaque rebase, il faut au
+minimum vérifier que le démarreur compile :
+
+```bash
+git checkout public-sans-mobile
+python -c "import ast; ast.parse(open('demarrer.py', encoding='utf-8').read())"
+```
+
+### Vérifier avant de pousser
+
+```bash
+git checkout public-sans-mobile
+git ls-files | grep -c frontend-mobile   # doit rendre 0
+```
+
+Zéro, et rien d'autre. Ce contrôle prend deux secondes et remplace une
+relecture qu'on ne fera pas.
