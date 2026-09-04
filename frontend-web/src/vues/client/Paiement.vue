@@ -13,9 +13,12 @@
 //      vient de creer. Un panier multi-boutique donne plusieurs commandes
 //      (D-10) mais le client, lui, ne veut payer qu'une fois — et s'il est
 //      parti en cours de route, il retrouve exactement la meme page.
-//   2. **La simulation est annoncee**, pas cachee. Un faux formulaire de carte
-//      bancaire serait plus impressionnant trente secondes et malhonnete
-//      ensuite ; on dit ce que le projet fait vraiment.
+//   2. **Une carte est exigee, et la simulation reste annoncee** (O-5). Ta
+//      remarque : *« payer est valide sans carte, pas de demande de carte meme
+//      la premiere fois »*. Le formulaire est donc reel — cle de Luhn,
+//      echeance, cryptogramme — mais il n'accepte QUE les cartes d'essai, et
+//      il le dit. Un faux formulaire qui accepte tout serait impressionnant
+//      trente secondes et malhonnete ensuite.
 //   3. **Renoncer est un vrai bouton.** Sans lui, le stock resterait immobilise
 //      le temps de la reservation alors que l'acheteur a deja quitte la page.
 import {
@@ -26,7 +29,9 @@ import { useRouter } from 'vue-router'
 
 import { EchecApi } from '../../api/client'
 import { commandes, type Commande } from '../../api/commandes'
-import { paiements } from '../../api/paiements'
+import { paiements, type Carte } from '../../api/paiements'
+import Cartes from '../../composants/Cartes.vue'
+import Popup from '../../composants/Popup.vue'
 import Squelette from '../../composants/Squelette.vue'
 import { useNotification } from '../../notifications'
 import { usePanier } from '../../stores/panier'
@@ -45,6 +50,24 @@ const renoncement = ref(false)
 const erreur = ref('')
 const manquants = ref<Manquant[]>([])
 const minutes = ref(10)
+
+/**
+ * La carte retenue, et la reconfirmation — O-5.
+ *
+ * *« L'argent est paye sans reconfirmation. »* C'etait vrai : un clic, et
+ * c'etait debite. La popup dit ce qui va se passer, avec le montant ET la
+ * carte : « Payer 24,90 EUR avec Visa 4242 ». Un bouton « Payer » qui ne dit
+ * ni combien ni avec quoi n'est pas une confirmation.
+ */
+const carte = ref<Carte | null>(null)
+const confirmation = ref(false)
+
+function surCarteChoisie(choisie: Carte | null) {
+  carte.value = choisie
+  // Changer de carte rouvre les intentions : c'est elle qui est notee sur le
+  // paiement, et un ecran qui garde l'ancienne mentirait sur ce qui a servi.
+  if (choisie && !chargement.value) preparer()
+}
 
 const total = computed(() =>
   aPayer.value.reduce((somme, commande) => somme + commande.montant_total_centimes, 0),
@@ -78,9 +101,16 @@ async function preparer() {
     const toutes = await commandes.miennes()
     aPayer.value = toutes.filter((c) => c.statut_actuel === 'EN_ATTENTE_PAIEMENT')
 
+    // Sans carte, on ne tente meme pas : le serveur refuserait, et un
+    // bandeau rouge a l'ouverture de la page n'aide personne.
+    if (!carte.value) {
+      chargement.value = false
+      return
+    }
+
     for (const commande of aPayer.value) {
       try {
-        const intention = await paiements.ouvrir(commande.id)
+        const intention = await paiements.ouvrir(commande.id, carte.value.id)
         references.value[commande.id] = intention.reference
         minutes.value = intention.reservation_expire_dans_minutes
       } catch (souci) {
@@ -111,6 +141,7 @@ onMounted(preparer)
  * changerait, pas le reste du code (D-12).
  */
 async function payer() {
+  confirmation.value = false
   enCours.value = true
   erreur.value = ''
   let payees = 0
@@ -231,14 +262,20 @@ async function renoncer() {
         {{ erreur }}
       </p>
 
+      <!-- Le carnet de cartes (O-5) -->
+      <div class="mt-4">
+        <Cartes @choisie="surCarteChoisie" />
+      </div>
+
       <!-- La simulation, dite franchement -->
       <p class="bandeau bandeau-info mt-4">
         <ShieldCheck :size="15" class="mt-px shrink-0" />
         <span>
           <b>Paiement en mode simulation.</b>
-          Aucune carte n&rsquo;est demandee et aucun montant n&rsquo;est debite. Le
-          fournisseur reel est derriere la meme interface : le jour ou une cle existe,
-          seul le fichier des services externes change.
+          La carte est reellement verifiee — cle de Luhn, echeance, cryptogramme —
+          mais aucun montant n&rsquo;est debite, et seules les cartes d&rsquo;essai
+          sont acceptees. Le fournisseur reel est derriere la meme interface : le
+          jour ou une cle existe, seul le fichier des services externes change.
         </span>
       </p>
 
@@ -265,8 +302,9 @@ async function renoncer() {
           <button
             type="button"
             class="bouton-accent !px-5 !py-3 !text-[14px]"
-            :disabled="enCours || renoncement || !Object.keys(references).length"
-            @click="payer"
+            :disabled="enCours || renoncement || !carte || !Object.keys(references).length"
+            :title="carte ? `Payer avec ${carte.libelle}` : 'Ajoutez une carte'"
+            @click="confirmation = true"
           >
             <component :is="enCours ? Loader : CreditCard" :size="17"
                        :class="enCours ? 'animate-spin' : ''" />
@@ -288,5 +326,45 @@ async function renoncer() {
         </RouterLink>
       </div>
     </div>
+
+    <!-- La reconfirmation (O-5). Elle dit le montant ET la carte : un bouton
+         « Payer » qui ne dit ni combien ni avec quoi n'est pas une
+         confirmation, c'est un raccourci. -->
+    <Popup
+      v-if="confirmation && carte"
+      titre="Confirmer le paiement"
+      :explication="`Le montant sera debite immediatement. Aucune carte n'est reellement
+                     debitee : cette demonstration tourne en mode simulation.`"
+      @fermer="confirmation = false"
+    >
+      <dl class="flex flex-col gap-2.5 text-[13px]">
+        <div class="flex justify-between gap-3">
+          <dt class="text-encre-douce">Montant</dt>
+          <dd class="text-[17px] font-bold" :style="{ color: 'var(--accent)' }">
+            {{ euros(total) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-encre-douce">Carte</dt>
+          <dd class="font-semibold">{{ carte.libelle }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-encre-douce">Commandes</dt>
+          <dd class="font-semibold">
+            {{ aPayer.length }} commande{{ aPayer.length > 1 ? 's' : '' }},
+            livree{{ aPayer.length > 1 ? 's separement' : '' }}
+          </dd>
+        </div>
+      </dl>
+
+      <template #actions>
+        <button type="button" class="bouton-neutre !py-2" @click="confirmation = false">
+          Revenir
+        </button>
+        <button type="button" class="bouton-accent !py-2" :disabled="enCours" @click="payer">
+          <CreditCard :size="15" /> Payer {{ euros(total) }}
+        </button>
+      </template>
+    </Popup>
   </div>
 </template>

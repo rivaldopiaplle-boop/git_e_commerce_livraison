@@ -84,6 +84,17 @@ describe('le parcours du client va jusqu’au bout', () => {
   it('une commande payée montre son reçu', () => {
     expect(commandes.source).toContain('/facture')
   })
+
+  it('payer exige une carte et une reconfirmation', () => {
+    // « Payer est validé sans carte, pas de demande de carte même la première
+    // fois » et « l'argent est payé sans reconfirmation » (O-5). Les deux
+    // étaient vrais : un appui, et c'était débité.
+    expect(commander.source).toContain('composants/Cartes.vue')
+    expect(commander.source).toContain('id_carte')
+    expect(commander.source).toContain('confirmation')
+    // Le bouton n'appelle plus `payer` : il ouvre la feuille de confirmation.
+    expect(commander.source).toContain('confirmation = true')
+  })
 })
 
 describe('le profil fait ce que ses libellés annoncent', () => {
@@ -162,7 +173,11 @@ describe('la carte ne porte aucun secret', () => {
 })
 
 describe('le moteur de cartographie ne se télécharge pas pour rien', () => {
-  const ecrans = ECRANS.filter((e) => e.source.includes('<Carte'))
+  // On reconnaît un écran à carte par le CHEMIN du composant, pas par sa
+  // balise. `<Carte` attrapait aussi `<Cartes>` — le carnet de cartes
+  // bancaires (O-5) — et jusqu'au `ref<Carte | null>` d'une déclaration de
+  // type. Le chemin, lui, ne désigne qu'une seule chose.
+  const ecrans = ECRANS.filter((e) => e.source.includes('composants/Carte.vue'))
 
   it('au moins trois écrans du livreur montrent une carte', () => {
     expect(ecrans.length).toBeGreaterThanOrEqual(3)

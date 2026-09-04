@@ -8,19 +8,26 @@
 //
 // Une tournée dont les arrêts ne sont pas ordonnés n'est pas une tournée,
 // c'est une liste (D-44) : l'ordre est donc la première chose affichée.
-import { MapPin, Eye, Route, Truck, User } from '@lucide/vue'
+import {
+  AlertTriangle, Eye, MapPin, Play, RefreshCw, Route, Truck, User, UserPlus,
+} from '@lucide/vue'
 import { computed, defineAsyncComponent, ref } from 'vue'
 
-import { useRafraichissement } from '../../rafraichissement'
+import { EchecApi } from '../../api/client'
 import { espaces, type Tournee } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
-import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 import Onglets from '../../composants/Onglets.vue'
+import Popup from '../../composants/Popup.vue'
+import { useNotification } from '../../notifications'
+import { useRafraichissement } from '../../rafraichissement'
 
 type LigneTournee = Tournee & { [cle: string]: unknown }
 
+const notifier = useNotification()
+const erreur = ref('')
 const tournees = ref<LigneTournee[]>([])
 const enAttente = ref(0)
 const chargement = ref(true)
@@ -34,6 +41,57 @@ const selection = ref<LigneTournee | null>(null)
  * l'ordre, elle ne dit pas si l'ordre est **bon** : deux arrêts voisins
  * séparés de dix rangs ne se voient que sur une carte (N-5).
  */
+/**
+ * Ce que le gestionnaire FAIT — O-5, D-153.
+ *
+ * *« Les tournées doivent se calculer seules en fonction des commandes […] le
+ * gestionnaire demande le calcul, peut le refaire quand il veut, doit attribuer
+ * à un livreur juste et confirmer la réception des colis. »*
+ *
+ * Il ne pouvait rien faire : les tournées visibles venaient toutes du jeu de
+ * démonstration, d'où ta question *« d'où sort la tournée du livreur ? »*.
+ */
+const occupe = ref(false)
+const messageAction = ref('')
+const livreurs = ref<{ id: number; nom: string; disponibilite: string
+                       de_cet_entrepot: boolean; tournees_en_cours: number }[]>([])
+const attribution = ref<LigneTournee | null>(null)
+
+async function agir(action: () => Promise<unknown>, reussite: string) {
+  occupe.value = true
+  erreur.value = ''
+  try {
+    await action()
+    messageAction.value = reussite
+    notifier.succes(reussite)
+    await charger()
+  } catch (echec) {
+    erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Action refusée.'
+    notifier.echec(erreur.value)
+  } finally {
+    occupe.value = false
+  }
+}
+
+const calculer = (idTournee?: number) =>
+  agir(() => espaces.entrepot.calculerTournee(idTournee),
+       idTournee ? 'Tournée recalculée.' : 'Tournée montée avec les colis reçus.')
+
+async function ouvrirAttribution(tournee: LigneTournee) {
+  attribution.value = tournee
+  livreurs.value = await espaces.entrepot.livreursPourTournee()
+}
+
+const attribuer = (idLivreur: number) =>
+  agir(async () => {
+    await espaces.entrepot.attribuerTournee(attribution.value!.id, idLivreur)
+    attribution.value = null
+  }, 'Tournée confiée, le livreur est prévenu.')
+
+const fairePartir = (tournee: LigneTournee) =>
+  agir(() => espaces.entrepot.fairePartir(tournee.id),
+       'La tournée est partie : les clients voient leur commande avancer.')
+
 const pointsTournee = computed(() =>
   (selection.value?.arrets ?? [])
     .map((arret) => ({
@@ -58,7 +116,8 @@ const apercu = ref(false)
  */
 const premierChargement = ref(true)
 
-useRafraichissement(async () => {
+/** Nommee : les actions du gestionnaire la rejouent apres avoir agi. */
+async function charger() {
   try {
     const donnees = await espaces.entrepot.tournees()
     tournees.value = donnees.tournees as LigneTournee[]
@@ -69,11 +128,19 @@ useRafraichissement(async () => {
       selection.value =
         tournees.value.find((t) => ['BROUILLON', 'PRETE'].includes(t.statut)) ?? null
     }
+    // La tournée ouverte suit ce que les actions lui font : sans cela, le
+    // volet montrerait encore « brouillon » après une attribution.
+    if (selection.value) {
+      selection.value = tournees.value.find((t) => t.id === selection.value!.id)
+        ?? selection.value
+    }
     premierChargement.value = false
   } finally {
     chargement.value = false
   }
-}, { periodique: true })
+}
+
+useRafraichissement(charger, { periodique: true })
 
 const aPreparer = computed(() =>
   tournees.value.filter((t) => ['BROUILLON', 'PRETE'].includes(t.statut)),
@@ -139,6 +206,34 @@ const Carte = defineAsyncComponent(() => import('../../composants/Carte.vue'))
       ]"
     />
 
+    <!-- Monter une tournée : le geste qui n'existait nulle part (O-5, D-153).
+         Les tournées visibles venaient toutes du jeu de démonstration, d'où
+         ta question « d'où sort la tournée du livreur ? ». -->
+    <div class="carte mb-3 flex flex-wrap items-center justify-between gap-3 p-4">
+      <div>
+        <b class="text-[13.5px]">Monter une tournée</b>
+        <p class="mt-0.5 text-[12px] text-encre-douce">
+          <template v-if="enAttente">
+            {{ enAttente }} colis reçu{{ enAttente > 1 ? 's' : '' }} attend{{
+              enAttente > 1 ? 'ent' : '' }} d'être chargé{{ enAttente > 1 ? 's' : '' }}.
+            L'ordre part de l'entrepôt et suit le plus proche voisin.
+          </template>
+          <template v-else>
+            Rien à charger : confirmez d'abord la réception des colis dans
+            « Colis reçus ».
+          </template>
+        </p>
+      </div>
+      <button type="button" class="bouton-accent" :disabled="occupe" @click="calculer()">
+        <Route :size="15" /> Calculer une tournée
+      </button>
+    </div>
+
+    <p v-if="erreur" class="bandeau bandeau-erreur mb-3">
+      <AlertTriangle :size="15" class="mt-px shrink-0" />
+      {{ erreur }}
+    </p>
+
     <p v-if="enAttente" class="bandeau mb-4">
       <Route :size="15" class="mt-px shrink-0" />
       {{ enAttente }} livraison(s) Standard attendent d'être rattachées à une tournée.
@@ -184,6 +279,30 @@ const Carte = defineAsyncComponent(() => import('../../composants/Carte.vue'))
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
           @click="consulter(ligne)"
+        />
+        <!-- Recalculer : « il peut le refaire quand il veut, et le résultat
+             peut différer ». Une tournée partie, elle, ne bouge plus. -->
+        <ActionLigne
+          v-if="['BROUILLON', 'PRETE'].includes(ligne.statut)"
+          titre="Recalculer l'ordre des arrêts"
+          :icone="RefreshCw"
+          :desactive="occupe"
+          @click="calculer(ligne.id)"
+        />
+        <ActionLigne
+          v-if="['BROUILLON', 'PRETE'].includes(ligne.statut)"
+          :titre="ligne.livreur ? 'Changer de livreur' : 'Confier à un livreur'"
+          :icone="UserPlus"
+          :desactive="occupe"
+          @click="ouvrirAttribution(ligne)"
+        />
+        <ActionLigne
+          v-if="ligne.livreur && ligne.statut !== 'EN_COURS' && ligne.statut !== 'TERMINEE'"
+          titre="Faire partir la tournée"
+          :icone="Play"
+          ton="accent"
+          :desactive="occupe"
+          @click="fairePartir(ligne)"
         />
       </template>
 
@@ -278,5 +397,55 @@ const Carte = defineAsyncComponent(() => import('../../composants/Carte.vue'))
         </li>
       </ol>
     </FicheContextuelle>
+
+    <!-- À qui confier la tournée. La liste ne contient QUE des livreurs
+         Standard validés : proposer un choix qu'on refusera ensuite est une
+         erreur qu'on laisse faire (D-153). -->
+    <Popup
+      v-if="attribution"
+      :titre="`Confier la tournée n° ${attribution.id}`"
+      explication="Le livreur est prévenu immédiatement, et ses arrêts apparaissent
+                   sur son téléphone."
+      @fermer="attribution = null"
+    >
+      <div v-if="!livreurs.length" class="vide !py-6">
+        <b class="vide-titre">Aucun livreur Standard disponible</b>
+        <p class="vide-texte">
+          Les livreurs Express prennent des courses à la volée : ils ne peuvent pas
+          prendre de tournée.
+        </p>
+      </div>
+
+      <button
+        v-for="livreur in livreurs"
+        :key="livreur.id"
+        type="button"
+        class="flex w-full items-center gap-3 rounded-lg border border-trait p-2.5
+               text-left text-[13px] transition-colors hover:bg-atelier"
+        :disabled="occupe"
+        @click="attribuer(livreur.id)"
+      >
+        <User :size="15" class="shrink-0 text-encre-douce" />
+        <span class="flex-1">
+          <b>{{ livreur.nom }}</b>
+          <span class="ml-2 text-[11.5px] text-encre-douce">
+            {{ livreur.de_cet_entrepot ? 'de cet entrepôt' : 'autre entrepôt' }}
+          </span>
+        </span>
+        <span
+          class="badge"
+          :class="livreur.tournees_en_cours ? 'badge-attente' : 'badge-ok'"
+        >
+          {{ livreur.tournees_en_cours
+            ? `${livreur.tournees_en_cours} tournée(s) en cours` : 'libre' }}
+        </span>
+      </button>
+
+      <template #actions>
+        <button type="button" class="bouton-neutre !py-2" @click="attribution = null">
+          Fermer
+        </button>
+      </template>
+    </Popup>
   </div>
 </template>

@@ -11,16 +11,18 @@
 //   la bonne intuition : un magasinier ne modifie pas une commande, il la
 //   **réceptionne**. Les actions sont donc **consulter** (le détail dans le
 //   volet) et **localiser** (la destination), pas « modifier ».
-import { Eye, MapPin, Package, Warehouse } from '@lucide/vue'
+import { AlertTriangle, Eye, MapPin, Package, PackageCheck, Warehouse } from '@lucide/vue'
 import { computed, ref } from 'vue'
 
-import { useRafraichissement } from '../../rafraichissement'
+import { EchecApi } from '../../api/client'
 import { espaces, type Colis } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import FicheContextuelle from '../../composants/FicheContextuelle.vue'
+import { useNotification } from '../../notifications'
+import { useRafraichissement } from '../../rafraichissement'
 
 type LigneColis = {
   id: number
@@ -41,13 +43,46 @@ const selection = ref<LigneColis | null>(null)
 // lui, reste le contexte permanent de la ligne active.
 const apercu = ref(false)
 
-useRafraichissement(async () => {
+const notifier = useNotification()
+const occupe = ref(0)
+const erreur = ref('')
+
+/**
+ * « Ce colis est bien arrivé chez nous » — O-5, D-153.
+ *
+ * Ce geste n'existait pas. Rien ne distinguait un colis en camion d'un colis
+ * sur l'étagère, et c'est pourtant la seule chose qui autorise à le charger
+ * dans une tournée : on ne monte pas une tournée avec des colis qu'on n'a pas.
+ */
+async function receptionner(idColis: number) {
+  occupe.value = idColis
+  erreur.value = ''
+  try {
+    const retour = await espaces.entrepot.confirmerReception(idColis)
+    notifier.succes(
+      `${retour.numero_commande} reçu`,
+      retour.en_attente_de_tournee
+        ? `${retour.en_attente_de_tournee} colis attendent une tournée.`
+        : 'Vous pouvez monter une tournée.',
+    )
+    await charger()
+  } catch (echec) {
+    erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Réception refusée.'
+    notifier.echec(erreur.value)
+  } finally {
+    occupe.value = 0
+  }
+}
+
+async function charger() {
   try {
     donnees.value = await espaces.entrepot.colis()
   } finally {
     chargement.value = false
   }
-}, { periodique: true })
+}
+
+useRafraichissement(charger, { periodique: true })
 
 /** Les colis à plat : c'est ce qu'une liste triable demande. Le regroupement
  *  par boutique reste accessible par l'onglet et par la colonne. */
@@ -122,6 +157,11 @@ const quand = (date: string | null) =>
       ]"
     />
 
+    <p v-if="erreur" class="bandeau bandeau-erreur mb-3">
+      <AlertTriangle :size="15" class="mt-px shrink-0" />
+      {{ erreur }}
+    </p>
+
     <Liste
       :colonnes="colonnes"
       :lignes="visibles"
@@ -159,6 +199,13 @@ const quand = (date: string | null) =>
           :icone="Eye"
           :ton="selection?.id === ligne.id ? 'accent' : 'neutre'"
           @click="consulter(ligne)"
+        />
+        <ActionLigne
+          titre="Confirmer la réception de ce colis"
+          :icone="PackageCheck"
+          ton="accent"
+          :desactive="occupe === ligne.id"
+          @click="receptionner(ligne.id)"
         />
       </template>
 

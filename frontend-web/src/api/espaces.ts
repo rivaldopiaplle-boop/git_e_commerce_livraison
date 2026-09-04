@@ -181,6 +181,28 @@ export const espaces = {
   entrepot: {
     tableauDeBord: () => api.get<Record<string, number | string>>('/entrepots/tableau-de-bord'),
     colis: () => api.get<Colis>('/entrepots/colis'),
+
+    // Ce que le gestionnaire FAIT, et qu'il ne pouvait pas faire (O-5, D-153).
+    // Il consultait : les tournées visibles venaient toutes du jeu de
+    // démonstration.
+    confirmerReception: (idColis: number) =>
+      api.post<{
+        id: number; numero_commande: string; statut_commande: string
+        distance_km: string | null; remuneration_centimes: number | null
+        en_attente_de_tournee: number
+      }>(`/entrepots/colis/${idColis}/reception`, {}),
+    calculerTournee: (idTournee?: number) =>
+      api.post<Tournee>('/entrepots/tournees/calculer',
+        idTournee ? { id_tournee: idTournee } : {}),
+    attribuerTournee: (idTournee: number, idLivreur: number) =>
+      api.post<Tournee>(`/entrepots/tournees/${idTournee}/livreur`,
+        { id_livreur: idLivreur }),
+    fairePartir: (idTournee: number) =>
+      api.post<Tournee>(`/entrepots/tournees/${idTournee}/depart`, {}),
+    livreursPourTournee: () => api.get<{
+      id: number; nom: string; disponibilite: string
+      de_cet_entrepot: boolean; tournees_en_cours: number
+    }[]>('/entrepots/livreurs'),
     tournees: () =>
       api.get<{ tournees: Tournee[]; a_affecter: number; en_attente: number }>(
         '/entrepots/tournees',

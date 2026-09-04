@@ -13,6 +13,22 @@ import { routeur } from './routeur'
 // attente pour toujours en gardant leur stock reserve. Ces tests verifient ce
 // qui compte a l'ecran : le client voit ce qu'il paie, il peut renoncer, et il
 // apprend NOMMEMENT ce qui manque quand le stock est parti.
+//
+// **Depuis O-5, payer exige une carte.** Deux tests de ce fichier echouaient
+// apres ce changement, et pour la bonne raison : ils validaient un paiement que
+// personne n'avait autorise. Ils posent donc une carte, comme un vrai client.
+
+/** Le carnet de cartes du serveur de test : une carte deja enregistree. */
+const CARTE = {
+  id: 1, marque: 'VISA', quatre_derniers: '4242', mois_expiration: 12,
+  annee_expiration: 2030, par_defaut: true, expiree: false,
+  libelle: 'VISA •••• 4242',
+}
+
+const CARNET = {
+  cartes: [CARTE],
+  cartes_d_essai: [{ numero: '4242424242424242', marque: 'VISA', effet: 'acceptée' }],
+}
 
 const COMMANDE = {
   id: 12,
@@ -83,6 +99,7 @@ describe('l ecran de paiement', () => {
     const appels: string[] = []
     vi.stubGlobal('fetch', serveur({
       '/mes-commandes': [COMMANDE],
+      '/moi/cartes': CARNET,
       '/paiement': {
         reference: 'pi_sim_abc', secret_client: 'pi_sim_abc_secret',
         montant_centimes: 2870, statut: 'AUTORISE', simule: true,
@@ -103,6 +120,7 @@ describe('l ecran de paiement', () => {
   it('annonce franchement que le paiement est simule', async () => {
     vi.stubGlobal('fetch', serveur({
       '/mes-commandes': [COMMANDE],
+      '/moi/cartes': CARNET,
       '/paiement': {
         reference: 'pi_sim_abc', secret_client: 'x', montant_centimes: 2870,
         statut: 'AUTORISE', simule: true, reservation_expire_dans_minutes: 10,
@@ -114,15 +132,19 @@ describe('l ecran de paiement', () => {
     const ecran = monter(Paiement)
     await new Promise((suite) => setTimeout(suite, 20))
 
-    // Un faux formulaire de carte serait plus impressionnant trente secondes
-    // et malhonnete ensuite (D-101).
+    // La carte est reellement demandee (O-5), mais la simulation reste
+    // annoncee et seules les cartes d'essai sont acceptees. Un formulaire qui
+    // accepterait tout serait impressionnant trente secondes et malhonnete
+    // ensuite.
     expect(ecran.text()).toContain('simulation')
-    expect(ecran.text()).not.toContain('Numero de carte')
+    expect(ecran.text()).toContain('Moyen de paiement')
+    expect(ecran.text()).toContain('VISA •••• 4242')
   })
 
   it('nomme ce qui manque quand le stock est parti', async () => {
     vi.stubGlobal('fetch', serveur({
       '/mes-commandes': [COMMANDE],
+      '/moi/cartes': CARNET,
       '/paiement': {
         erreur: {
           code: 'stock_insuffisant',
@@ -145,6 +167,7 @@ describe('l ecran de paiement', () => {
     const appels: string[] = []
     vi.stubGlobal('fetch', serveur({
       '/mes-commandes': [COMMANDE],
+      '/moi/cartes': CARNET,
       '/paiement/abandonner': { reservation_relachee: true },
       '/paiement': {
         reference: 'pi_sim_abc', secret_client: 'x', montant_centimes: 2870,
@@ -167,9 +190,56 @@ describe('l ecran de paiement', () => {
     expect(appels).toContain('POST /commandes/12/paiement/abandonner')
   })
 
+  it('n ouvre aucune intention tant qu aucune carte n est choisie', async () => {
+    // Le defaut d'origine : « payer est valide sans carte, pas de demande de
+    // carte meme la premiere fois ». Sans carte, on ne tente meme pas — le
+    // serveur refuserait, et un bandeau rouge a l'ouverture n'aide personne.
+    const appels: string[] = []
+    vi.stubGlobal('fetch', serveur({
+      '/mes-commandes': [COMMANDE],
+      '/moi/cartes': { cartes: [], cartes_d_essai: CARNET.cartes_d_essai },
+    }, appels))
+
+    await poser()
+    monter(Paiement, appels)
+    await new Promise((suite) => setTimeout(suite, 30))
+
+    expect(appels.some((a) => a === 'POST /commandes/12/paiement')).toBe(false)
+  })
+
+  it('demande une reconfirmation qui dit le montant ET la carte', async () => {
+    // « L'argent est paye sans reconfirmation. » Un bouton qui ne dit ni
+    // combien ni avec quoi n'est pas une confirmation, c'est un raccourci.
+    const appels: string[] = []
+    vi.stubGlobal('fetch', serveur({
+      '/mes-commandes': [COMMANDE],
+      '/moi/cartes': CARNET,
+      '/paiement': {
+        reference: 'pi_sim_abc', secret_client: 'x', montant_centimes: 2870,
+        statut: 'AUTORISE', simule: true, reservation_expire_dans_minutes: 10,
+        identifiant_paiement: 5, carte: CARTE,
+      },
+      '/paiements/confirmation': { statut: 'CAPTURE' },
+    }, appels))
+
+    await poser()
+    const ecran = monter(Paiement, appels)
+    await new Promise((suite) => setTimeout(suite, 30))
+
+    const payer = ecran.findAll('button').find((b) => b.text().includes('Payer 28,70'))
+    await payer!.trigger('click')
+    await new Promise((suite) => setTimeout(suite, 20))
+
+    // Cliquer n'a PAS paye : il a ouvert la reconfirmation.
+    expect(appels.some((a) => a.includes('/paiements/confirmation'))).toBe(false)
+    expect(ecran.text()).toContain('Confirmer le paiement')
+    expect(ecran.text()).toContain('VISA •••• 4242')
+  })
+
   it('ne montre rien a payer quand tout est regle', async () => {
     vi.stubGlobal('fetch', serveur({
       '/mes-commandes': [{ ...COMMANDE, statut_actuel: 'PAYEE' }],
+      '/moi/cartes': CARNET,
     }))
 
     await poser()

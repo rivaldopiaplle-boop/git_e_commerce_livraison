@@ -23,6 +23,44 @@ export type Intention = {
   simule: boolean
   reservation_expire_dans_minutes: number
   identifiant_paiement: number
+  /** La carte retenue : c'est elle qui permet d'écrire « payer 24,90 € avec
+   *  Visa •••• 4242 » plutôt qu'un « Payer » qui ne dit rien (O-5). */
+  carte: Carte
+}
+
+export type Carte = {
+  id: number
+  marque: string
+  quatre_derniers: string
+  mois_expiration: number
+  annee_expiration: number
+  par_defaut: boolean
+  expiree: boolean
+  libelle: string
+}
+
+export type SaisieCarte = {
+  numero: string
+  mois: string
+  annee: string
+  cryptogramme: string
+}
+
+/** Une part de l'argent payé : une boutique, le livreur, ou la plateforme. */
+export type PartArgent = {
+  qui: string
+  role: 'VENDEUR' | 'LIVREUR' | 'PLATEFORME'
+  montant_centimes: number
+  statut: string
+  detail: string
+}
+
+export type Repartition = {
+  numero_commande: string
+  montant_total_centimes: number
+  montant_rembourse_centimes: number
+  statut_paiement: string
+  parts: PartArgent[]
 }
 
 export type ResultatPaiement = {
@@ -54,8 +92,22 @@ export type Facture = {
 }
 
 export const paiements = {
-  ouvrir: (commande: number) =>
-    api.post<Intention>(`/commandes/${commande}/paiement`, {}),
+  ouvrir: (commande: number, idCarte?: number) =>
+    api.post<Intention>(`/commandes/${commande}/paiement`,
+      idCarte ? { id_carte: idCarte } : {}),
+
+  /** Le carnet de cartes. Le numéro ne touche jamais la base : un jeton le
+   *  remplace côté serveur (D-150). */
+  cartes: () => api.get<{
+    cartes: Carte[]
+    cartes_d_essai: { numero: string; marque: string; effet: string }[]
+  }>('/moi/cartes'),
+  ajouterCarte: (saisie: SaisieCarte) => api.post<Carte>('/moi/cartes', saisie),
+  retirerCarte: (id: number) => api.supprimer<{ cartes: Carte[] }>(`/moi/cartes/${id}`),
+
+  /** Où va l'argent d'une commande : les boutiques, le livreur, la plateforme. */
+  repartition: (commande: number) =>
+    api.get<Repartition>(`/commandes/${commande}/repartition`),
   abandonner: (commande: number) =>
     api.post<{ reservation_relachee: boolean }>(
       `/commandes/${commande}/paiement/abandonner`,
