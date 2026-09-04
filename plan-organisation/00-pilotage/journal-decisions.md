@@ -2368,3 +2368,83 @@ moyen de provoquer un échec ne devait pas disparaître avec le défaut.
 **La leçon, au-delà du cas** : un simulateur qui décide à partir d'une valeur
 qu'il n'a pas reçue devine, et deviner produit exactement ce genre de panne —
 rare, non reproductible, et impossible à expliquer à la personne qui la subit.
+
+
+### D-144 — « Annuler » ne faisait rien d'autre que changer une étiquette
+
+**Ton bloc N-2** : *« continue sur ce qui reste ouvert »*. En reprenant
+[D-81](#d-81--la-chaîne-dune-commande-suit-le-métier-pas-une-machine-abstraite)
+— *« la chaîne n'est pas comme dans la réalité »* — les trois points annoncés
+étaient restés sur le papier. Le troisième cachait un vrai trou.
+
+**Le bouton « Annuler » du vendeur posait le statut `ANNULEE`, et rien d'autre.**
+Quand un restaurant annulait :
+
+- **le client n'était prévenu de rien.** Sa commande restait « payée » ;
+- **son argent restait pris.** Aucun remboursement, aucune trace ;
+- **le stock ne revenait pas à la vente**, alors que la vente n'avait pas eu
+  lieu : trois plats disparaissaient du compteur pour toujours ;
+- **aucun motif n'était demandé**, alors que
+  [D-07](#d-07--annulation-vendeur--motif-obligatoire-notification-forte)
+  l'exige depuis le début du projet.
+
+C'est exactement ce que tu décrivais : les étiquettes changeaient, le métier ne
+suivait pas.
+
+`commandes/annulation.py` fait maintenant le travail complet, en une
+transaction : motif classé **et** explication d'au moins quinze caractères,
+stock rendu avec son mouvement, remboursement de la part concernée seulement,
+répartition vendeur passée en `ANNULE`, et **notification forte** au client
+portant l'explication du vendeur mot pour mot.
+
+Deux points de finesse qui font la différence entre une annulation juste et une
+annulation approximative :
+
+- **on ne rembourse que la part annulée.** Sur une commande Standard à trois
+  boutiques, une seule annule : les deux autres livrent. Rembourser la totalité
+  serait aussi faux que ne rien rembourser ;
+- **la commande ne tombe que si toutes ses parts tombent.** Sinon elle continue,
+  et le message du client le dit : « le reste de votre commande suit son cours ».
+
+Le motif vient d'une **liste fermée** doublée d'un texte libre obligatoire. La
+liste se compte — on peut voir qu'une boutique annule six fois par semaine pour
+rupture, ce qu'un texte libre ne dirait jamais ; le texte, lui, est ce que le
+client lit, et « rupture » tout court l'envoie ouvrir un litige.
+
+### Les deux autres points de D-81, enfin appliqués
+
+**Le vocabulaire suit le circuit.** Un restaurant « met en préparation » puis
+« signale prête » ; un expéditeur de colis « prépare le colis » puis
+« l'expédie vers l'entrepôt ». Même statut technique, deux gestes différents,
+deux mots différents. Les libellés sont **servis par l'API** : deux tables de
+vocabulaire recopiées des deux côtés divergeraient au premier ajout.
+
+**Le temps compte.** Chaque part dit depuis combien de temps elle attend *à son
+étape courante*, et passe en alerte au-delà du délai annoncé au client — vingt
+minutes en Express, vingt-quatre heures en Standard. Compter depuis la commande
+plutôt que depuis l'étape donnerait une alerte permanente, qu'on apprendrait à
+ignorer ; et une alerte qu'on ignore ne sert à rien.
+
+
+### D-145 — Les formulaires de popup validaient encore à la main
+
+[D-26](#d-26--interface--tailwind-css--primevue-en-sinspirant-des-cms-marchands) avait introduit `vee-validate` + `zod`
+pour les formulaires de page. **Les popups étaient restées à l'écart** : un
+`required` par-ci, un `minlength` par-là, et le reste découvert au retour du
+serveur.
+
+Trois sont converties — le carnet d'adresses, la création d'un compte
+gestionnaire, l'annulation vendeur — et deux schémas s'ajoutent à
+`validation.ts`. Ce que ça change concrètement :
+
+- un code postal à quatre chiffres est refusé **avant** l'envoi, sous le champ
+  fautif, et non par un bandeau rouge en haut de la popup qui oblige à relire
+  les cinq champs ;
+- le message du serveur se pose **sur le bon champ** quand on sait lequel :
+  « cette adresse e-mail est déjà prise » apparaît sous l'e-mail ;
+- la règle de mot de passe a **une seule définition** dans tout le projet, et
+  elle ne peut plus diverger d'un écran à l'autre.
+
+Le serveur reste seul juge : ces règles doublent les siennes pour le confort,
+elles ne les remplacent pas. Une validation qui n'existe que dans le navigateur
+ne protège de rien.

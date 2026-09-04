@@ -17,16 +17,19 @@
 import {
   AlertTriangle, Check, Mail, Power, ShieldCheck, UserPlus, Users, X,
 } from '@lucide/vue'
+import { useForm } from 'vee-validate'
 import { computed, onMounted, ref } from 'vue'
 
 import { api, EchecApi } from '../../api/client'
 import { espaces, type MembrePersonnel } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
+import ChampTexte from '../../composants/ChampTexte.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Popup from '../../composants/Popup.vue'
 import Volet from '../../composants/Volet.vue'
 import { useNotification } from '../../notifications'
+import { schemaGestionnaire } from '../../validation'
 
 type Ligne = MembrePersonnel & {
   actif: boolean
@@ -44,7 +47,6 @@ const selection = ref<Ligne | null>(null)
 const creation = ref(false)
 const occupe = ref(false)
 const erreur = ref('')
-const nouveau = ref({ prenom: '', nom: '', email: '', mot_de_passe: '' })
 
 const bascule = ref<Ligne | null>(null)
 const motif = ref('')
@@ -76,22 +78,42 @@ const colonnes: Colonne<Ligne>[] = [
   { cle: 'statut', titre: 'Accès', largeur: 110, aligne: 'centre' },
 ]
 
-async function creer() {
+/**
+ * La saisie passe par `vee-validate` — N-2.
+ *
+ * Le formulaire validait à la main : un `minlength` sur le mot de passe, et le
+ * reste découvert au retour du serveur. Une adresse e-mail déjà prise revenait
+ * en bandeau rouge en haut de la popup, loin du champ fautif.
+ *
+ * Le schéma est celui de l'inscription : la règle de mot de passe a une seule
+ * définition dans tout le projet, et elle ne peut plus diverger d'un écran à
+ * l'autre.
+ */
+const { handleSubmit, resetForm, setFieldError } = useForm({
+  validationSchema: schemaGestionnaire,
+  initialValues: { prenom: '', nom: '', email: '', mot_de_passe: '' },
+})
+
+const creer = handleSubmit(async (saisie) => {
   erreur.value = ''
   occupe.value = true
   try {
-    await espaces.vendeur.creerGestionnaire(nouveau.value)
-    notifier.succes(`Le compte de ${nouveau.value.prenom} est créé.`)
+    await espaces.vendeur.creerGestionnaire(saisie)
+    notifier.succes(`Le compte de ${saisie.prenom} est créé.`)
     creation.value = false
-    nouveau.value = { prenom: '', nom: '', email: '', mot_de_passe: '' }
+    resetForm()
     await charger()
   } catch (echec) {
     erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Création refusée.'
+    // Le message du serveur se pose SOUS le champ concerné quand on sait
+    // lequel : « cette adresse est déjà prise » en haut de la popup oblige à
+    // relire les quatre champs pour trouver lequel corriger.
+    if (/e-?mail|adresse/i.test(erreur.value)) setFieldError('email', erreur.value)
     notifier.echec(erreur.value)
   } finally {
     occupe.value = false
   }
-}
+})
 
 /** Dire ce que l'action fait vraiment : suspendre n'est pas supprimer. */
 const explicationBascule = computed(() =>
@@ -298,32 +320,17 @@ async function confirmerBascule() {
     >
       <form class="flex flex-col gap-3" @submit.prevent="creer">
         <div class="flex gap-3">
-          <label class="flex flex-1 flex-col gap-1.5">
-            <span class="etiquette">Prénom</span>
-            <input v-model="nouveau.prenom" class="champ-clair" required />
-          </label>
-          <label class="flex flex-1 flex-col gap-1.5">
-            <span class="etiquette">Nom</span>
-            <input v-model="nouveau.nom" class="champ-clair" required />
-          </label>
+          <div class="flex-1"><ChampTexte nom="prenom" label="Prénom" /></div>
+          <div class="flex-1"><ChampTexte nom="nom" label="Nom" /></div>
         </div>
-        <label class="flex flex-col gap-1.5">
-          <span class="etiquette">Adresse e-mail</span>
-          <input v-model="nouveau.email" type="email" class="champ-clair" required />
-        </label>
-        <label class="flex flex-col gap-1.5">
-          <span class="etiquette">Mot de passe provisoire</span>
-          <input
-            v-model="nouveau.mot_de_passe"
-            type="text"
-            class="champ-clair"
-            minlength="10"
-            required
-          />
-          <span class="text-[11.5px] text-encre-douce">
-            Dix caractères au minimum. Communiquez-le à votre employé, qui le changera.
-          </span>
-        </label>
+        <ChampTexte nom="email" label="Adresse e-mail" type="email" :icone="Mail" />
+        <!-- En clair, et c'est voulu : le vendeur doit pouvoir le lire pour le
+             dicter à son employé. Ce n'est pas son mot de passe à lui. -->
+        <ChampTexte
+          nom="mot_de_passe"
+          label="Mot de passe provisoire"
+          aide="Dix caractères au minimum. Communiquez-le à votre employé, qui le changera."
+        />
 
         <p v-if="erreur" class="bandeau bandeau-erreur">
           <AlertTriangle :size="15" class="mt-px shrink-0" /> {{ erreur }}

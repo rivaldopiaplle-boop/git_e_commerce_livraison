@@ -15,16 +15,19 @@
 // L'adresse principale n'est pas un détail de confort : c'est elle qui décide
 // quelles boutiques Express apparaissent au catalogue (D-09).
 import { AlertTriangle, Check, MapPin, Pencil, Plus, Star, Trash2 } from '@lucide/vue'
+import { useForm } from 'vee-validate'
 import { computed, onMounted, ref } from 'vue'
 
 import { EchecApi } from '../../api/client'
 import { espaces, type Adresse } from '../../api/espaces'
 import ActionLigne from '../../composants/ActionLigne.vue'
+import ChampTexte from '../../composants/ChampTexte.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Popup from '../../composants/Popup.vue'
 import Volet from '../../composants/Volet.vue'
 import { useNotification } from '../../notifications'
+import { schemaAdresse } from '../../validation'
 
 type Ligne = Adresse & { [cle: string]: unknown }
 
@@ -42,8 +45,23 @@ const selection = ref<Ligne | null>(null)
 
 /** La même popup sert à créer et à corriger : c'est le même formulaire. */
 const formulaire = ref<{ ouvert: boolean; id: number | null }>({ ouvert: false, id: null })
-const saisie = ref({ ...VIDE })
 const retrait = ref<Ligne | null>(null)
+
+/**
+ * La saisie passe par `vee-validate` — N-2.
+ *
+ * Ce formulaire validait à la main : un `required` sur trois champs, et le
+ * reste découvert au retour du serveur. Un code postal à quatre chiffres
+ * partait, revenait refusé, et il fallait relire la popup pour comprendre
+ * lequel des cinq champs n'allait pas.
+ *
+ * Le schéma est celui de `validation.ts`, partagé avec l'inscription : le
+ * code postal a une seule définition dans tout le projet.
+ */
+const { handleSubmit, resetForm } = useForm({
+  validationSchema: schemaAdresse,
+  initialValues: { ...VIDE },
+})
 
 async function charger() {
   chargement.value = true
@@ -90,33 +108,38 @@ const explicationFormulaire = computed(() =>
 
 function ouvrirCreation() {
   formulaire.value = { ouvert: true, id: null }
-  saisie.value = { ...VIDE }
+  // `resetForm` et non des affectations : il remet aussi les champs à l'état
+  // « pas encore touché », donc aucune erreur d'un essai précédent ne reste
+  // affichée sous un champ qu'on vient de vider.
+  resetForm({ values: { ...VIDE } })
   erreur.value = ''
 }
 
 function ouvrirCorrection(adresse: Ligne) {
   formulaire.value = { ouvert: true, id: adresse.id }
-  saisie.value = {
-    libelle: adresse.libelle,
-    rue: adresse.rue,
-    complement: adresse.complement,
-    code_postal: adresse.code_postal,
-    ville: adresse.ville,
-    instructions_livraison: adresse.instructions_livraison,
-  }
+  resetForm({
+    values: {
+      libelle: adresse.libelle,
+      rue: adresse.rue,
+      complement: adresse.complement,
+      code_postal: adresse.code_postal,
+      ville: adresse.ville,
+      instructions_livraison: adresse.instructions_livraison,
+    },
+  })
   erreur.value = ''
 }
 
-async function enregistrer() {
+const enregistrer = handleSubmit(async (saisie) => {
   const correction = formulaire.value.id !== null
   await agir(
     correction
-      ? espaces.client.modifierAdresse(formulaire.value.id!, saisie.value)
-      : espaces.client.ajouterAdresse(saisie.value),
+      ? espaces.client.modifierAdresse(formulaire.value.id!, saisie)
+      : espaces.client.ajouterAdresse(saisie),
     correction ? 'Adresse corrigée.' : 'Adresse ajoutée à votre carnet.',
   )
   if (!erreur.value) formulaire.value = { ouvert: false, id: null }
-}
+})
 
 async function retirer() {
   if (!retrait.value) return
@@ -282,35 +305,26 @@ async function retirer() {
       :explication="explicationFormulaire"
       @fermer="formulaire = { ouvert: false, id: null }"
     >
+      <!-- Les erreurs s'affichent sous le champ, au moment où on le quitte :
+           découvrir « code postal invalide » après un aller-retour serveur est
+           ce qui fait abandonner un formulaire (N-2). -->
       <form class="flex flex-col gap-3" @submit.prevent="enregistrer">
-        <label class="flex flex-col gap-1.5">
-          <span class="etiquette">Libellé</span>
-          <input v-model="saisie.libelle" class="champ-clair" placeholder="Domicile, Bureau…" />
-        </label>
-        <label class="flex flex-col gap-1.5">
-          <span class="etiquette">Rue</span>
-          <input v-model="saisie.rue" class="champ-clair" required />
-        </label>
-        <label class="flex flex-col gap-1.5">
-          <span class="etiquette">Complément</span>
-          <input v-model="saisie.complement" class="champ-clair"
-                 placeholder="Bâtiment, étage, code…" />
-        </label>
+        <ChampTexte nom="libelle" label="Libellé" aide="Domicile, Bureau…" />
+        <ChampTexte nom="rue" label="Rue" :icone="MapPin" autocomplete="street-address" />
+        <ChampTexte nom="complement" label="Complément" aide="Bâtiment, étage, code…" />
         <div class="flex gap-3">
-          <label class="flex w-32 flex-col gap-1.5">
-            <span class="etiquette">Code postal</span>
-            <input v-model="saisie.code_postal" class="champ-clair" required />
-          </label>
-          <label class="flex flex-1 flex-col gap-1.5">
-            <span class="etiquette">Ville</span>
-            <input v-model="saisie.ville" class="champ-clair" required />
-          </label>
+          <div class="w-36">
+            <ChampTexte nom="code_postal" label="Code postal" autocomplete="postal-code" />
+          </div>
+          <div class="flex-1">
+            <ChampTexte nom="ville" label="Ville" autocomplete="address-level2" />
+          </div>
         </div>
-        <label class="flex flex-col gap-1.5">
-          <span class="etiquette">Instructions pour le livreur</span>
-          <input v-model="saisie.instructions_livraison" class="champ-clair"
-                 placeholder="Code portail, étage, laisser chez le gardien…" />
-        </label>
+        <ChampTexte
+          nom="instructions_livraison"
+          label="Instructions pour le livreur"
+          aide="Code portail, étage, laisser chez le gardien…"
+        />
       </form>
 
       <template #actions>

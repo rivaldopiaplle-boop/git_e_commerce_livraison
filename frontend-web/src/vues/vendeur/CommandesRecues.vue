@@ -10,16 +10,22 @@
 // n'a pas à connaître la machine à états, il affiche ce qu'on lui donne.
 // C'est ce qui garantit qu'un vendeur ne saute jamais une étape.
 import {
-  AlertTriangle, Bike, Check, ClipboardList, Eye, MapPin, Package, UserRound, X,
+  AlertTriangle, Bike, Check, ClipboardList, Clock, Eye, MapPin, Package, UserRound, X,
 } from '@lucide/vue'
+import { useForm } from 'vee-validate'
 import { computed, onMounted, ref } from 'vue'
 
+import { EchecApi } from '../../api/client'
 import { commandes, type SousCommande } from '../../api/commandes'
 import ActionLigne from '../../composants/ActionLigne.vue'
+import ChampTexte from '../../composants/ChampTexte.vue'
+import FicheContextuelle from '../../composants/FicheContextuelle.vue'
 import Liste from '../../composants/Liste.vue'
 import type { Colonne } from '../../composants/liste'
 import Onglets from '../../composants/Onglets.vue'
-import FicheContextuelle from '../../composants/FicheContextuelle.vue'
+import Popup from '../../composants/Popup.vue'
+import { useNotification } from '../../notifications'
+import { schemaAnnulationVendeur } from '../../validation'
 
 type Ligne = SousCommande & { [cle: string]: unknown }
 
@@ -47,11 +53,34 @@ const parEtape = (cle: string) =>
 
 const visibles = computed(() => parEtape(onglet.value))
 
+/**
+ * Les mots du bouton viennent du SERVEUR — D-81.
+ *
+ * Ta remarque : *« la chaîne n'est pas comme dans la réalité »*. Un restaurant
+ * « met en préparation » puis « signale prête » ; un expéditeur de colis
+ * « prépare le colis » puis « l'expédie vers l'entrepôt ». Même statut
+ * technique, deux gestes différents, deux mots différents.
+ *
+ * Cette table n'est plus qu'un **repli** : si le serveur ne donne pas de
+ * libellé, on retombe sur le vocabulaire générique plutôt que sur un bouton
+ * muet.
+ */
 const LIBELLES: Record<string, string> = {
   EN_PREPARATION: 'Commencer la préparation',
   PRETE: 'Marquer prête',
   EXPEDIEE: 'Expédier',
-  ANNULEE: 'Annuler la commande',
+  ANNULEE: 'Annuler cette part',
+}
+
+const mot = (ligne: Ligne, statut: string) =>
+  ligne.libelles_suites?.[statut] ?? LIBELLES[statut] ?? 'Étape suivante'
+
+/** « 3 h 20 » plutôt que « 200 min » : personne ne compte en minutes au-delà d'une heure. */
+function duree(minutes: number) {
+  if (minutes < 60) return `${minutes} min`
+  const heures = Math.floor(minutes / 60)
+  if (heures < 24) return minutes % 60 ? `${heures} h ${minutes % 60}` : `${heures} h`
+  return `${Math.floor(heures / 24)} j`
 }
 
 const BADGES: Record<string, string> = {
@@ -93,6 +122,65 @@ async function avancer(sous: Ligne, statut: string) {
  *  elle ne se déclenche pas par le même geste que « avancer ». */
 const suiteNormale = (sous: Ligne) =>
   (sous.suites_possibles ?? []).find((statut) => statut !== 'ANNULEE') ?? null
+
+// ── L'annulation, qui n'était pas une annulation ─────────────────────────
+//
+// Le bouton posait le statut `ANNULEE` et s'arrêtait là : pas de motif, pas de
+// remboursement, pas de stock rendu, et **le client n'était prévenu de rien**.
+// D-07 exige un motif obligatoire et une notification forte depuis le début du
+// projet ; ni l'un ni l'autre n'existaient (D-144).
+const MOTIFS = [
+  { cle: 'RUPTURE', libelle: 'Produit finalement indisponible' },
+  { cle: 'FERMETURE', libelle: 'Boutique fermée ou service interrompu' },
+  { cle: 'ERREUR_PRIX', libelle: 'Erreur de prix ou de description' },
+  { cle: 'CLIENT', libelle: 'À la demande du client' },
+  { cle: 'AUTRE', libelle: 'Autre raison' },
+]
+
+const notifier = useNotification()
+const annulation = ref<Ligne | null>(null)
+
+const { handleSubmit, resetForm, values, setFieldValue } = useForm({
+  validationSchema: schemaAnnulationVendeur,
+  initialValues: { motif: 'RUPTURE', explication: '' },
+})
+
+function ouvrirAnnulation(ligne: Ligne) {
+  annulation.value = ligne
+  resetForm({ values: { motif: 'RUPTURE', explication: '' } })
+  erreur.value = ''
+}
+
+/** Ce que l'annulation va réellement déclencher, écrit avant de la confirmer. */
+const consequences = computed(() => {
+  const ligne = annulation.value
+  if (!ligne) return []
+  return [
+    `${euros(ligne.montant_vendeur_centimes + ligne.montant_commission_centimes)} `
+      + 'seront remboursés au client.',
+    'Les articles retournent en stock, avec un mouvement à votre nom.',
+    'Le client reçoit votre explication, mot pour mot.',
+    'Vous ne serez pas payé pour cette part.',
+  ]
+})
+
+const confirmerAnnulation = handleSubmit(async (saisie) => {
+  const ligne = annulation.value
+  if (!ligne) return
+  erreur.value = ''
+  occupe.value = true
+  try {
+    const miseAJour = await commandes.avancer(ligne.id, 'ANNULEE', saisie)
+    Object.assign(ligne, miseAJour)
+    annulation.value = null
+    notifier.succes('Le client a été prévenu et remboursé.')
+  } catch (echec) {
+    erreur.value = echec instanceof EchecApi ? echec.erreur.message : 'Annulation refusée.'
+    notifier.echec(erreur.value)
+  } finally {
+    occupe.value = false
+  }
+})
 
 /**
  * L'oeil : on consulte, on ne selectionne pas seulement.
@@ -174,12 +262,26 @@ function depuis(quand: string) {
         </span>
         <!-- Qui a deja agi (D-80). Le vendeur et son personnel travaillaient
              sur la meme file sans savoir lequel des deux l'avait prise. -->
-        <span
-          v-if="ligne.dernier_acte"
-          class="mt-0.5 flex items-center gap-1 text-[11px] text-encre-douce"
-        >
-          <UserRound :size="10" class="shrink-0" />
-          {{ ligne.dernier_acte.qui }}, {{ depuis(ligne.dernier_acte.quand) }}
+        <span class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
+          <span v-if="ligne.dernier_acte" class="flex items-center gap-1 text-encre-douce">
+            <UserRound :size="10" class="shrink-0" />
+            {{ ligne.dernier_acte.qui }}, {{ depuis(ligne.dernier_acte.quand) }}
+          </span>
+          <!-- Le temps compte (D-81) : une file où tout se ressemble se traite
+               dans le désordre. Au-delà du délai annoncé au client, la ligne
+               passe en alerte. -->
+          <span
+            v-if="ligne.attente?.minutes !== null && ligne.attente"
+            class="flex items-center gap-1"
+            :class="ligne.attente.en_retard ? 'font-bold text-[#9c2116]' : 'text-encre-douce'"
+            :title="ligne.attente.en_retard
+              ? `Au-delà du délai annoncé au client (${duree(ligne.attente.delai_minutes!)})`
+              : 'Temps d’attente à cette étape'"
+          >
+            <Clock :size="10" class="shrink-0" />
+            {{ duree(ligne.attente.minutes!) }}
+            <span v-if="ligne.attente.en_retard">— en retard</span>
+          </span>
         </span>
       </template>
       <template #col-destination="{ ligne }">
@@ -210,7 +312,7 @@ function depuis(quand: string) {
         />
         <ActionLigne
           v-if="suiteNormale(ligne)"
-          :titre="LIBELLES[suiteNormale(ligne)!] ?? 'Étape suivante'"
+          :titre="mot(ligne, suiteNormale(ligne)!)"
           :icone="Check"
           ton="accent"
           :desactive="occupe"
@@ -218,11 +320,11 @@ function depuis(quand: string) {
         />
         <ActionLigne
           v-if="(ligne.suites_possibles ?? []).includes('ANNULEE')"
-          titre="Annuler cette commande"
+          :titre="mot(ligne, 'ANNULEE')"
           :icone="X"
           ton="danger"
           :desactive="occupe"
-          @click="avancer(ligne, 'ANNULEE')"
+          @click="ouvrirAnnulation(ligne)"
         />
       </template>
 
@@ -305,7 +407,17 @@ function depuis(quand: string) {
           @click="avancer(selection, suiteNormale(selection)!)"
         >
           <Check :size="15" />
-          {{ LIBELLES[suiteNormale(selection)!] ?? 'Étape suivante' }}
+          {{ mot(selection, suiteNormale(selection)!) }}
+        </button>
+        <button
+          v-if="(selection.suites_possibles ?? []).includes('ANNULEE')"
+          type="button"
+          class="bouton-neutre mt-2 w-full !text-[#9c2116]"
+          :disabled="occupe"
+          @click="ouvrirAnnulation(selection)"
+        >
+          <X :size="15" />
+          {{ mot(selection, 'ANNULEE') }}
         </button>
         <p class="mt-2 text-[11px] leading-relaxed text-encre-douce">
           On passe au statut suivant, jamais à un statut choisi librement : c'est le
@@ -313,5 +425,69 @@ function depuis(quand: string) {
         </p>
       </div>
     </FicheContextuelle>
+
+    <!-- Annuler n'est pas « avancer d'un cran » : le client est remboursé, le
+         stock revient, et il lit l'explication. On le dit AVANT (D-07, D-144). -->
+    <Popup
+      v-if="annulation"
+      :titre="`Annuler ${annulation.numero_commande ?? `la commande n° ${annulation.id}`}`"
+      explication="Cette annulation est définitive et le client en est prévenu
+                   immédiatement, avec votre explication."
+      @fermer="annulation = null"
+    >
+      <form class="flex flex-col gap-3" @submit.prevent="confirmerAnnulation">
+        <div class="flex flex-col gap-2">
+          <span class="etiquette">Pourquoi ?</span>
+          <label
+            v-for="choix in MOTIFS"
+            :key="choix.cle"
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-[12.5px]
+                   transition-colors"
+            :class="values.motif === choix.cle
+              ? 'border-[color:var(--accent)] bg-atelier'
+              : 'border-trait hover:bg-atelier'"
+          >
+            <input
+              type="radio"
+              name="motif-annulation"
+              :value="choix.cle"
+              :checked="values.motif === choix.cle"
+              @change="setFieldValue('motif', choix.cle)"
+            />
+            {{ choix.libelle }}
+          </label>
+        </div>
+
+        <ChampTexte
+          nom="explication"
+          label="Votre explication au client"
+          aide="C'est ce texte qu'il lira, mot pour mot. Une phrase honnête évite un litige."
+        />
+
+        <ul class="flex flex-col gap-1 rounded-lg bg-atelier p-3 text-[11.5px] text-encre-douce">
+          <li v-for="(consequence, index) in consequences" :key="index" class="flex gap-2">
+            <span class="text-[color:var(--accent)]">•</span>{{ consequence }}
+          </li>
+        </ul>
+
+        <p v-if="erreur" class="bandeau bandeau-erreur">
+          <AlertTriangle :size="15" class="mt-px shrink-0" /> {{ erreur }}
+        </p>
+      </form>
+
+      <template #actions>
+        <button type="button" class="bouton-neutre !py-2" @click="annulation = null">
+          Garder la commande
+        </button>
+        <button
+          type="button"
+          class="bouton-accent !py-2"
+          :disabled="occupe"
+          @click="confirmerAnnulation"
+        >
+          <X :size="15" /> Annuler et rembourser
+        </button>
+      </template>
+    </Popup>
   </div>
 </template>

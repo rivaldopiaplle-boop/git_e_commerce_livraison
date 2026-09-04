@@ -10,6 +10,7 @@ from coeur.adresses import VENDEUR, adresse_pour
 from comptes.models import Adresse, AdresseClient
 from comptes.permissions import EstClient, EstVendeurOuSonPersonnel
 
+from .annulation import AnnulationRefusee, annuler
 from .decoupage import PanierInvalide, apercu, decouper
 from .models import (
     Commande,
@@ -31,6 +32,72 @@ SUITE_PREPARATION = {
     StatutPreparation.EXPEDIEE: [],
     StatutPreparation.ANNULEE: [],
 }
+
+# ── Le vocabulaire suit le circuit (D-81) ────────────────────────────────
+#
+# Ta remarque : *« la chaine n'est pas comme dans la realite »*. Un restaurant
+# et un expediteur de colis lisaient exactement les memes mots, alors qu'ils
+# ne font pas le meme geste. Le statut technique reste le meme ; c'est le
+# libelle du BOUTON qui change, et c'est le bouton qu'on lit.
+#
+# Les libelles sont servis par l'API, pas ecrits dans l'ecran : le front ne
+# connait pas la machine a etats, il affiche ce qu'on lui donne. Deux tables
+# de vocabulaire recopiees des deux cotes divergeraient au premier ajout.
+VOCABULAIRE = {
+    "EXPRESS": {
+        StatutPreparation.EN_PREPARATION: "Mettre en preparation",
+        StatutPreparation.PRETE: "Signaler prete",
+        StatutPreparation.EXPEDIEE: "Remettre au livreur",
+        StatutPreparation.ANNULEE: "Annuler cette commande",
+    },
+    "STANDARD": {
+        StatutPreparation.EN_PREPARATION: "Preparer le colis",
+        StatutPreparation.PRETE: "Colis pret a partir",
+        StatutPreparation.EXPEDIEE: "Expedier vers l'entrepot",
+        StatutPreparation.ANNULEE: "Annuler cette part",
+    },
+}
+
+# Le delai annonce au client, par circuit. Au-dela, la ligne passe en alerte :
+# une commande qui attend n'a pas la meme urgence qu'une commande qui vient
+# d'arriver, et une file ou tout se ressemble se traite dans le desordre.
+DELAI_PREPARATION_MINUTES = {"EXPRESS": 20, "STANDARD": 24 * 60}
+
+
+def _libelles(type_service, statuts):
+    """Les mots du circuit pour ces statuts, avec un repli sur le vocabulaire
+    generique si un service inconnu apparaissait un jour."""
+    table = VOCABULAIRE.get(type_service, VOCABULAIRE["STANDARD"])
+    return {statut: table.get(statut, "Etape suivante") for statut in statuts}
+
+
+def _attente(sous):
+    """Depuis quand cette part attend, et si le delai annonce est depasse.
+
+    Le point de depart est l'entree dans l'etape courante quand on la connait,
+    et la date de commande sinon. Compter depuis la commande pour une part
+    deja prise en main donnerait une alerte permanente, qu'on apprendrait a
+    ignorer — et une alerte qu'on ignore ne sert a rien.
+    """
+    from django.utils import timezone
+
+    if sous.statut_preparation in (StatutPreparation.PRETE, StatutPreparation.EXPEDIEE,
+                                   StatutPreparation.ANNULEE):
+        return {"minutes": None, "en_retard": False, "delai_minutes": None}
+
+    depart = (
+        HistoriqueStatut.objects.filter(
+            type_objet=TypeObjetSuivi.SOUS_COMMANDE, id_objet=sous.id,
+            statut_apres=sous.statut_preparation,
+        )
+        .order_by("-date_changement")
+        .values_list("date_changement", flat=True)
+        .first()
+    ) or sous.commande.date_commande
+
+    minutes = int((timezone.now() - depart).total_seconds() // 60)
+    delai = DELAI_PREPARATION_MINUTES.get(sous.commande.type_service, 24 * 60)
+    return {"minutes": minutes, "en_retard": minutes > delai, "delai_minutes": delai}
 
 
 @api_view(["GET"])
@@ -246,6 +313,13 @@ def commandes_recues(requete):
             "date_commande": sous.commande.date_commande,
             "statut_commande": sous.commande.statut_actuel,
             "suites_possibles": SUITE_PREPARATION.get(sous.statut_preparation, []),
+            # Les mots du circuit, pas des etiquettes generiques (D-81).
+            "libelles_suites": _libelles(
+                sous.commande.type_service,
+                SUITE_PREPARATION.get(sous.statut_preparation, []),
+            ),
+            # Depuis quand ca attend, et si le delai annonce est depasse (D-81).
+            "attente": _attente(sous),
             # Ou part le colis (D-74). Le vendeur ne savait meme pas dans quelle
             # ville il expediait : ni la rue ni les instructions, il prepare un
             # colis, il n'a pas a connaitre l'etage de quelqu'un.
@@ -285,6 +359,29 @@ def avancer_preparation(requete, identifiant):
             status=status.HTTP_409_CONFLICT,
         )
 
+    # Annuler n'est pas « avancer d'un cran ». C'etait pourtant le meme geste :
+    # le statut passait a ANNULEE, et rien d'autre ne se produisait — ni motif,
+    # ni remboursement, ni stock rendu, ni client prevenu (D-144).
+    if vise == StatutPreparation.ANNULEE:
+        try:
+            montant = annuler(
+                sous, requete.data.get("motif"), requete.data.get("explication"), utilisateur,
+            )
+        except AnnulationRefusee as refus:
+            return Response(
+                {"erreur": {"code": refus.code, "message": refus.message, "details": {}}},
+                status=status.HTTP_409_CONFLICT if refus.code == "trop_tard"
+                else status.HTTP_400_BAD_REQUEST,
+            )
+        sous.refresh_from_db()
+        return Response({"data": {
+            **SousCommandeSerializer(sous, context={"request": requete}).data,
+            "suites_possibles": [],
+            "libelles_suites": {},
+            "attente": _attente(sous),
+            "montant_rembourse_centimes": montant,
+        }})
+
     avant = sous.statut_preparation
     sous.statut_preparation = vise
     sous.save(update_fields=["statut_preparation"])
@@ -305,6 +402,11 @@ def avancer_preparation(requete, identifiant):
     return Response({"data": {
         **SousCommandeSerializer(sous, context={"request": requete}).data,
         "suites_possibles": SUITE_PREPARATION.get(sous.statut_preparation, []),
+        "libelles_suites": _libelles(
+            sous.commande.type_service,
+            SUITE_PREPARATION.get(sous.statut_preparation, []),
+        ),
+        "attente": _attente(sous),
     }})
 
 

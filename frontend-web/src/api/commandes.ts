@@ -37,6 +37,21 @@ export type SousCommande = {
    *  personnel travaillaient sur la meme file sans jamais savoir lequel des
    *  deux avait deja agi. */
   dernier_acte?: { qui: string; quand: string; statut: string } | null
+  /** Les mots du circuit pour chaque suite possible (D-81). Un restaurant
+   *  « signale prête », un expéditeur « expédie vers l'entrepôt » : même
+   *  statut technique, deux gestes différents. Le serveur les donne, l'écran
+   *  ne les devine pas. */
+  libelles_suites?: Record<string, string>
+  /** Depuis combien de temps cette part attend, et si le délai annoncé au
+   *  client est dépassé (D-81). `minutes` est nul aux étapes terminées :
+   *  compter le temps d'attente d'une commande expédiée n'a pas de sens. */
+  attente?: {
+    minutes: number | null
+    en_retard: boolean
+    delai_minutes: number | null
+  }
+  /** Rendu par l'annulation seule (D-144). */
+  montant_rembourse_centimes?: number
 }
 
 export type Commande = {
@@ -75,6 +90,12 @@ export const commandes = {
   creer: (corps: object) => api.post<Commande[]>('/commandes', corps),
   miennes: () => api.get<Commande[]>('/mes-commandes'),
   recues: () => api.get<SousCommande[]>('/vendeurs/commandes'),
-  avancer: (id: number, statut: string) =>
-    api.patch<SousCommande>(`/vendeurs/sous-commandes/${id}`, { statut }),
+  /**
+   * Faire avancer une part de commande d'un cran.
+   *
+   * `details` ne sert qu'à l'annulation, qui exige un motif classé et une
+   * explication (D-07, D-144). Le reste des transitions n'a rien à porter.
+   */
+  avancer: (id: number, statut: string, details?: { motif: string; explication: string }) =>
+    api.patch<SousCommande>(`/vendeurs/sous-commandes/${id}`, { statut, ...details }),
 }

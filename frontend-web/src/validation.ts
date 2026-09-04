@@ -106,5 +106,42 @@ export const schemaAdresse = toTypedSchema(
   }),
 )
 
+/**
+ * L'annulation d'une part de commande par son vendeur — D-07, D-144.
+ *
+ * L'explication est **obligatoire et longue de quinze caractères au minimum**,
+ * parce que c'est ce texte que le client lit. « rupture » tout court ne lui
+ * apprend rien et l'envoie ouvrir un litige ; « il ne me reste plus de saumon,
+ * je suis désolé » évite l'appel.
+ *
+ * La même longueur minimale est exigée côté serveur : celle-ci ne fait que
+ * l'annoncer plus tôt.
+ */
+export const schemaAnnulationVendeur = toTypedSchema(
+  z.object({
+    motif: z.string().min(1, 'Choisissez un motif.'),
+    explication: z
+      .string()
+      .trim()
+      .min(15, 'Expliquez en une phrase : c’est ce texte que le client lira.'),
+  }),
+)
+
+/**
+ * Le signalement d'un problème par le client — D-94.
+ *
+ * Vingt caractères ici, et non quinze : c'est le récit sur lequel un
+ * administrateur tranchera, et il n'a que ça et la réponse du vendeur.
+ */
+export const schemaLitige = toTypedSchema(
+  z.object({
+    motif: z.string().min(1, 'Choisissez un motif.'),
+    description: z
+      .string()
+      .trim()
+      .min(20, 'Décrivez ce qui s’est passé : c’est ce que l’arbitre lira.'),
+  }),
+)
+
 /** Exporté pour les tests : une règle qu'on ne peut pas vérifier ne vaut rien. */
 export const REGLES = { courriel, motDePasse, codePostal }
