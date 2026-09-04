@@ -5,7 +5,7 @@
 > une intention. Il est établi en listant les routes que l'API expose et les
 > écrans que le front compile, puis en les confrontant au dossier de conception.
 >
-> Mis à jour le 4 septembre, après le relevé du mobile (bloc N).
+> Mis à jour le 4 septembre, après le contrôle de fin du bloc O.
 
 ---
 
@@ -717,3 +717,51 @@ Corrigé par [D-143](journal-decisions.md) : le refus est inscrit dans la
 référence à l'ouverture, là où le montant est connu.
 
 **Compte des tests à la fin du bloc N** : 225 backend, 107 front web, 39 mobile.
+
+
+---
+
+## Bloc O — le contrôle de fin de bloc
+
+30 vérifications, confrontées **au code** et non au souvenir de l'avoir écrit.
+**30 passent.** Elles sont rejouables : le script vit dans le dossier de travail
+temporaire, et l'essentiel est repris ici.
+
+### Ce qui n'existait pas du tout
+
+| Ce qui manquait | Où c'est maintenant |
+|---|---|
+| **Aucune livraison n'était créée** hors du jeu de démonstration | `livraisons/attribution.py`, appelé quand la commande passe à `PRETE` |
+| Le rattachement d'un colis à un entrepôt | choisi à l'expédition, le plus proche du client |
+| La confirmation de réception d'un colis | `POST /entrepots/colis/{id}/reception` |
+| Le calcul d'une tournée | `POST /entrepots/tournees/calculer`, rejouable |
+| L'attribution d'une tournée, son départ | deux routes, avec leurs refus |
+| Le carnet de cartes bancaires | `paiements/cartes.py` + `/moi/cartes` |
+| La ventilation de l'argent payé | `GET /commandes/{id}/repartition` |
+| Le rafraîchissement des écrans | `rafraichissement.ts`, web et mobile |
+
+### Ce qui existait mais ne se voyait pas
+
+- le **code de remise** était généré et n'apparaissait nulle part côté client ;
+- les **avis publics** existaient mais il fallait ouvrir une fiche pour les lire ;
+- la **suite d'un signalement** existait mais le client ne la voyait jamais ;
+- le compteur de courses disponibles **contredisait** l'écran suivant.
+
+### Ce qui bougeait mal
+
+- « personne à l'adresse » laissait l'arrêt en tête de tournée, donc le même
+  arrêt revenait indéfiniment ;
+- une tournée terminée **avec des échecs** renvoyait vers les gains ;
+- l'aide servait les questions d'un rôle à un autre ;
+- la barre d'onglets se posait sur celle d'Android, dont la marge vaut zéro.
+
+### Un incident, et ce qu'il a laissé
+
+En écrivant ces décisions, un script d'ajout a **effacé 149 décisions du
+journal** : il ouvrait le fichier en écriture avant de le lire, ce que Python
+fait dans cet ordre. Le fichier est reparti à cinq décisions, le script a rendu
+0, et **rien ne l'a signalé** — c'est git qui l'a rattrapé.
+
+`test_le_journal_des_decisions_ne_perd_jamais_de_decisions` vérifie désormais
+deux choses qu'aucun œil ne vérifie : le journal ne peut que grandir, et ses
+numéros se suivent sans trou.

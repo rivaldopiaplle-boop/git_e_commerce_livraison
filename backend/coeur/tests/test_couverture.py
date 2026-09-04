@@ -123,3 +123,38 @@ def test_aucun_controle_ne_cite_un_scenario_inexistant():
         f"`verifier_couverture` contrôle des scenarios absents du dossier "
         f"produit : {', '.join(inconnus)}."
     )
+
+def test_le_journal_des_decisions_ne_perd_jamais_de_decisions():
+    """Le journal ne peut que grandir, et ses numeros se suivent.
+
+    Au bloc O, un script d'ajout a efface 149 decisions d'un coup : il ouvrait
+    le fichier en ECRITURE avant de le lire, ce que Python fait dans cet ordre.
+    Le fichier est reparti a cinq decisions, le script a rendu 0, le commit est
+    parti, et **rien ne l'a signale**. C'est git qui l'a rattrape.
+
+    Ce test verifie deux choses qu'aucun oeil ne verifie :
+
+      · le journal contient au moins autant de decisions que la derniere fois
+        qu'on a regarde. Le plancher se releve a la main, sciemment ;
+      · **les numeros se suivent sans trou**. Un trou signifie soit une
+        decision perdue, soit une decision jamais ecrite — et les deux sont
+        des defauts.
+    """
+    import re
+    from pathlib import Path
+
+    journal = (Path(__file__).resolve().parents[3]
+               / "plan-organisation" / "00-pilotage" / "journal-decisions.md")
+    numeros = sorted(
+        int(n) for n in re.findall(r"^### D-(\d+) ", journal.read_text(encoding="utf-8"), re.M)
+    )
+
+    # Le plancher : releve a la main quand on ajoute des decisions.
+    assert len(numeros) >= 159, (
+        f"Le journal ne contient plus que {len(numeros)} decisions. "
+        "Il ne peut que grandir : quelque chose en a efface."
+    )
+    assert numeros == list(range(1, numeros[-1] + 1)), (
+        "Les numeros de decision doivent se suivre sans trou : "
+        f"il manque {sorted(set(range(1, numeros[-1] + 1)) - set(numeros))}."
+    )

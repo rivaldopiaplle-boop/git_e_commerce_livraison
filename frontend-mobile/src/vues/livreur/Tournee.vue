@@ -57,8 +57,15 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
         <IonBadge>{{ livreur.tournee.libelle_statut }}</IonBadge>
       </div>
 
-      <Carte v-if="pointsTournee.length > 1" :points="pointsTournee" profil="voiture"
-             hauteur="220px" />
+      <!-- Taper une pastille ouvre l'arrêt : une carte où l'on ne peut rien
+           toucher est une illustration (O-5). -->
+      <Carte
+        v-if="pointsTournee.length > 1"
+        :points="pointsTournee"
+        profil="voiture"
+        hauteur="220px"
+        @point="() => routeur.push('/arret')"
+      />
 
       <button
         v-for="arret in livreur.tournee.arrets"

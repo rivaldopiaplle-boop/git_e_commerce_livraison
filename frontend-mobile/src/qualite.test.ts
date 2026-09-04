@@ -124,7 +124,9 @@ describe('les écrans se rafraîchissent', () => {
   // revenait sur l'onglet Panier, et il montrait l'état d'il y a dix minutes
   // sans que rien ne le dise (O-5, O-7).
   const avecDonnees = ECRANS.filter(
-    (e) => e.source.includes('client.get') || e.source.includes('.charger()'),
+    (e) => e.source.includes('client.get')
+      || e.source.includes('client.appelerComplet')
+      || e.source.includes('.charger()'),
   )
 
   it('la douzaine d’écrans qui chargent des données est bien trouvée', () => {

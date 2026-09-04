@@ -5,7 +5,7 @@
 // juste un retour visuel puis la bascule vers « Ma course » (D-60). Quand on
 // est à vélo au feu rouge, une confirmation en deux écrans fait rater la
 // course.
-import { IonButton, IonIcon, IonSpinner } from '@ionic/vue'
+import { IonButton, IonIcon, IonModal, IonSpinner } from '@ionic/vue'
 import { euros } from '@partage/metier'
 import { Geolocation } from '@capacitor/geolocation'
 import { locationOutline, storefrontOutline } from 'ionicons/icons'
@@ -76,6 +76,20 @@ const explication = computed(() =>
   EXPLICATIONS[livreur.raisonVide] ?? EXPLICATIONS.aucune,
 )
 
+/**
+ * Une pastille tapée choisit sa course.
+ *
+ * Le rang de la pastille est celui de la liste : on remonte donc à la course
+ * par son index, et on la propose — sans l'accepter d'office. Accepter une
+ * course d'un geste involontaire sur une carte serait le pire des raccourcis.
+ */
+function surPointChoisi(point: { rang?: number }) {
+  const course = livreur.disponibles[(point.rang ?? 1) - 1]
+  if (course) aPrendre.value = course
+}
+
+const aPrendre = ref<(typeof livreur.disponibles)[number] | null>(null)
+
 const pointsCourses = computed(() => {
   const points = livreur.disponibles
     .map((course, rang) => ({
@@ -111,6 +125,7 @@ async function prendre(identifiant: number) {
   erreur.value = ''
   try {
     await livreur.accepter(identifiant)
+    aPrendre.value = null
     routeur.push('/courses')
   } catch (echec) {
     erreur.value = echec instanceof Error ? echec.message : 'Course indisponible.'
@@ -131,8 +146,15 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
     <p v-if="erreur" class="erreur">{{ erreur }}</p>
 
     <!-- Où sont les courses, avant de lire ce qu'elles rapportent -->
-    <Carte v-if="pointsCourses.length" :points="pointsCourses" :itineraire="false"
-           hauteur="200px" />
+    <!-- Taper une pastille prend la course : c'est LE geste de cet écran, et
+         il devait être à portée de pouce depuis la carte aussi (O-5, O-8). -->
+    <Carte
+      v-if="pointsCourses.length"
+      :points="pointsCourses"
+      :itineraire="false"
+      hauteur="200px"
+      @point="surPointChoisi"
+    />
 
     <div v-for="course in livreur.disponibles" :key="course.id" class="carte-mobile">
       <div class="entete">
@@ -153,6 +175,25 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
       </IonButton>
     </div>
 
+    <!-- Ce qu'on vient de désigner sur la carte, avant de s'engager -->
+    <IonModal :is-open="!!aPrendre" :initial-breakpoint="0.45" :breakpoints="[0, 0.45]"
+              @did-dismiss="aPrendre = null">
+      <div v-if="aPrendre" class="feuille">
+        <b class="titre">{{ aPrendre.client }}</b>
+        <span class="sous-titre">
+          {{ aPrendre.boutiques.join(', ') }} →
+          {{ aPrendre.adresse?.code_postal }} {{ aPrendre.adresse?.ville }}
+          <template v-if="aPrendre.distance_km"> · {{ aPrendre.distance_km }} km</template>
+        </span>
+        <b class="gain">{{ euros(aPrendre.remuneration_livreur_centimes) }}</b>
+        <span class="sous-titre">{{ aPrendre.calcul_remuneration }}</span>
+        <IonButton expand="block" :disabled="occupe === aPrendre.id"
+                   @click="prendre(aPrendre.id)">
+          Prendre cette course
+        </IonButton>
+      </div>
+    </IonModal>
+
     <div v-if="!livreur.disponibles.length" class="etat-vide">
       <IonIcon :icon="locationOutline" class="grande-icone" />
       <b>{{ explication.titre }}</b>
@@ -171,6 +212,21 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
 </template>
 
 <style scoped>
+.feuille {
+  padding: 20px 16px calc(20px + var(--rd-marge-basse, 12px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.feuille .titre {
+  font-size: 18px;
+}
+.feuille .gain {
+  font-size: 22px;
+  color: var(--accent);
+  margin-top: 6px;
+}
+
 .entete {
   display: flex;
   align-items: center;

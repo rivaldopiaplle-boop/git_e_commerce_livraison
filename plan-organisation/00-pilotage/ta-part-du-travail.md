@@ -8,7 +8,73 @@
 
 ---
 
-# ⬛ À FAIRE MAINTENANT — bloc N, 4 septembre
+# ⬛ À FAIRE MAINTENANT — bloc O, 4 septembre
+
+> **Le contrôle de fin de bloc est fait** : 30 vérifications passées sur 30,
+> confrontées au code et non au souvenir. Le détail est dans `etat-reel.md`.
+
+## Ce qui n'existait pas du tout, et qui existe maintenant
+
+**Le trou le plus grave du bloc, et il ne se voyait pas** : rien ne créait de
+livraison en dehors du jeu de démonstration. Une commande payée, préparée et
+marquée prête n'arrivait **chez aucun livreur**. C'est ce que tu décrivais de
+trois façons — pas de course disponible, une distance qui sort de nulle part, et
+une tournée dont on ignore l'origine.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **1** | **Commande complète.** `lea@exemple.fr` → un produit → panier → « Passer commande ». Il te demande **une carte** : prends `4242 4242 4242 4242`, `12/30`, `123`. Une reconfirmation dit le montant **et** la carte | 4 min | D-150 |
+| **2** | **N'entre jamais ta vraie carte** : essaie `4111 1111 1111 1111`, elle est refusée en te disant pourquoi | 1 min | D-150 |
+| **3** | **`olivier@exemple.fr`** (Maison Perrin) → Commandes reçues → fais avancer ta commande jusqu'à **Expédiée** | 2 min | D-152 |
+| **4** | **`rachid@exemple.fr`** (entrepôt Lyon-Est) → **Colis reçus** → confirme la réception de ce colis | 1 min | D-153 |
+| **5** | **Tournées → « Calculer une tournée ».** Elle se monte avec ce qui est arrivé, dans l'ordre du plus proche voisin, avec sa distance | 2 min | D-153 |
+| **6** | **Recalcule-la** : le résultat peut différer. Puis **confie-la** — la liste ne propose que des livreurs Standard — et **fais-la partir** | 3 min | D-153 |
+| **7** | **`julien@exemple.fr`** sur mobile → « Ma tournée ». L'arrêt est là, avec la carte. Et le client voit sa commande passer « en tournée » **tout seul** | 3 min | D-146 |
+
+## L'argent, qui n'existait qu'à moitié
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **8** | **Sur une commande payée → « Mon reçu ».** Chaque boutique, le livreur, la plateforme : **la somme des parts fait exactement le total** | 2 min | D-151 |
+| **9** | **Mobile, historique du livreur → une course.** Le calcul est écrit : « 1,50 € de base + 0,35 €/km × 4,35 km ». Plus rien ne sort de nulle part | 2 min | D-152 |
+
+## Ce qui ne bougeait jamais
+
+**Ta remarque soulignée quatre fois.** L'API était bien synchronisée — je l'ai
+vérifié, même compte, mêmes données depuis les deux origines. Le défaut était
+entièrement côté écran : chaque vue chargeait ses données **une seule fois**, et
+Ionic ne démonte jamais ses vues.
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **10** | **Ouvre le web et le mobile côte à côte, même compte.** Ajoute un article sur le web, va sur l'onglet Panier du mobile : il est là | 3 min | D-146 |
+| **11** | **Laisse « Mes commandes » ouvert sur le mobile** pendant que tu fais avancer la commande depuis le vendeur. Le suivi avance **tout seul** | 3 min | D-146 |
+
+## Le mobile, refait
+
+| # | Ce que je te demande | Temps | Détail |
+|---|---|---|---|
+| **12** | **L'accueil client.** Adresse, recherche, commande en cours **avec son code de remise**, catégories, boutiques proches, « commander à nouveau », les plus demandés. Tout est cliquable | 3 min | D-148 |
+| **13** | **Recherche → le bouton de filtres.** Un panneau monte du bas : mode, catégories groupées par univers, boutiques, stock. Les filtres retenus restent en pastilles | 2 min | D-157 |
+| **14** | **Mes commandes.** Les cartes sont **repliées**, sauf celle en cours. Ouvre-en une : reçu, avis, signalement, en trois boutons de même taille | 2 min | D-156 |
+| **15** | **Mon reçu → « Imprimer ou enregistrer ».** Le navigateur propose « Enregistrer en PDF », et rien de l'application n'apparaît sur la feuille | 2 min | D-156 |
+| **16** | **Signale un problème, puis reste sur la commande.** Le dossier s'affiche dessous, avec le délai de la boutique | 2 min | D-155 |
+| **17** | **Profil → Aide.** Les questions sont **celles du client**. Connecte-toi en `amine@exemple.fr` : ce sont celles d'un livreur Express, pas d'un Standard | 2 min | D-159 |
+| **18** | **`julien@exemple.fr` → prochain arrêt → « Personne à l'adresse ».** L'écran te dit que l'arrêt **repasse en fin de tournée**, et l'arrêt suivant s'affiche | 2 min | D-155 |
+
+## Ce que tu peux vérifier au passage
+
+- **les vraies photos passent devant** au catalogue, les produits sans image en
+  dernier (O-6, D-149) ;
+- **la note se lit sur la vignette**, avant d'ouvrir la fiche, et elle dit si
+  elle porte sur le produit ou sur la boutique (D-154) ;
+- **la carte est cliquable** : tape une pastille sur « À proximité », la course
+  s'ouvre ; sur « Ma tournée », l'arrêt s'ouvre (D-142, O-5) ;
+- **la barre d'onglets ne touche plus celle d'Android** (O-3, D-158).
+
+---
+
+# 🗂 Bloc N, 4 septembre
 
 ## `demarrer.py` lance enfin le mobile — et te le dit s'il n'y arrive pas
 

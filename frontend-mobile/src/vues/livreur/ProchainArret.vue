@@ -6,7 +6,10 @@
 // bouton livré ou absent, et rien d'autre.
 import { IonButton, IonIcon, IonInput, IonModal } from '@ionic/vue'
 import { Geolocation } from '@capacitor/geolocation'
-import { checkmarkDoneOutline, locationOutline, navigateOutline } from 'ionicons/icons'
+import {
+  alertCircleOutline, checkmarkDoneOutline, listOutline, locationOutline,
+  navigateOutline,
+} from 'ionicons/icons'
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -18,6 +21,27 @@ const livreur = useLivreur()
 const routeur = useRouter()
 
 const arret = computed(() => livreur.prochainArret)
+
+/**
+ * Ce qu'il reste vraiment à faire — O-5.
+ *
+ * Ta remarque : *« tu cliques les livraisons échouées, ça ramène sur les
+ * gains, pourquoi ? »*. L'écran ne savait dire qu'une chose — « tournée
+ * terminée, voir mes gains » — et il la disait dès que « prochain arrêt »
+ * était vide, y compris quand des arrêts avaient échoué. On atterrissait sur
+ * ses gains sans comprendre pourquoi, et sans savoir ce qui restait.
+ *
+ * Il compte donc, et il dit.
+ */
+const bilan = computed(() => {
+  const arrets = livreur.tournee?.arrets ?? []
+  return {
+    total: arrets.length,
+    livres: arrets.filter((a) => a.statut === 'LIVRE').length,
+    echoues: arrets.filter((a) => a.statut === 'ECHOUE').length,
+    restants: arrets.filter((a) => ['A_FAIRE', 'REPORTE'].includes(a.statut)).length,
+  }
+})
 
 /** Ma position, quand le navigateur veut bien la donner. */
 const moi = ref<{ lat: number; lon: number } | null>(null)
@@ -166,13 +190,48 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
       <p v-if="erreur" class="erreur">{{ erreur }}</p>
     </template>
 
-    <div v-else class="etat-vide">
+    <div v-else-if="!livreur.tournee" class="etat-vide">
+      <IonIcon :icon="listOutline" class="grande-icone" />
+      <b>Aucune tournée</b>
+      <span>
+        L'entrepôt vous en confiera une quand les colis de votre zone seront
+        arrivés et rangés.
+      </span>
+      <IonButton fill="outline" size="small" class="ion-margin-top"
+                 @click="routeur.push('/accueil')">
+        Retour à l'accueil
+      </IonButton>
+    </div>
+
+    <!-- Terminée VRAIMENT : tous les arrêts sont livrés. -->
+    <div v-else-if="!bilan.echoues" class="etat-vide">
       <IonIcon :icon="checkmarkDoneOutline" class="grande-icone" />
       <b>Tournée terminée</b>
-      <span>Tous vos arrêts sont faits. Bonne fin de journée.</span>
+      <span>
+        {{ bilan.livres }} arrêt{{ bilan.livres > 1 ? 's' : '' }} livré{{
+          bilan.livres > 1 ? 's' : '' }}. Bonne fin de journée.
+      </span>
       <IonButton fill="outline" size="small" class="ion-margin-top"
                  @click="routeur.push('/gains')">
         Voir mes gains
+      </IonButton>
+    </div>
+
+    <!-- Terminée AVEC des échecs : ce n'est pas la même chose, et envoyer
+         quelqu'un vers ses gains à ce moment-là ne répond à rien (O-5). -->
+    <div v-else class="etat-vide">
+      <IonIcon :icon="alertCircleOutline" class="grande-icone alerte" />
+      <b>Plus rien à livrer, mais {{ bilan.echoues }} échec{{
+        bilan.echoues > 1 ? 's' : '' }}</b>
+      <span>
+        {{ bilan.livres }} arrêt{{ bilan.livres > 1 ? 's' : '' }} livré{{
+          bilan.livres > 1 ? 's' : '' }} sur {{ bilan.total }}.
+        Les colis non remis après deux passages repartent chez leur vendeur, et
+        les clients sont prévenus — vous n'avez rien à faire de plus.
+      </span>
+      <IonButton fill="outline" size="small" class="ion-margin-top"
+                 @click="routeur.push('/historique')">
+        Voir le détail de ma journée
       </IonButton>
     </div>
 
@@ -229,6 +288,9 @@ const Carte = defineAsyncComponent(() => import('@/composants/Carte.vue'))
 .grande-icone {
   font-size: 34px;
   color: var(--rd-trait);
+}
+.grande-icone.alerte {
+  color: #b8650f;
 }
 .feuille {
   padding: 20px 18px calc(20px + var(--rd-marge-basse, 12px));
